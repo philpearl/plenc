@@ -1,0 +1,9 @@
+syntax = "proto3";
+package philenc;
+
+message Trial {
+    int32 f1 = 1;
+    repeated int32 f2 = 2;
+    float f3 = 3;
+    repeated float f4 = 4;
+}
