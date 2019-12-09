@@ -7,19 +7,6 @@ import (
 	"text/template"
 )
 
-type field struct {
-	Name           string
-	Index          int
-	SizeTemplate   string
-	AppendTemplate string
-}
-
-type data struct {
-	Package string
-	Name    string
-	Fields  []field
-}
-
 func createMarshaler(typeInfo data) ([]byte, error) {
 	var b bytes.Buffer
 	if err := encodeTmpl.Execute(&b, typeInfo); err != nil {
@@ -30,10 +17,10 @@ func createMarshaler(typeInfo data) ([]byte, error) {
 }
 
 var encodeTmplFuncs = template.FuncMap{
-	"runTemplate": runTemplate,
+	"runTemplate": runEncodeTemplate,
 }
 
-func runTemplate(name string, data interface{}) (string, error) {
+func runEncodeTemplate(name string, data interface{}) (string, error) {
 	var b strings.Builder
 	err := encodeTmpl.ExecuteTemplate(&b, name, data)
 	return b.String(), err
@@ -88,7 +75,7 @@ func init() {
 		for i := range e.{{.Name}} {
 			if s := e.{{.Name}}[i].ΦλSize(); s != 0 {
 				data = philenc.AppendTag(data, philenc.WTLength, {{.Index}})
-				data = philenc.AppendVarUint(data, uint(size))
+				data = philenc.AppendVarUint(data, uint(s))
 				data = e.{{.Name}}[i].ΦλAppend(data)		
 			}
 		}
@@ -103,7 +90,6 @@ func init() {
 		data = philenc.AppendTag(data, philenc.WTVarInt, {{.Index}})
 		data = philenc.AppendBool(data, e.{{.Name}})
 	{{ end }}
-	
 	
 	{{ define "Float32Size" }}
 		size += philenc.SizeTag(philenc.WT32, {{.Index}})
@@ -142,7 +128,7 @@ func init() {
 	
 	{{ define "UintAppend" }}
 		data = philenc.AppendTag(data, philenc.WTVarInt, {{.Index}})
-		data = philenc.AppendVarInt(data, uint(e.{{.Name}}))
+		data = philenc.AppendVarUint(data, uint(e.{{.Name}}))
 	{{ end }}
 	
 	

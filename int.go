@@ -2,6 +2,9 @@ package philenc
 
 // ReadVarUint reads a varint from data and returns it
 func ReadVarUint(data []byte) (v uint, n int) {
+	if len(data) == 0 {
+		return 0, 0
+	}
 	for i, d := range data {
 		v |= uint(d&0x7F) << (7 * i)
 		if d&0x80 == 0 {

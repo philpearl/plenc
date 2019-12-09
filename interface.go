@@ -10,6 +10,6 @@ type Marshaler interface {
 
 // Unmarshaler is implemented by types that can decode themselves
 type Unmarshaler interface {
-	// ΦλRead unmarshals itself from data. It returns the number of bytes consumed
-	ΦλRead(data []byte) (n int, err error)
+	// ΦλUnmarshal unmarshals itself from data. It returns the number of bytes consumed
+	ΦλUnmarshal(data []byte) (n int, err error)
 }

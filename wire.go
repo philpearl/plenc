@@ -24,6 +24,8 @@ func ReadTag(data []byte) (wt WireType, index, n int) {
 	v, n := ReadVarUint(data)
 	wt = WireType(v & 0x7)
 	index = int(v >> 3)
+
+	fmt.Println("tag", wt, index, n)
 	return wt, index, n
 }
 
@@ -48,7 +50,7 @@ func Skip(data []byte, wt WireType) (int, error) {
 				return i + 1, nil
 			}
 		}
-		return 0, fmt.Errorf("unexpected end of data")
+		return 0, fmt.Errorf("unexpected end of data. %X", data)
 	case WT64:
 		return 8, nil
 	case WTLength:
