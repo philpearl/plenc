@@ -62,7 +62,7 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 		case 7:
 
 			// Method
-			s, n := philenc.ReadVarUint(data)
+			s, n := philenc.ReadVarUint(data[offset:])
 			offset += n
 			n, err := e.H.ΦλUnmarshal(data[offset : offset+int(s)])
 			if err != nil {
@@ -83,7 +83,7 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 			}
 
 			// Slice of method-y things
-			s, n := philenc.ReadVarUint(data)
+			s, n := philenc.ReadVarUint(data[offset:])
 			offset += n
 			n, err := e.I[l].ΦλUnmarshal(data[offset : offset+int(s)])
 			if err != nil {

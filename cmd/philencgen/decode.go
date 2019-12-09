@@ -43,7 +43,7 @@ import (
 
 {{ define "MethodDecode" }}
 	// Method
-	s, n := philenc.ReadVarUint(data)
+	s, n := philenc.ReadVarUint(data[offset:])
 	offset += n
 	n, err := e.{{.Name}}.ΦλUnmarshal(data[offset:offset+int(s)])
 	if err != nil {
@@ -62,7 +62,7 @@ import (
 	}
 
 	// Slice of method-y things
-	s, n := philenc.ReadVarUint(data)
+	s, n := philenc.ReadVarUint(data[offset:])
 	offset += n
 	n, err := e.{{.Name}}[l].ΦλUnmarshal(data[offset:offset+int(s)])
 	if err != nil {
