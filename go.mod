@@ -1,4 +1,4 @@
-module github.com/philpearl/φλenc
+module github.com/philpearl/plenc
 
 go 1.13
 

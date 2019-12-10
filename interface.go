@@ -1,4 +1,4 @@
-package φλenc
+package plenc
 
 // Marshaler is implemented by types that can encode themselves
 type Marshaler interface {

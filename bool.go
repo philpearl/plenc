@@ -1,4 +1,4 @@
-package φλenc
+package plenc
 
 // ReadBool reads a bool from data and returns it
 func ReadBool(data []byte) (v bool, n int) {

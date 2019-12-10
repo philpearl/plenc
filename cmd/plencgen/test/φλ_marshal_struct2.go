@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/philpearl/φλenc"
+	"github.com/philpearl/plenc"
 )
 
 // TODO: missing types
@@ -16,11 +16,11 @@ func (e *Struct2) ΦλSize() (size int) {
 		return 0
 	}
 
-	size += φλenc.SizeTag(φλenc.WTVarInt, 1)
-	size += φλenc.SizeVarUint(uint64(e.A))
+	size += plenc.SizeTag(plenc.WTVarInt, 1)
+	size += plenc.SizeVarUint(uint64(e.A))
 
-	size += φλenc.SizeTag(φλenc.WTLength, 2)
-	size += φλenc.SizeString(e.B)
+	size += plenc.SizeTag(plenc.WTLength, 2)
+	size += plenc.SizeString(e.B)
 
 	return size
 }
@@ -28,11 +28,11 @@ func (e *Struct2) ΦλSize() (size int) {
 // ΦλAppend encodes Struct2 by appending to data. It returns the final slice
 func (e *Struct2) ΦλAppend(data []byte) []byte {
 
-	data = φλenc.AppendTag(data, φλenc.WTVarInt, 1)
-	data = φλenc.AppendVarUint(data, uint64(e.A))
+	data = plenc.AppendTag(data, plenc.WTVarInt, 1)
+	data = plenc.AppendVarUint(data, uint64(e.A))
 
-	data = φλenc.AppendTag(data, φλenc.WTLength, 2)
-	data = φλenc.AppendString(data, e.B)
+	data = plenc.AppendTag(data, plenc.WTLength, 2)
+	data = plenc.AppendString(data, e.B)
 
 	return data
 }

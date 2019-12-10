@@ -1,11 +1,11 @@
-package φλenc
+package plenc
 
 import (
 	"fmt"
 	"time"
 )
 
-// Time is a representation of time in UTC
+// Time is a representation of time in UTC. It is used to encode time.Time
 type Time struct {
 	Seconds     int64
 	Nanoseconds int32

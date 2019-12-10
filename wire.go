@@ -1,4 +1,4 @@
-package φλenc
+package plenc
 
 import "fmt"
 

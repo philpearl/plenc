@@ -1,4 +1,4 @@
-package φλenc
+package plenc
 
 import "testing"
 import fuzz "github.com/google/gofuzz"

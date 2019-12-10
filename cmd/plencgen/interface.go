@@ -15,7 +15,7 @@ func getInterface() (*types.Interface, error) {
 	}
 	cfg := &packages.Config{Mode: packages.NeedTypes | packages.NeedImports}
 
-	pkgs, err := packages.Load(cfg, "github.com/philpearl/φλenc")
+	pkgs, err := packages.Load(cfg, "github.com/philpearl/plenc")
 	if err != nil {
 		return nil, err
 	}

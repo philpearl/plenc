@@ -2,8 +2,8 @@ package test
 
 import "time"
 
-//go:generate φλencgen -pkg github.com/philpearl/φλenc/cmd/φλencgen/test -type Struct2
-//go:generate φλencgen -pkg github.com/philpearl/φλenc/cmd/φλencgen/test -type MyStruct
+//go:generate plencgen -pkg github.com/philpearl/plenc/cmd/plencgen/test -type Struct2
+//go:generate plencgen -pkg github.com/philpearl/plenc/cmd/plencgen/test -type MyStruct
 
 type Struct2 struct {
 	A uint8

@@ -31,7 +31,7 @@ func run(o *options) error {
 	}
 
 	// Output file should be next to definition. Not sure how we do that.
-	filename := fmt.Sprintf("φλenc_marshal_%s.go", strings.ToLower(d.Name))
+	filename := fmt.Sprintf("φλ_marshal_%s.go", strings.ToLower(d.Name))
 	if err := ioutil.WriteFile(filename, marshaler, 0666); err != nil {
 		return fmt.Errorf("failed writing marshaler. %w", err)
 	}
@@ -42,7 +42,7 @@ func run(o *options) error {
 	}
 
 	// Output file should be next to definition. Not sure how we do that.
-	filename = fmt.Sprintf("φλenc_unmarshal_%s.go", strings.ToLower(d.Name))
+	filename = fmt.Sprintf("φλ_unmarshal_%s.go", strings.ToLower(d.Name))
 	if err := ioutil.WriteFile(filename, unmarshaler, 0666); err != nil {
 		return fmt.Errorf("failed writing unmarshaler. %w", err)
 	}

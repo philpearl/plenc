@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/philpearl/φλenc"
+	"github.com/philpearl/plenc"
 )
 
 var _ time.Time
@@ -13,7 +13,7 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 
 	var offset int
 	for offset < len(data) {
-		wt, index, n := φλenc.ReadTag(data[offset:])
+		wt, index, n := plenc.ReadTag(data[offset:])
 		if n == 0 {
 			break
 		}
@@ -23,49 +23,49 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 		case 1:
 
 			// intdecode
-			v, n := φλenc.ReadVarInt(data[offset:])
+			v, n := plenc.ReadVarInt(data[offset:])
 			e.A = int(v)
 
 			offset += n
 
 		case 2:
 
-			v, n := φλenc.ReadVarUint(data[offset:])
+			v, n := plenc.ReadVarUint(data[offset:])
 			e.B = uint(v)
 
 			offset += n
 
 		case 3:
 
-			v, n := φλenc.ReadVarUint(data[offset:])
+			v, n := plenc.ReadVarUint(data[offset:])
 			e.C = uint32(v)
 
 			offset += n
 
 		case 4:
 
-			v, n := φλenc.ReadFloat32(data[offset:])
+			v, n := plenc.ReadFloat32(data[offset:])
 			e.D = float32(v)
 
 			offset += n
 
 		case 5:
 
-			v, n := φλenc.ReadFloat64(data[offset:])
+			v, n := plenc.ReadFloat64(data[offset:])
 			e.E = float64(v)
 
 			offset += n
 
 		case 6:
 
-			v, n := φλenc.ReadBool(data[offset:])
+			v, n := plenc.ReadBool(data[offset:])
 			e.F = bool(v)
 
 			offset += n
 
 		case 7:
 
-			s, n := φλenc.ReadVarUint(data[offset:])
+			s, n := plenc.ReadVarUint(data[offset:])
 			offset += n
 			n, err := e.H.ΦλUnmarshal(data[offset : offset+int(s)])
 			if err != nil {
@@ -86,7 +86,7 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 			}
 
 			// Slice of method-y things
-			s, n := φλenc.ReadVarUint(data[offset:])
+			s, n := plenc.ReadVarUint(data[offset:])
 			offset += n
 			n, err := e.I[l].ΦλUnmarshal(data[offset : offset+int(s)])
 			if err != nil {
@@ -101,7 +101,7 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 				e.J = new(Struct2)
 			}
 
-			s, n := φλenc.ReadVarUint(data[offset:])
+			s, n := plenc.ReadVarUint(data[offset:])
 			offset += n
 			n, err := e.J.ΦλUnmarshal(data[offset : offset+int(s)])
 			if err != nil {
@@ -117,7 +117,7 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 			e.K = append(e.K, &Struct2{})
 
 			// Slice of method-y things
-			s, n := φλenc.ReadVarUint(data[offset:])
+			s, n := plenc.ReadVarUint(data[offset:])
 			offset += n
 			n, err := e.K[l].ΦλUnmarshal(data[offset : offset+int(s)])
 			if err != nil {
@@ -129,7 +129,7 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 		case 11:
 
 			// intdecode
-			v, n := φλenc.ReadVarInt(data[offset:])
+			v, n := plenc.ReadVarInt(data[offset:])
 			e.L = FunnyInt(v)
 
 			offset += n
@@ -138,11 +138,11 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 
 			{
 				var (
-					t   φλenc.Time
+					t   plenc.Time
 					s   uint64
 					err error
 				)
-				s, n = φλenc.ReadVarUint(data[offset:])
+				s, n = plenc.ReadVarUint(data[offset:])
 				offset += n
 				n, err = t.ΦλUnmarshal(data[offset : offset+int(s)])
 				if err != nil {
@@ -161,11 +161,11 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 
 			{
 				var (
-					t   φλenc.Time
+					t   plenc.Time
 					s   uint64
 					err error
 				)
-				s, n = φλenc.ReadVarUint(data[offset:])
+				s, n = plenc.ReadVarUint(data[offset:])
 				offset += n
 				n, err = t.ΦλUnmarshal(data[offset : offset+int(s)])
 				if err != nil {
@@ -178,7 +178,7 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 
 		default:
 			// Field corresponding to index does not exist
-			n, err := φλenc.Skip(data[offset:], wt)
+			n, err := plenc.Skip(data[offset:], wt)
 			if err != nil {
 				return 0, fmt.Errorf("failed to skip field %d. %w", index, err)
 			}
