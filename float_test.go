@@ -1,4 +1,4 @@
-package philenc
+package φλenc
 
 import (
 	"math"

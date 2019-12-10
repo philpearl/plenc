@@ -33,7 +33,7 @@ func init() {
 	package {{ .Package }}
 	
 	import (
-		"github.com/philpearl/philenc"
+		"github.com/philpearl/φλenc"
 	)
 	
 	// TODO: missing types
@@ -44,11 +44,11 @@ func init() {
 	
 	{{ define "TimeSize" }}
 		{
-			var t philenc.Time
+			var t φλenc.Time
 			t.Set(e.{{.Name}})
 			if s := t.ΦλSize(); s != 0 {
-				size += philenc.SizeTag(philenc.WTLength, {{.Index}})
-				size += philenc.SizeVarUint(uint64(s))
+				size += φλenc.SizeTag(φλenc.WTLength, {{.Index}})
+				size += φλenc.SizeVarUint(uint64(s))
 				size += s		
 			}
 	
@@ -57,11 +57,11 @@ func init() {
 	
 	{{ define "TimeAppend" }}
 	{
-		var t philenc.Time
+		var t φλenc.Time
 		t.Set(e.{{.Name}})
 		if 	s := t.ΦλSize(); s != 0 {
-			data = philenc.AppendTag(data, philenc.WTLength, {{.Index}})
-			data = philenc.AppendVarUint(data, uint64(s))
+			data = φλenc.AppendTag(data, φλenc.WTLength, {{.Index}})
+			data = φλenc.AppendVarUint(data, uint64(s))
 			data = t.ΦλAppend(data)	
 		}
 	}
@@ -69,11 +69,11 @@ func init() {
 
 	{{ define "TimePtrSize" }}
 		if e.{{.Name}} != nil {
-			var t philenc.Time
+			var t φλenc.Time
 			t.Set(*e.{{.Name}})
 			if s := t.ΦλSize(); s != 0 {
-				size += philenc.SizeTag(philenc.WTLength, {{.Index}})
-				size += philenc.SizeVarUint(uint64(s))
+				size += φλenc.SizeTag(φλenc.WTLength, {{.Index}})
+				size += φλenc.SizeVarUint(uint64(s))
 				size += s		
 			}
 	
@@ -82,11 +82,11 @@ func init() {
 	
 	{{ define "TimePtrAppend" }}
 	if e.{{.Name}} != nil {
-		var t philenc.Time
+		var t φλenc.Time
 		t.Set(*e.{{.Name}})
 		if 	s := t.ΦλSize(); s != 0 {
-			data = philenc.AppendTag(data, philenc.WTLength, {{.Index}})
-			data = philenc.AppendVarUint(data, uint64(s))
+			data = φλenc.AppendTag(data, φλenc.WTLength, {{.Index}})
+			data = φλenc.AppendVarUint(data, uint64(s))
 			data = t.ΦλAppend(data)	
 		}
 	}
@@ -95,16 +95,16 @@ func init() {
 
 	{{ define "MethodSize" }}
 		if s := e.{{.Name}}.ΦλSize(); s != 0 {
-			size += philenc.SizeTag(philenc.WTLength, {{.Index}})
-			size += philenc.SizeVarUint(uint64(s))
+			size += φλenc.SizeTag(φλenc.WTLength, {{.Index}})
+			size += φλenc.SizeVarUint(uint64(s))
 			size += s		
 		}
 	{{ end }}
 	
 	{{ define "MethodAppend" }}
 		if 	s := e.{{.Name}}.ΦλSize(); s != 0 {
-			data = philenc.AppendTag(data, philenc.WTLength, {{.Index}})
-			data = philenc.AppendVarUint(data, uint64(s))
+			data = φλenc.AppendTag(data, φλenc.WTLength, {{.Index}})
+			data = φλenc.AppendVarUint(data, uint64(s))
 			data = e.{{.Name}}.ΦλAppend(data)	
 		}
 	{{ end }}
@@ -113,8 +113,8 @@ func init() {
 		// Each element of the slice is separately encoded
 		for i := range e.{{.Name}} {
 			if s := e.{{.Name}}[i].ΦλSize(); s != 0 {
-				size += philenc.SizeTag(philenc.WTLength, {{.Index}})
-				size += philenc.SizeVarUint(uint64(s))
+				size += φλenc.SizeTag(φλenc.WTLength, {{.Index}})
+				size += φλenc.SizeVarUint(uint64(s))
 				size += s	
 			}
 		}
@@ -124,75 +124,76 @@ func init() {
 		// Each element of the slice is separately encoded
 		for i := range e.{{.Name}} {
 			if s := e.{{.Name}}[i].ΦλSize(); s != 0 {
-				data = philenc.AppendTag(data, philenc.WTLength, {{.Index}})
-				data = philenc.AppendVarUint(data, uint64(s))
+				data = φλenc.AppendTag(data, φλenc.WTLength, {{.Index}})
+				data = φλenc.AppendVarUint(data, uint64(s))
 				data = e.{{.Name}}[i].ΦλAppend(data)		
 			}
 		}
 	{{ end }}
 	
 	{{ define "BoolSize" }}
-		size += philenc.SizeTag(philenc.WTVarInt, {{.Index}})
-		size += philenc.SizeBool(e.{{.Name}})
+		size += φλenc.SizeTag(φλenc.WTVarInt, {{.Index}})
+		size += φλenc.SizeBool(e.{{.Name}})
 	{{ end }}
 	
 	{{ define "BoolAppend" }}
-		data = philenc.AppendTag(data, philenc.WTVarInt, {{.Index}})
-		data = philenc.AppendBool(data, e.{{.Name}})
+		data = φλenc.AppendTag(data, φλenc.WTVarInt, {{.Index}})
+		data = φλenc.AppendBool(data, e.{{.Name}})
 	{{ end }}
 	
 	{{ define "Float32Size" }}
-		size += philenc.SizeTag(philenc.WT32, {{.Index}})
-		size += philenc.SizeFloat32(float32(e.{{.Name}}))
+		size += φλenc.SizeTag(φλenc.WT32, {{.Index}})
+		size += φλenc.SizeFloat32(float32(e.{{.Name}}))
 	{{ end }}
 	
 	{{ define "Float32Append" }}
-		data = philenc.AppendTag(data, philenc.WT32, {{.Index}})
-		data = philenc.AppendFloat32(data, float32(e.{{.Name}}))
+		data = φλenc.AppendTag(data, φλenc.WT32, {{.Index}})
+		data = φλenc.AppendFloat32(data, float32(e.{{.Name}}))
 	{{ end }}
 	
 	{{ define "Float64Size" }}
-		size += philenc.SizeTag(philenc.WT64, {{.Index}})
-		size += philenc.SizeFloat64(float64(e.{{.Name}}))
+		size += φλenc.SizeTag(φλenc.WT64, {{.Index}})
+		size += φλenc.SizeFloat64(float64(e.{{.Name}}))
 	{{ end }}
 	
 	{{ define "Float64Append" }}
-		data = philenc.AppendTag(data, philenc.WT64, {{.Index}})
-		data = philenc.AppendFloat64(data, float64(e.{{.Name}}))
+		data = φλenc.AppendTag(data, φλenc.WT64, {{.Index}})
+		data = φλenc.AppendFloat64(data, float64(e.{{.Name}}))
 	{{ end }}
 	
 	{{ define "IntSize" }}
-		size += philenc.SizeTag(philenc.WTVarInt, {{.Index}})
-		size += philenc.SizeVarInt(int64(e.{{.Name}}))
+		size += φλenc.SizeTag(φλenc.WTVarInt, {{.Index}})
+		size += φλenc.SizeVarInt(int64(e.{{.Name}}))
 	{{ end }}
 	
 	{{ define "IntAppend" }}
-		data = philenc.AppendTag(data, philenc.WTVarInt, {{.Index}})
-		data = philenc.AppendVarInt(data, int64(e.{{.Name}}))
+		data = φλenc.AppendTag(data, φλenc.WTVarInt, {{.Index}})
+		data = φλenc.AppendVarInt(data, int64(e.{{.Name}}))
 	{{ end }}
 	
 	{{ define "UintSize" }}
-		size += philenc.SizeTag(philenc.WTVarInt, {{.Index}})
-		size += philenc.SizeVarUint(uint64(e.{{.Name}}))
+		size += φλenc.SizeTag(φλenc.WTVarInt, {{.Index}})
+		size += φλenc.SizeVarUint(uint64(e.{{.Name}}))
 	{{ end }}
 	
 	{{ define "UintAppend" }}
-		data = philenc.AppendTag(data, philenc.WTVarInt, {{.Index}})
-		data = philenc.AppendVarUint(data, uint64(e.{{.Name}}))
+		data = φλenc.AppendTag(data, φλenc.WTVarInt, {{.Index}})
+		data = φλenc.AppendVarUint(data, uint64(e.{{.Name}}))
 	{{ end }}
 	
 	
 	{{ define "StringSize" }}
-		size += philenc.SizeTag(philenc.WTLength, {{.Index}})
-		size += philenc.SizeString(e.{{.Name}})
+		size += φλenc.SizeTag(φλenc.WTLength, {{.Index}})
+		size += φλenc.SizeString(e.{{.Name}})
 	{{ end }}
 	
 	{{ define "StringAppend" }}
-		data = philenc.AppendTag(data, philenc.WTLength, {{.Index}})
-		data = philenc.AppendString(data, e.{{.Name}})
+		data = φλenc.AppendTag(data, φλenc.WTLength, {{.Index}})
+		data = φλenc.AppendString(data, e.{{.Name}})
 	{{ end }}
 	
 	
+	// ΦλSize works out how many bytes are needed to encode {{.Name}}
 	func (e *{{ .Name }}) ΦλSize() (size int) {
 		if e == nil {
 			return 0
@@ -205,6 +206,7 @@ func init() {
 		return size
 	}
 	
+	// ΦλAppend encodes {{.Name}} by appending to data. It returns the final slice
 	func (e *{{ .Name }}) ΦλAppend(data []byte) []byte {
 	
 	{{ range .Fields }}

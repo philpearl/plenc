@@ -1,5 +1,5 @@
 syntax = "proto3";
-package philenc;
+package φλenc;
 
 message Trial {
     int32 f1 = 1;

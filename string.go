@@ -1,4 +1,4 @@
-package philenc
+package φλenc
 
 // ReadString reads a string from data
 func ReadString(data []byte) (string, int) {

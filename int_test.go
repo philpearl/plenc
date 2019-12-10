@@ -1,4 +1,4 @@
-package philenc
+package φλenc
 
 import (
 	"math"
@@ -62,6 +62,7 @@ func TestZigZag(t *testing.T) {
 		{1, 2},
 		{-2, 3},
 		{2, 4},
+		{-2147483648, 4294967295},
 		{12509449, 25018898},
 	}
 

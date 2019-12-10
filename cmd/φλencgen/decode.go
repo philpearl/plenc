@@ -39,7 +39,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/philpearl/philenc"
+	"github.com/philpearl/φλenc"
 )
 
 var _ time.Time
@@ -47,11 +47,11 @@ var _ time.Time
 {{ define "TimeDecode" }}
 	{
 		var (
-			t philenc.Time
+			t φλenc.Time
 			s uint64
 			err error
 		)
-		s, n = philenc.ReadVarUint(data[offset:])
+		s, n = φλenc.ReadVarUint(data[offset:])
 		offset += n
 		n, err = t.ΦλUnmarshal(data[offset:offset+int(s)])
 		if err != nil {
@@ -64,11 +64,11 @@ var _ time.Time
 {{ define "TimePtrDecode" }}
 	{
 		var (
-			t philenc.Time
+			t φλenc.Time
 			s uint64
 			err error
 		)
-		s, n = philenc.ReadVarUint(data[offset:])
+		s, n = φλenc.ReadVarUint(data[offset:])
 		offset += n
 		n, err = t.ΦλUnmarshal(data[offset:offset+int(s)])
 		if err != nil {
@@ -80,7 +80,7 @@ var _ time.Time
 
 
 {{ define "MethodDecode" }}
-	s, n := philenc.ReadVarUint(data[offset:])
+	s, n := φλenc.ReadVarUint(data[offset:])
 	offset += n
 	n, err := e.{{.Name}}.ΦλUnmarshal(data[offset:offset+int(s)])
 	if err != nil {
@@ -99,7 +99,7 @@ var _ time.Time
 	}
 
 	// Slice of method-y things
-	s, n := philenc.ReadVarUint(data[offset:])
+	s, n := φλenc.ReadVarUint(data[offset:])
 	offset += n
 	n, err := e.{{.Name}}[l].ΦλUnmarshal(data[offset:offset+int(s)])
 	if err != nil {
@@ -113,7 +113,7 @@ var _ time.Time
 	e.{{.Name}} = append(e.{{.Name}}, &{{.Type}}{})
 
 	// Slice of method-y things
-	s, n := philenc.ReadVarUint(data[offset:])
+	s, n := φλenc.ReadVarUint(data[offset:])
 	offset += n
 	n, err := e.{{.Name}}[l].ΦλUnmarshal(data[offset:offset+int(s)])
 	if err != nil {
@@ -123,32 +123,32 @@ var _ time.Time
 
 {{ define "IntDecode" }}
 	// intdecode
-	v, n := philenc.ReadVarInt(data[offset:])
+	v, n := φλenc.ReadVarInt(data[offset:])
 	e.{{.Name}} = {{.Type}}(v)
 {{ end }}
 
 {{ define "UintDecode" }}
-	v, n := philenc.ReadVarUint(data[offset:])
+	v, n := φλenc.ReadVarUint(data[offset:])
 	e.{{.Name}} = {{.Type}}(v)
 {{ end }}
 
 {{ define "Float32Decode" }}
-	v, n := philenc.ReadFloat32(data[offset:])
+	v, n := φλenc.ReadFloat32(data[offset:])
 	e.{{.Name}} = {{.Type}}(v)
 {{ end }}
 
 {{ define "Float64Decode" }}
-	v, n := philenc.ReadFloat64(data[offset:])
+	v, n := φλenc.ReadFloat64(data[offset:])
 	e.{{.Name}} = {{.Type}}(v)
 {{ end }}
 
 {{ define "BoolDecode" }}
-	v, n := philenc.ReadBool(data[offset:])
+	v, n := φλenc.ReadBool(data[offset:])
 	e.{{.Name}} = {{.Type}}(v)
 {{ end }}
 
 {{ define "StringDecode" }}
-	v, n := philenc.ReadString(data[offset:])
+	v, n := φλenc.ReadString(data[offset:])
 	e.{{.Name}} = {{.Type}}(v)
 {{ end }}
 
@@ -157,7 +157,7 @@ func (e *{{.Name}}) ΦλUnmarshal(data []byte) (int, error) {
 
 	var offset int
 	for offset < len(data) {
-		wt, index, n := philenc.ReadTag(data[offset:])
+		wt, index, n := φλenc.ReadTag(data[offset:])
 		if n == 0 {
 			break
 		}
@@ -178,7 +178,7 @@ func (e *{{.Name}}) ΦλUnmarshal(data []byte) (int, error) {
 
 		default:
 			// Field corresponding to index does not exist
-			n, err := philenc.Skip(data[offset:], wt)
+			n, err := φλenc.Skip(data[offset:], wt)
 			if err != nil {
 				return 0, fmt.Errorf("failed to skip field %d. %w", index, err)
 			}

@@ -9,11 +9,11 @@ import (
 )
 
 func TestEncDec(t *testing.T) {
-	f := fuzz.New().Funcs(func (o *[]*Struct2, c fuzz.Continue) {
+	f := fuzz.New().Funcs(func(o *[]*Struct2, c fuzz.Continue) {
 		// Don't want nils in our slices of pointers
 		l := c.Intn(10)
 		if l == 0 {
-		    return
+			return
 		}
 		*o = make([]*Struct2, l)
 		for i := range *o {

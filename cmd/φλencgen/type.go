@@ -3,14 +3,12 @@ package main
 import (
 	"fmt"
 	"go/types"
-
-	"golang.org/x/tools/go/packages"
+	"path/filepath"
 )
 
 type data struct {
 	Package string
 	Name    string
-	Dir     string
 	Fields  []field
 }
 
@@ -24,66 +22,28 @@ type field struct {
 	IsPointer      bool
 }
 
-var intf *types.Interface
-
-func getInterface() (*types.Interface, error) {
-	if intf != nil {
-		return intf, nil
-	}
-	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedName | packages.NeedImports}
-
-	pkgs, err := packages.Load(cfg, "github.com/philpearl/philenc")
-	if err != nil {
-		return nil, err
-	}
-
-	if packages.PrintErrors(pkgs) > 0 {
-		return nil, fmt.Errorf("package has errors")
-	}
-	if len(pkgs) == 0 {
-		return nil, fmt.Errorf("no packages")
-	}
-
-	obj := pkgs[0].Types.Scope().Lookup("Marshaler")
-	if obj == nil {
-		return nil, fmt.Errorf("could not find marshaler")
-	}
-
-	intf = obj.Type().Underlying().(*types.Interface)
-
-	return intf, nil
-}
-
-// TODO: field indexes stored in a file (not Go) next to the type. So that we can persist indices without folk
-// needing to manually tag the fields. And we can assign indices to new fields without clashing with removed
-// ones.
-
 func parseType(o *options) (d data, err error) {
 	// Load up the package we're interested in
-	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedName | packages.NeedImports}
-
-	pkgs, err := packages.Load(cfg, o.path)
+	pkg, err := getPackage(o.path)
 	if err != nil {
-		return d, err
+		return d, fmt.Errorf("failed to load package %s. %w", o.path, err)
 	}
 
-	if packages.PrintErrors(pkgs) > 0 {
-		return d, fmt.Errorf("package has errors")
-	}
-	if len(pkgs) == 0 {
-		return d, fmt.Errorf("no packages")
-	}
-
-	pkg := pkgs[0]
 	obj := pkg.Types.Scope().Lookup(o.structName)
 	if obj == nil {
 		return d, fmt.Errorf("type %s not found", o.structName)
 	}
 
+	// There may be a file containing index information for each field
+	idx, err := loadIndex(filepath.Dir(pkg.GoFiles[0]), o.structName)
+	if err != nil {
+		return d, err
+	}
+
 	d.Package = pkg.Name
 	d.Name = o.structName
 
-	// We hope this is a structure
+	// The type we're generating methods for should be a named struct
 	s, ok := obj.Type().Underlying().(*types.Struct)
 	if !ok {
 		return d, fmt.Errorf("type %s is not a struct", d.Name)
@@ -96,10 +56,10 @@ func parseType(o *options) (d data, err error) {
 		if !v.Exported() {
 			continue
 		}
-		typ := v.Type()
+		typ, name := v.Type(), v.Name()
 		f := field{
-			Name:  v.Name(),
-			Index: i + 1, // TODO: NO!!! Need something that is resistant to changes
+			Name:  name,
+			Index: idx.indexFor(name),
 		}
 		if err := parseField(typ, &f); err != nil {
 			return d, fmt.Errorf("failed to parse field %d %s. %w", i, f.Name, err)
@@ -107,7 +67,7 @@ func parseType(o *options) (d data, err error) {
 		d.Fields = append(d.Fields, f)
 	}
 
-	return d, nil
+	return d, idx.save()
 }
 
 func parseField(typ types.Type, f *field) error {

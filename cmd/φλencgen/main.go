@@ -51,26 +51,17 @@ func run(o *options) error {
 }
 
 type options struct {
-	// Name of file to create
-	outfile string
 	// Package to examine
 	path       string
 	structName string
 }
 
 func (o *options) setup() {
-	flag.StringVar(&o.outfile, "out", "", "Output file")
 	flag.StringVar(&o.path, "pkg", "", "Package name to look at")
 	flag.StringVar(&o.structName, "type", "", "Struct type name to process")
 }
 
 func (o *options) validate() bool {
-	if o.outfile == "" {
-		fmt.Fprintf(os.Stderr, "You must specify an output file\n")
-		flag.Usage()
-		os.Exit(1)
-	}
-
 	if o.path == "" {
 		fmt.Fprintf(os.Stderr, "You must specify a package to look at\n")
 		flag.Usage()
