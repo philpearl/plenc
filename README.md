@@ -10,3 +10,5 @@ plenc works using code generation. The included plencgen tool takes care of code
 
 You should add all the generated files, both the code and the .φλ files, to your version control system.
 
+I wanted to call it φλenc, but github doesn't seem to allow non-latin repo names!
+
