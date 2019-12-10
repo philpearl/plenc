@@ -13,7 +13,7 @@ func SizeBool(v bool) int {
 
 // AppendBool appends a varint encoding of v to data. It returns the resulting slice
 func AppendBool(data []byte, v bool) []byte {
-	var uv uint
+	var uv uint64
 	if v {
 		uv = 1
 	}

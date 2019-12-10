@@ -18,5 +18,5 @@ type MyStruct struct {
 	// G *bool // Have we got this?
 	H Struct2
 	I []Struct2
-	// J *Struct2
+	J *Struct2
 }

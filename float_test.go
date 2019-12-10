@@ -47,3 +47,15 @@ func TestFloat64(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkAppendFloat64(b *testing.B) {
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		var buf []byte
+		for pb.Next() {
+			buf = AppendFloat64(buf[:0], 3.138383)
+			buf = AppendFloat64(buf, 5.138383)
+			buf = AppendFloat64(buf, 83.138383)
+		}
+	})
+}

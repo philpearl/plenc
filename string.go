@@ -8,11 +8,11 @@ func ReadString(data []byte) (string, int) {
 
 // SizeString works out how much room you need to store a string
 func SizeString(v string) int {
-	return SizeVarUint(uint(len(v))) + len(v)
+	return SizeVarUint(uint64(len(v))) + len(v)
 }
 
 // AppendString appends a string encoding to data
 func AppendString(data []byte, v string) []byte {
-	data = AppendVarUint(data, uint(len(v)))
+	data = AppendVarUint(data, uint64(len(v)))
 	return append(data, v...)
 }

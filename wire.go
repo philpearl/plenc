@@ -30,13 +30,13 @@ func ReadTag(data []byte) (wt WireType, index, n int) {
 
 // SizeTag determines the space needed to encode a tag
 func SizeTag(wt WireType, index int) int {
-	tag := uint(index<<3) | uint(wt)
+	tag := uint64(index<<3) | uint64(wt)
 	return SizeVarUint(tag)
 }
 
 // AppendTag encodes the tag and appends it to data
 func AppendTag(data []byte, wt WireType, index int) []byte {
-	tag := uint(index<<3) | uint(wt)
+	tag := uint64(index<<3) | uint64(wt)
 	return AppendVarUint(data, tag)
 }
 

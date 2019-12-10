@@ -7,7 +7,7 @@ import (
 )
 
 func TestVarUint(t *testing.T) {
-	tests := []uint{
+	tests := []uint64{
 		0, 1, 2, 126, 127, 128, 255, 256, 257, 1024, 2048, 4096, 8192, 457239847, 27384971293, 98235472397459, math.MaxUint64,
 	}
 
@@ -30,7 +30,7 @@ func TestVarUint(t *testing.T) {
 }
 
 func TestVarInt(t *testing.T) {
-	tests := []int{
+	tests := []int64{
 		0, 1, -1, 2, -1, 126, -126, 127, -127, 128, -128, 254, 255, 256, 257, -254, -255, -256, -257, 1024, 2048, 4096, 8192, 457239847, 27384971293, 98235472397459, math.MaxInt64, math.MinInt64,
 	}
 
@@ -54,8 +54,8 @@ func TestVarInt(t *testing.T) {
 
 func TestZigZag(t *testing.T) {
 	tests := []struct {
-		in  int
-		exp uint
+		in  int64
+		exp uint64
 	}{
 		{0, 0},
 		{-1, 1},
@@ -65,7 +65,7 @@ func TestZigZag(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(strconv.Itoa(test.in), func(t *testing.T) {
+		t.Run(strconv.FormatInt(test.in, 10), func(t *testing.T) {
 			if z := ZigZag(test.in); z != test.exp {
 				t.Errorf("Expected %d got %d", test.exp, z)
 			}

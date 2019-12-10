@@ -11,15 +11,18 @@ import (
 // TODO: option whether top-level type is a pointer for marshaler
 
 func (e *MyStruct) ΦλSize() (size int) {
+	if e == nil {
+		return 0
+	}
 
 	size += philenc.SizeTag(philenc.WTVarInt, 1)
-	size += philenc.SizeVarUint(uint(e.A))
+	size += philenc.SizeVarUint(uint64(e.A))
 
 	size += philenc.SizeTag(philenc.WTVarInt, 2)
-	size += philenc.SizeVarUint(uint(e.B))
+	size += philenc.SizeVarUint(uint64(e.B))
 
 	size += philenc.SizeTag(philenc.WTVarInt, 3)
-	size += philenc.SizeVarUint(uint(e.C))
+	size += philenc.SizeVarUint(uint64(e.C))
 
 	size += philenc.SizeTag(philenc.WT32, 4)
 	size += philenc.SizeFloat32(float32(e.D))
@@ -32,7 +35,7 @@ func (e *MyStruct) ΦλSize() (size int) {
 
 	if s := e.H.ΦλSize(); s != 0 {
 		size += philenc.SizeTag(philenc.WTLength, 7)
-		size += philenc.SizeVarUint(uint(s))
+		size += philenc.SizeVarUint(uint64(s))
 		size += s
 	}
 
@@ -40,9 +43,15 @@ func (e *MyStruct) ΦλSize() (size int) {
 	for i := range e.I {
 		if s := e.I[i].ΦλSize(); s != 0 {
 			size += philenc.SizeTag(philenc.WTLength, 8)
-			size += philenc.SizeVarUint(uint(s))
+			size += philenc.SizeVarUint(uint64(s))
 			size += s
 		}
+	}
+
+	if s := e.J.ΦλSize(); s != 0 {
+		size += philenc.SizeTag(philenc.WTLength, 9)
+		size += philenc.SizeVarUint(uint64(s))
+		size += s
 	}
 
 	return size
@@ -51,13 +60,13 @@ func (e *MyStruct) ΦλSize() (size int) {
 func (e *MyStruct) ΦλAppend(data []byte) []byte {
 
 	data = philenc.AppendTag(data, philenc.WTVarInt, 1)
-	data = philenc.AppendVarUint(data, uint(e.A))
+	data = philenc.AppendVarUint(data, uint64(e.A))
 
 	data = philenc.AppendTag(data, philenc.WTVarInt, 2)
-	data = philenc.AppendVarUint(data, uint(e.B))
+	data = philenc.AppendVarUint(data, uint64(e.B))
 
 	data = philenc.AppendTag(data, philenc.WTVarInt, 3)
-	data = philenc.AppendVarUint(data, uint(e.C))
+	data = philenc.AppendVarUint(data, uint64(e.C))
 
 	data = philenc.AppendTag(data, philenc.WT32, 4)
 	data = philenc.AppendFloat32(data, float32(e.D))
@@ -70,7 +79,7 @@ func (e *MyStruct) ΦλAppend(data []byte) []byte {
 
 	if s := e.H.ΦλSize(); s != 0 {
 		data = philenc.AppendTag(data, philenc.WTLength, 7)
-		data = philenc.AppendVarUint(data, uint(s))
+		data = philenc.AppendVarUint(data, uint64(s))
 		data = e.H.ΦλAppend(data)
 	}
 
@@ -78,9 +87,15 @@ func (e *MyStruct) ΦλAppend(data []byte) []byte {
 	for i := range e.I {
 		if s := e.I[i].ΦλSize(); s != 0 {
 			data = philenc.AppendTag(data, philenc.WTLength, 8)
-			data = philenc.AppendVarUint(data, uint(s))
+			data = philenc.AppendVarUint(data, uint64(s))
 			data = e.I[i].ΦλAppend(data)
 		}
+	}
+
+	if s := e.J.ΦλSize(); s != 0 {
+		data = philenc.AppendTag(data, philenc.WTLength, 9)
+		data = philenc.AppendVarUint(data, uint64(s))
+		data = e.J.ΦλAppend(data)
 	}
 
 	return data

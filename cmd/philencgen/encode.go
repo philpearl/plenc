@@ -46,7 +46,7 @@ func init() {
 	{{ define "MethodSize" }}
 		if s := e.{{.Name}}.ΦλSize(); s != 0 {
 			size += philenc.SizeTag(philenc.WTLength, {{.Index}})
-			size += philenc.SizeVarUint(uint(s))
+			size += philenc.SizeVarUint(uint64(s))
 			size += s		
 		}
 	{{ end }}
@@ -54,7 +54,7 @@ func init() {
 	{{ define "MethodAppend" }}
 		if 	s := e.{{.Name}}.ΦλSize(); s != 0 {
 			data = philenc.AppendTag(data, philenc.WTLength, {{.Index}})
-			data = philenc.AppendVarUint(data, uint(s))
+			data = philenc.AppendVarUint(data, uint64(s))
 			data = e.{{.Name}}.ΦλAppend(data)	
 		}
 	{{ end }}
@@ -64,7 +64,7 @@ func init() {
 		for i := range e.{{.Name}} {
 			if s := e.{{.Name}}[i].ΦλSize(); s != 0 {
 				size += philenc.SizeTag(philenc.WTLength, {{.Index}})
-				size += philenc.SizeVarUint(uint(s))
+				size += philenc.SizeVarUint(uint64(s))
 				size += s	
 			}
 		}
@@ -75,7 +75,7 @@ func init() {
 		for i := range e.{{.Name}} {
 			if s := e.{{.Name}}[i].ΦλSize(); s != 0 {
 				data = philenc.AppendTag(data, philenc.WTLength, {{.Index}})
-				data = philenc.AppendVarUint(data, uint(s))
+				data = philenc.AppendVarUint(data, uint64(s))
 				data = e.{{.Name}}[i].ΦλAppend(data)		
 			}
 		}
@@ -113,22 +113,22 @@ func init() {
 	
 	{{ define "IntSize" }}
 		size += philenc.SizeTag(philenc.WTVarInt, {{.Index}})
-		size += philenc.SizeVarInt(int(e.{{.Name}}))
+		size += philenc.SizeVarInt(int64(e.{{.Name}}))
 	{{ end }}
 	
 	{{ define "IntAppend" }}
 		data = philenc.AppendTag(data, philenc.WTVarInt, {{.Index}})
-		data = philenc.AppendVarInt(data, int(e.{{.Name}}))
+		data = philenc.AppendVarInt(data, int64(e.{{.Name}}))
 	{{ end }}
 	
 	{{ define "UintSize" }}
 		size += philenc.SizeTag(philenc.WTVarInt, {{.Index}})
-		size += philenc.SizeVarUint(uint(e.{{.Name}}))
+		size += philenc.SizeVarUint(uint64(e.{{.Name}}))
 	{{ end }}
 	
 	{{ define "UintAppend" }}
 		data = philenc.AppendTag(data, philenc.WTVarInt, {{.Index}})
-		data = philenc.AppendVarUint(data, uint(e.{{.Name}}))
+		data = philenc.AppendVarUint(data, uint64(e.{{.Name}}))
 	{{ end }}
 	
 	
@@ -144,6 +144,9 @@ func init() {
 	
 	
 	func (e *{{ .Name }}) ΦλSize() (size int) {
+		if e == nil {
+			return 0
+		}
 	
 	{{ range .Fields }}
 		{{ runTemplate .SizeTemplate . }}

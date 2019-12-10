@@ -92,6 +92,22 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 
 			offset += n
 
+		case 9:
+
+			if e.J == nil {
+				e.J = new(Struct2)
+			}
+
+			// Method
+			s, n := philenc.ReadVarUint(data[offset:])
+			offset += n
+			n, err := e.J.ΦλUnmarshal(data[offset : offset+int(s)])
+			if err != nil {
+				return 0, fmt.Errorf("failed to unmarshal field %d J (Struct2). %w", index, err)
+			}
+
+			offset += n
+
 		default:
 			// Field corresponding to index does not exist
 			n, err := philenc.Skip(data[offset:], wt)
