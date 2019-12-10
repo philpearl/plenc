@@ -26,4 +26,5 @@ type MyStruct struct {
 	K []*Struct2
 	L FunnyInt
 	M time.Time
+	N *time.Time
 }

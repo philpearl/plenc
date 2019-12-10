@@ -2,9 +2,12 @@ package test
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/philpearl/philenc"
 )
+
+var _ time.Time
 
 func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 
@@ -143,9 +146,32 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 				offset += n
 				n, err = t.ΦλUnmarshal(data[offset : offset+int(s)])
 				if err != nil {
-					return 0, fmt.Errorf("failed to unmarshal field %d M (Time). %w", index, err)
+					return 0, fmt.Errorf("failed to unmarshal field %d M (time.Time). %w", index, err)
 				}
 				e.M = t.Standard()
+			}
+
+			offset += n
+
+		case 13:
+
+			if e.N == nil {
+				e.N = new(time.Time)
+			}
+
+			{
+				var (
+					t   philenc.Time
+					s   uint64
+					err error
+				)
+				s, n = philenc.ReadVarUint(data[offset:])
+				offset += n
+				n, err = t.ΦλUnmarshal(data[offset : offset+int(s)])
+				if err != nil {
+					return 0, fmt.Errorf("failed to unmarshal field %d N (time.Time). %w", index, err)
+				}
+				*e.N = t.Standard()
 			}
 
 			offset += n

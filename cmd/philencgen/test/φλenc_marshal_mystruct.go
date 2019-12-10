@@ -77,6 +77,17 @@ func (e *MyStruct) ΦλSize() (size int) {
 
 	}
 
+	if e.N != nil {
+		var t philenc.Time
+		t.Set(*e.N)
+		if s := t.ΦλSize(); s != 0 {
+			size += philenc.SizeTag(philenc.WTLength, 13)
+			size += philenc.SizeVarUint(uint64(s))
+			size += s
+		}
+
+	}
+
 	return size
 }
 
@@ -138,6 +149,16 @@ func (e *MyStruct) ΦλAppend(data []byte) []byte {
 		t.Set(e.M)
 		if s := t.ΦλSize(); s != 0 {
 			data = philenc.AppendTag(data, philenc.WTLength, 12)
+			data = philenc.AppendVarUint(data, uint64(s))
+			data = t.ΦλAppend(data)
+		}
+	}
+
+	if e.N != nil {
+		var t philenc.Time
+		t.Set(*e.N)
+		if s := t.ΦλSize(); s != 0 {
+			data = philenc.AppendTag(data, philenc.WTLength, 13)
 			data = philenc.AppendVarUint(data, uint64(s))
 			data = t.ΦλAppend(data)
 		}

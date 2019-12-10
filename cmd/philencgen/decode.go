@@ -37,9 +37,12 @@ package {{ .Package }}
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/philpearl/philenc"
 )
+
+var _ time.Time
 
 {{ define "TimeDecode" }}
 	{
@@ -55,6 +58,23 @@ import (
 			return 0, fmt.Errorf("failed to unmarshal field %d {{.Name}} ({{.Type}}). %w", index, err)
 		}	
 		e.{{.Name}} = t.Standard()
+	}
+{{ end }}
+
+{{ define "TimePtrDecode" }}
+	{
+		var (
+			t philenc.Time
+			s uint64
+			err error
+		)
+		s, n = philenc.ReadVarUint(data[offset:])
+		offset += n
+		n, err = t.ΦλUnmarshal(data[offset:offset+int(s)])
+		if err != nil {
+			return 0, fmt.Errorf("failed to unmarshal field %d {{.Name}} ({{.Type}}). %w", index, err)
+		}			
+		*e.{{.Name}} = t.Standard()
 	}
 {{ end }}
 

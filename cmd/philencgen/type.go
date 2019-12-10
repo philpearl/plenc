@@ -135,9 +135,16 @@ func parseField(typ types.Type, f *field) error {
 		f.Type = obj.Name()
 
 		if obj.Name() == "Time" && obj.Pkg().Name() == "time" {
-			f.DecodeTemplate = "TimeDecode"
-			f.SizeTemplate = "TimeSize"
-			f.AppendTemplate = "TimeAppend"
+			f.Type = "time.Time"
+			if f.IsPointer {
+				f.DecodeTemplate = "TimePtrDecode"
+				f.SizeTemplate = "TimePtrSize"
+				f.AppendTemplate = "TimePtrAppend"
+			} else {
+				f.DecodeTemplate = "TimeDecode"
+				f.SizeTemplate = "TimeSize"
+				f.AppendTemplate = "TimeAppend"
+			}
 			return nil
 		}
 

@@ -2,9 +2,12 @@ package test
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/philpearl/philenc"
 )
+
+var _ time.Time
 
 func (e *Struct2) ΦλUnmarshal(data []byte) (int, error) {
 

@@ -67,6 +67,32 @@ func init() {
 	}
 	{{ end }}
 
+	{{ define "TimePtrSize" }}
+		if e.{{.Name}} != nil {
+			var t philenc.Time
+			t.Set(*e.{{.Name}})
+			if s := t.ΦλSize(); s != 0 {
+				size += philenc.SizeTag(philenc.WTLength, {{.Index}})
+				size += philenc.SizeVarUint(uint64(s))
+				size += s		
+			}
+	
+		}
+	{{ end }}
+	
+	{{ define "TimePtrAppend" }}
+	if e.{{.Name}} != nil {
+		var t philenc.Time
+		t.Set(*e.{{.Name}})
+		if 	s := t.ΦλSize(); s != 0 {
+			data = philenc.AppendTag(data, philenc.WTLength, {{.Index}})
+			data = philenc.AppendVarUint(data, uint64(s))
+			data = t.ΦλAppend(data)	
+		}
+	}
+	{{ end }}
+
+
 	{{ define "MethodSize" }}
 		if s := e.{{.Name}}.ΦλSize(); s != 0 {
 			size += philenc.SizeTag(philenc.WTLength, {{.Index}})
