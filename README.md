@@ -6,7 +6,7 @@
 
 plenc is a serialisation library based around protobuf. It uses a very similar encoding to protobuf, but it does not use .proto files or the protobuf data definition language. Instead Go structs are used to define how messages are encoded.
 
-plenc works using code generation. The included plencgen tool takes care of code generation. plencgen generates code for the plenc Marshaler and Unmarshaler interfaces. As well as the code, plencgen creates a .φλ file for each struct. These files track the indices that are allocated to each struct field as the struct changes over time. This means you can add and remove fields from the structs and still be able to read encoded data. The .φλ files ensures field indices are not re-used for new fields.
+plenc works using code generation. The included plencgen tool generates code for the plenc Marshaler and Unmarshaler interfaces. As well as the code, plencgen creates a .φλ file for each struct. These files track the indices that are allocated to each struct field as the struct changes over time. This means you can add and remove fields from the structs and still be able to read encoded data. The .φλ files ensures field indices are not re-used for new fields.
 
 You should add all the generated files - both the code and the .φλ files - to your version control system.
 
@@ -25,7 +25,13 @@ type example struct {
 }
 ```
 
-This will create 3 methods. `ΦλSize` & `ΦλAppend` are used to serialise the struct. `ΦλUnmarshal` is used to de-serialise.
+Running `go generate ` will create 3 methods. `ΦλSize` & `ΦλAppend` are used to serialise the struct. `ΦλUnmarshal` is used to de-serialise. It also generates 3 files. You should save all 3 of these in your code management system alongside the rest of your code.
+
+```
+example.φλ
+φλ_marshal_example.go
+φλ_unmarshal_example.go
+```
 
 You can serialise data as follows.
 
