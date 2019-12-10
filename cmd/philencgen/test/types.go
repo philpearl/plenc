@@ -8,6 +8,8 @@ type Struct2 struct {
 	B string
 }
 
+type FunnyInt int16
+
 type MyStruct struct {
 	A int
 	B uint
@@ -19,4 +21,6 @@ type MyStruct struct {
 	H Struct2
 	I []Struct2
 	J *Struct2
+	K []*Struct2
+	L FunnyInt
 }

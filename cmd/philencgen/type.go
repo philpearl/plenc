@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"go/types"
 
-	"golang.org/x/tools/go/loader"
+	"golang.org/x/tools/go/packages"
 )
 
 type data struct {
@@ -24,31 +24,63 @@ type field struct {
 	IsPointer      bool
 }
 
+var intf *types.Interface
+
+func getInterface() (*types.Interface, error) {
+	if intf != nil {
+		return intf, nil
+	}
+	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedName | packages.NeedImports}
+
+	pkgs, err := packages.Load(cfg, "github.com/philpearl/philenc")
+	if err != nil {
+		return nil, err
+	}
+
+	if packages.PrintErrors(pkgs) > 0 {
+		return nil, fmt.Errorf("package has errors")
+	}
+	if len(pkgs) == 0 {
+		return nil, fmt.Errorf("no packages")
+	}
+
+	obj := pkgs[0].Types.Scope().Lookup("Marshaler")
+	if obj == nil {
+		return nil, fmt.Errorf("could not find marshaler")
+	}
+
+	intf = obj.Type().Underlying().(*types.Interface)
+
+	return intf, nil
+}
+
 // TODO: field indexes stored in a file (not Go) next to the type. So that we can persist indices without folk
 // needing to manually tag the fields. And we can assign indices to new fields without clashing with removed
 // ones.
 
 func parseType(o *options) (d data, err error) {
 	// Load up the package we're interested in
-	conf := loader.Config{}
-	conf.Import(o.path)
+	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedName | packages.NeedImports}
 
-	lprog, err := conf.Load()
+	pkgs, err := packages.Load(cfg, o.path)
 	if err != nil {
 		return d, err
 	}
 
-	pkgInfo := lprog.Package(o.path)
-	if pkgInfo == nil {
-		return d, fmt.Errorf("package %s not found", o.path)
+	if packages.PrintErrors(pkgs) > 0 {
+		return d, fmt.Errorf("package has errors")
 	}
-	pkg := pkgInfo.Pkg
-	obj := pkg.Scope().Lookup(o.structName)
+	if len(pkgs) == 0 {
+		return d, fmt.Errorf("no packages")
+	}
+
+	pkg := pkgs[0]
+	obj := pkg.Types.Scope().Lookup(o.structName)
 	if obj == nil {
 		return d, fmt.Errorf("type %s not found", o.structName)
 	}
 
-	d.Package = pkg.Name()
+	d.Package = pkg.Name
 	d.Name = o.structName
 
 	// We hope this is a structure
@@ -85,28 +117,52 @@ func parseField(typ types.Type, f *field) error {
 		typ = ptr.Elem()
 	}
 
-	var isSlice bool
+	var isSlice, isPointerSlice bool
 	if slice, ok := typ.(*types.Slice); ok {
 		isSlice = true
 		typ = slice.Elem()
+
+		if ptr, ok := typ.(*types.Pointer); ok {
+			isPointerSlice = true
+			typ = ptr.Elem()
+		}
 	}
 
 	if named, ok := typ.(*types.Named); ok {
+		// If we have a named type, then if it is a struct we assume it will implement our interfaces eventually.
+		// If the underlying type is a basic type then we check whether it implements the interfaces
 		f.Type = named.Obj().Name()
-		if isSlice {
-			f.DecodeTemplate = "MethodSliceDecode"
-			f.SizeTemplate = "MethodSliceSize"
-			f.AppendTemplate = "MethodSliceAppend"
-		} else {
-			f.DecodeTemplate = "MethodDecode"
-			f.SizeTemplate = "MethodSize"
-			f.AppendTemplate = "MethodAppend"
+
+		intf, err := getInterface()
+		if err != nil {
+			return fmt.Errorf("failed to get Marshaler interface. %w", err)
 		}
-		return nil
+
+		_, isStruct := named.Underlying().(*types.Struct)
+		if isStruct || types.Implements(named, intf) {
+			if isPointerSlice {
+				f.DecodeTemplate = "MethodPointerSliceDecode"
+				f.SizeTemplate = "MethodSliceSize"
+				f.AppendTemplate = "MethodSliceAppend"
+			} else if isSlice {
+				f.DecodeTemplate = "MethodSliceDecode"
+				f.SizeTemplate = "MethodSliceSize"
+				f.AppendTemplate = "MethodSliceAppend"
+			} else {
+				f.DecodeTemplate = "MethodDecode"
+				f.SizeTemplate = "MethodSize"
+				f.AppendTemplate = "MethodAppend"
+			}
+			return nil
+		}
+
+		typ = named.Underlying()
 	}
 
 	if basic, ok := typ.(*types.Basic); ok {
-		f.Type = basic.Name()
+		if f.Type == "" {
+			f.Type = basic.Name()
+		}
 		bi := basic.Info()
 		switch {
 		case bi&types.IsBoolean != 0:

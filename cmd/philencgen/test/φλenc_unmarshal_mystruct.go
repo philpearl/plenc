@@ -108,6 +108,29 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 
 			offset += n
 
+		case 10:
+
+			// Slice of method-y things. Good to grow the slice first in case it is large
+			l := len(e.K)
+			e.K = append(e.K, &Struct2{})
+
+			// Slice of method-y things
+			s, n := philenc.ReadVarUint(data[offset:])
+			offset += n
+			n, err := e.K[l].ΦλUnmarshal(data[offset : offset+int(s)])
+			if err != nil {
+				return 0, fmt.Errorf("failed to unmarshal field %d K (Struct2). %w", index, err)
+			}
+
+			offset += n
+
+		case 11:
+
+			v, n := philenc.ReadVarUint(data[offset:])
+			e.L = FunnyInt(v)
+
+			offset += n
+
 		default:
 			// Field corresponding to index does not exist
 			n, err := philenc.Skip(data[offset:], wt)

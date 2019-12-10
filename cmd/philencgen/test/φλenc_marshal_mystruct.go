@@ -54,6 +54,18 @@ func (e *MyStruct) ΦλSize() (size int) {
 		size += s
 	}
 
+	// Each element of the slice is separately encoded
+	for i := range e.K {
+		if s := e.K[i].ΦλSize(); s != 0 {
+			size += philenc.SizeTag(philenc.WTLength, 10)
+			size += philenc.SizeVarUint(uint64(s))
+			size += s
+		}
+	}
+
+	size += philenc.SizeTag(philenc.WTVarInt, 11)
+	size += philenc.SizeVarUint(uint64(e.L))
+
 	return size
 }
 
@@ -97,6 +109,18 @@ func (e *MyStruct) ΦλAppend(data []byte) []byte {
 		data = philenc.AppendVarUint(data, uint64(s))
 		data = e.J.ΦλAppend(data)
 	}
+
+	// Each element of the slice is separately encoded
+	for i := range e.K {
+		if s := e.K[i].ΦλSize(); s != 0 {
+			data = philenc.AppendTag(data, philenc.WTLength, 10)
+			data = philenc.AppendVarUint(data, uint64(s))
+			data = e.K[i].ΦλAppend(data)
+		}
+	}
+
+	data = philenc.AppendTag(data, philenc.WTVarInt, 11)
+	data = philenc.AppendVarUint(data, uint64(e.L))
 
 	return data
 }

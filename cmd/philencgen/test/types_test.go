@@ -4,11 +4,25 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
 )
 
 func TestEncDec(t *testing.T) {
-	f := fuzz.New()
+	f := fuzz.New().Funcs(func (o *[]*Struct2, c fuzz.Continue) {
+		// Don't want nils in our slices of pointers
+		l := c.Intn(10)
+		if l == 0 {
+		    return
+		}
+		*o = make([]*Struct2, l)
+		for i := range *o {
+			var s Struct2
+			c.Fuzz(&s)
+			(*o)[i] = &s
+		}
+	})
+
 	for i := 0; i < 100; i++ {
 		var in, out MyStruct
 		f.Fuzz(&in)
@@ -16,6 +30,10 @@ func TestEncDec(t *testing.T) {
 		data := in.ΦλAppend(nil)
 		if _, err := out.ΦλUnmarshal(data); err != nil {
 			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(in, out); diff != "" {
+			t.Fatalf("structures differ. %s", diff)
 		}
 	}
 }

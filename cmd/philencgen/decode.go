@@ -70,6 +70,20 @@ import (
 	}
 {{ end }}
 
+{{ define "MethodPointerSliceDecode" }}
+	// Slice of method-y things. Good to grow the slice first in case it is large
+	l := len(e.{{.Name}})
+	e.{{.Name}} = append(e.{{.Name}}, &{{.Type}}{})
+
+	// Slice of method-y things
+	s, n := philenc.ReadVarUint(data[offset:])
+	offset += n
+	n, err := e.{{.Name}}[l].ΦλUnmarshal(data[offset:offset+int(s)])
+	if err != nil {
+		return 0, fmt.Errorf("failed to unmarshal field %d {{.Name}} ({{.Type}}). %w", index, err)
+	}
+{{ end }}
+
 {{ define "IntDecode" }}
 	v, n := philenc.ReadVarInt(data[offset:])
 	e.{{.Name}} = {{.Type}}(v)
