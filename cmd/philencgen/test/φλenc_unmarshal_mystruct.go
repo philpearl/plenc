@@ -19,7 +19,8 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 
 		case 1:
 
-			v, n := philenc.ReadVarUint(data[offset:])
+			// intdecode
+			v, n := philenc.ReadVarInt(data[offset:])
 			e.A = int(v)
 
 			offset += n
@@ -61,7 +62,6 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 
 		case 7:
 
-			// Method
 			s, n := philenc.ReadVarUint(data[offset:])
 			offset += n
 			n, err := e.H.ΦλUnmarshal(data[offset : offset+int(s)])
@@ -98,7 +98,6 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 				e.J = new(Struct2)
 			}
 
-			// Method
 			s, n := philenc.ReadVarUint(data[offset:])
 			offset += n
 			n, err := e.J.ΦλUnmarshal(data[offset : offset+int(s)])
@@ -126,8 +125,28 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 
 		case 11:
 
-			v, n := philenc.ReadVarUint(data[offset:])
+			// intdecode
+			v, n := philenc.ReadVarInt(data[offset:])
 			e.L = FunnyInt(v)
+
+			offset += n
+
+		case 12:
+
+			{
+				var (
+					t   philenc.Time
+					s   uint64
+					err error
+				)
+				s, n = philenc.ReadVarUint(data[offset:])
+				offset += n
+				n, err = t.ΦλUnmarshal(data[offset : offset+int(s)])
+				if err != nil {
+					return 0, fmt.Errorf("failed to unmarshal field %d M (Time). %w", index, err)
+				}
+				e.M = t.Standard()
+			}
 
 			offset += n
 

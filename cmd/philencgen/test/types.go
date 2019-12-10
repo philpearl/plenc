@@ -1,5 +1,7 @@
 package test
 
+import "time"
+
 //go:generate philencgen -pkg github.com/philpearl/philenc/cmd/philencgen/test -type Struct2 -out la
 //go:generate philencgen -pkg github.com/philpearl/philenc/cmd/philencgen/test -type MyStruct -out la
 
@@ -23,4 +25,5 @@ type MyStruct struct {
 	J *Struct2
 	K []*Struct2
 	L FunnyInt
+	M time.Time
 }

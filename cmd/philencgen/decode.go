@@ -41,8 +41,25 @@ import (
 	"github.com/philpearl/philenc"
 )
 
+{{ define "TimeDecode" }}
+	{
+		var (
+			t philenc.Time
+			s uint64
+			err error
+		)
+		s, n = philenc.ReadVarUint(data[offset:])
+		offset += n
+		n, err = t.ΦλUnmarshal(data[offset:offset+int(s)])
+		if err != nil {
+			return 0, fmt.Errorf("failed to unmarshal field %d {{.Name}} ({{.Type}}). %w", index, err)
+		}	
+		e.{{.Name}} = t.Standard()
+	}
+{{ end }}
+
+
 {{ define "MethodDecode" }}
-	// Method
 	s, n := philenc.ReadVarUint(data[offset:])
 	offset += n
 	n, err := e.{{.Name}}.ΦλUnmarshal(data[offset:offset+int(s)])
@@ -85,6 +102,7 @@ import (
 {{ end }}
 
 {{ define "IntDecode" }}
+	// intdecode
 	v, n := philenc.ReadVarInt(data[offset:])
 	e.{{.Name}} = {{.Type}}(v)
 {{ end }}

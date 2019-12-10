@@ -1,6 +1,7 @@
 package philenc
 
 import (
+	fmt "fmt"
 	"math/bits"
 )
 
@@ -18,7 +19,7 @@ func ReadVarUint(data []byte) (v uint64, n int) {
 			return v, i + 1
 		}
 	}
-	panic("bad data")
+	panic(fmt.Sprintf("bad data. Data was %X, v is %d, zagged %d", data, v, ZagZig(v)))
 }
 
 // SizeVarUint determines how many bytes it would take to encode the int v

@@ -25,6 +25,7 @@ func ReadTag(data []byte) (wt WireType, index, n int) {
 	wt = WireType(v & 0x7)
 	index = int(v >> 3)
 
+	// fmt.Println("tag", wt, index, n)
 	return wt, index, n
 }
 

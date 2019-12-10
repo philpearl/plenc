@@ -131,7 +131,15 @@ func parseField(typ types.Type, f *field) error {
 	if named, ok := typ.(*types.Named); ok {
 		// If we have a named type, then if it is a struct we assume it will implement our interfaces eventually.
 		// If the underlying type is a basic type then we check whether it implements the interfaces
-		f.Type = named.Obj().Name()
+		obj := named.Obj()
+		f.Type = obj.Name()
+
+		if obj.Name() == "Time" && obj.Pkg().Name() == "time" {
+			f.DecodeTemplate = "TimeDecode"
+			f.SizeTemplate = "TimeSize"
+			f.AppendTemplate = "TimeAppend"
+			return nil
+		}
 
 		intf, err := getInterface()
 		if err != nil {
@@ -169,14 +177,14 @@ func parseField(typ types.Type, f *field) error {
 			f.DecodeTemplate = "BoolDecode"
 			f.SizeTemplate = "BoolSize"
 			f.AppendTemplate = "BoolAppend"
-		case bi&types.IsInteger|types.IsUnsigned == types.IsInteger|types.IsUnsigned:
+		case bi&(types.IsInteger|types.IsUnsigned) == types.IsInteger|types.IsUnsigned:
 			if basic.Kind() == types.Byte {
 				// TODO: []byte can be special
 			}
 			f.DecodeTemplate = "UintDecode"
 			f.SizeTemplate = "UintSize"
 			f.AppendTemplate = "UintAppend"
-		case bi&types.IsInteger|types.IsUnsigned == types.IsInteger:
+		case bi&(types.IsInteger|types.IsUnsigned) == types.IsInteger:
 			f.DecodeTemplate = "IntDecode"
 			f.SizeTemplate = "IntSize"
 			f.AppendTemplate = "IntAppend"
