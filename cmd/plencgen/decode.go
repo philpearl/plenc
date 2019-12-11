@@ -88,6 +88,13 @@ var _ time.Time
 	}
 {{ end }}
 
+{{ define "FullDecode" }}
+	n, err := e.{{.Name}}.ΦλUnmarshal(data[offset:])
+	if err != nil {
+		return 0, fmt.Errorf("failed to unmarshal field %d {{.Name}} ({{.Type}}). %w", index, err)
+	}
+{{ end }}
+
 {{ define "MethodSliceDecode" }}
 	// Slice of method-y things. Good to grow the slice first in case it is large
 	l := len(e.{{.Name}})
@@ -107,6 +114,23 @@ var _ time.Time
 	}
 {{ end }}
 
+{{ define "FullSliceDecode" }}
+	// Slice of method-y things. Good to grow the slice first in case it is large
+	l := len(e.{{.Name}})
+	if cap(e.{{.Name}}) > l {
+		e.{{.Name}} = e.{{.Name}}[:l+1]
+	} else {
+		// Need to grow slice. What's the best way?!
+		e.{{.Name}} = append(e.{{.Name}}, {{.Type}}{})
+	}
+
+	// Slice of method-y things
+	n, err := e.{{.Name}}[l].ΦλUnmarshal(data[offset:])
+	if err != nil {
+		return 0, fmt.Errorf("failed to unmarshal field %d {{.Name}} ({{.Type}}). %w", index, err)
+	}
+{{ end }}
+
 {{ define "MethodPointerSliceDecode" }}
 	// Slice of method-y things. Good to grow the slice first in case it is large
 	l := len(e.{{.Name}})
@@ -116,6 +140,18 @@ var _ time.Time
 	s, n := plenc.ReadVarUint(data[offset:])
 	offset += n
 	n, err := e.{{.Name}}[l].ΦλUnmarshal(data[offset:offset+int(s)])
+	if err != nil {
+		return 0, fmt.Errorf("failed to unmarshal field %d {{.Name}} ({{.Type}}). %w", index, err)
+	}
+{{ end }}
+
+{{ define "FullPointerSliceDecode" }}
+	// Slice of method-y things. Good to grow the slice first in case it is large
+	l := len(e.{{.Name}})
+	e.{{.Name}} = append(e.{{.Name}}, &{{.Type}}{})
+
+	// Slice of method-y things
+	n, err := e.{{.Name}}[l].ΦλUnmarshal(data[offset:])
 	if err != nil {
 		return 0, fmt.Errorf("failed to unmarshal field %d {{.Name}} ({{.Type}}). %w", index, err)
 	}

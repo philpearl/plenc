@@ -92,6 +92,13 @@ func init() {
 	}
 	{{ end }}
 
+	{{ define "FullSize" }}
+		size += e.{{.Name}}.ΦλSizeFull({{.Index}})
+	{{ end }}
+	
+	{{ define "FullAppend" }}
+		data = e.{{.Name}}.ΦλAppendFull(data, {{.Index}})	
+	{{ end }}
 
 	{{ define "MethodSize" }}
 		if s := e.{{.Name}}.ΦλSize(); s != 0 {
@@ -130,7 +137,21 @@ func init() {
 			}
 		}
 	{{ end }}
-	
+
+	{{ define "FullSliceSize" }}
+	// Each element of the slice is separately encoded
+	for i := range e.{{.Name}} {
+		size += e.{{.Name}}[i].ΦλSizeFull({{.Index}})
+	}
+	{{ end }}
+
+	{{ define "FullSliceAppend" }}
+		// Each element of the slice is separately encoded
+		for i := range e.{{.Name}} {
+			data = e.{{.Name}}[i].ΦλAppendFull(data, {{.Index}})		
+		}
+	{{ end }}
+
 	{{ define "BoolSize" }}
 		size += plenc.SizeTag(plenc.WTVarInt, {{.Index}})
 		size += plenc.SizeBool(e.{{.Name}})

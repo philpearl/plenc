@@ -176,6 +176,15 @@ func (e *MyStruct) ΦλUnmarshal(data []byte) (int, error) {
 
 			offset += n
 
+		case 16:
+
+			n, err := e.Q.ΦλUnmarshal(data[offset:])
+			if err != nil {
+				return 0, fmt.Errorf("failed to unmarshal field %d Q (OptInt). %w", index, err)
+			}
+
+			offset += n
+
 		default:
 			// Field corresponding to index does not exist
 			n, err := plenc.Skip(data[offset:], wt)

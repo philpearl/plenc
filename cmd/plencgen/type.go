@@ -108,13 +108,30 @@ func parseField(typ types.Type, f *field) error {
 			return nil
 		}
 
-		intf, err := getInterface()
+		intfs, err := getInterface()
 		if err != nil {
 			return fmt.Errorf("failed to get Marshaler interface. %w", err)
 		}
 
+		if types.Implements(named, intfs.fullMarshaler) {
+			if isPointerSlice {
+				f.DecodeTemplate = "FullPointerSliceDecode"
+				f.SizeTemplate = "FullSliceSize"
+				f.AppendTemplate = "FullSliceAppend"
+			} else if isSlice {
+				f.DecodeTemplate = "FullSliceDecode"
+				f.SizeTemplate = "FullSliceSize"
+				f.AppendTemplate = "FullSliceAppend"
+			} else {
+				f.DecodeTemplate = "FullDecode"
+				f.SizeTemplate = "FullSize"
+				f.AppendTemplate = "FullAppend"
+			}
+			return nil
+		}
+
 		_, isStruct := named.Underlying().(*types.Struct)
-		if isStruct || types.Implements(named, intf) {
+		if isStruct || types.Implements(named, intfs.marshaler) {
 			if isPointerSlice {
 				f.DecodeTemplate = "MethodPointerSliceDecode"
 				f.SizeTemplate = "MethodSliceSize"

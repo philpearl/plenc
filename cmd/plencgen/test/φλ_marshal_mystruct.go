@@ -89,6 +89,8 @@ func (e *MyStruct) ΦλSize() (size int) {
 
 	}
 
+	size += e.Q.ΦλSizeFull(16)
+
 	return size
 }
 
@@ -165,6 +167,8 @@ func (e *MyStruct) ΦλAppend(data []byte) []byte {
 			data = t.ΦλAppend(data)
 		}
 	}
+
+	data = e.Q.ΦλAppendFull(data, 16)
 
 	return data
 }

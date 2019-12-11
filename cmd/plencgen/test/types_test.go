@@ -9,19 +9,27 @@ import (
 )
 
 func TestEncDec(t *testing.T) {
-	f := fuzz.New().Funcs(func(o *[]*Struct2, c fuzz.Continue) {
-		// Don't want nils in our slices of pointers
-		l := c.Intn(10)
-		if l == 0 {
-			return
-		}
-		*o = make([]*Struct2, l)
-		for i := range *o {
-			var s Struct2
-			c.Fuzz(&s)
-			(*o)[i] = &s
-		}
-	})
+	f := fuzz.New().Funcs(
+		func(o *[]*Struct2, c fuzz.Continue) {
+			// Don't want nils in our slices of pointers
+			l := c.Intn(10)
+			if l == 0 {
+				return
+			}
+			*o = make([]*Struct2, l)
+			for i := range *o {
+				var s Struct2
+				c.Fuzz(&s)
+				(*o)[i] = &s
+			}
+		},
+		func(o *OptInt, c fuzz.Continue) {
+			o.Valid = c.RandBool()
+			if o.Valid {
+				o.Value = c.Int()
+			}
+		},
+	)
 
 	for i := 0; i < 100; i++ {
 		var in, out MyStruct

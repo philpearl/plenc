@@ -7,11 +7,17 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-var intf *types.Interface
+type interfaces struct {
+	marshaler     *types.Interface
+	unmarshaler   *types.Interface
+	fullMarshaler *types.Interface
+}
 
-func getInterface() (*types.Interface, error) {
-	if intf != nil {
-		return intf, nil
+var intfs *interfaces
+
+func getInterface() (*interfaces, error) {
+	if intfs != nil {
+		return intfs, nil
 	}
 	cfg := &packages.Config{Mode: packages.NeedTypes | packages.NeedImports}
 
@@ -27,12 +33,24 @@ func getInterface() (*types.Interface, error) {
 		return nil, fmt.Errorf("no packages")
 	}
 
-	obj := pkgs[0].Types.Scope().Lookup("Marshaler")
-	if obj == nil {
+	objM := pkgs[0].Types.Scope().Lookup("Marshaler")
+	if objM == nil {
 		return nil, fmt.Errorf("could not find marshaler")
 	}
+	objU := pkgs[0].Types.Scope().Lookup("Unmarshaler")
+	if objU == nil {
+		return nil, fmt.Errorf("could not find Unmarshaler")
+	}
+	objF := pkgs[0].Types.Scope().Lookup("FullMarshaler")
+	if objF == nil {
+		return nil, fmt.Errorf("could not find FullMarshaler")
+	}
 
-	intf = obj.Type().Underlying().(*types.Interface)
+	intfs = &interfaces{
+		marshaler:     objM.Type().Underlying().(*types.Interface),
+		unmarshaler:   objU.Type().Underlying().(*types.Interface),
+		fullMarshaler: objF.Type().Underlying().(*types.Interface),
+	}
 
-	return intf, nil
+	return intfs, nil
 }
