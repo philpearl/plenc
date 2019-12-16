@@ -2,20 +2,23 @@ package plenc
 
 import "fmt"
 
-// WireType represents a protobuf wire type
+// WireType represents a protobuf wire type. It's really all about how you can skip
+// over fields in encoded data that aren't recognised because the field no longer
+// exists in the struct
 type WireType int8
 
 const (
-	// WTVarInt signals a variable-length encoded integer. Signed integers are encoded with zig-zag encoding
-	// first
+	// WTVarInt signals a variable-length encoded integer. Signed integers are encoded
+	// with zig-zag encoding first.
 	WTVarInt WireType = iota
-	// WT64 signals a 64 bit integer. Used for float64
+	// WT64 signals a 64 bit value. Used for float64
 	WT64
-	// WTLength signals length-value data. Length is encoded as a varint.
+	// WTLength signals length-value data. Length is encoded as a varint and is a byte
+	// count. This is used for structs and strings
 	WTLength
 	wtStartGroupDeprecated
 	wtEndGroupDeprecated
-	// WT32 signals a 32 bit integer. Used for float32
+	// WT32 signals a 32 bit value. Used for float32
 	WT32
 )
 
@@ -49,12 +52,18 @@ func Skip(data []byte, wt WireType) (int, error) {
 			if v&0x80 == 0 {
 				return i + 1, nil
 			}
+			if i > 9 {
+				return 0, fmt.Errorf("VarInt does not terminate")
+			}
 		}
 		return 0, fmt.Errorf("unexpected end of data. %X", data)
 	case WT64:
 		return 8, nil
 	case WTLength:
 		l, n := ReadVarUint(data)
+		if n < 0 {
+			return 0, fmt.Errorf("corrupt data")
+		}
 		return int(l) + n, nil
 	case WT32:
 		return 4, nil

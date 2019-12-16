@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/types"
 	"path/filepath"
+	"reflect"
 )
 
 type data struct {
@@ -54,6 +55,9 @@ func parseType(o *options) (d data, err error) {
 	for i := 0; i < s.NumFields(); i++ {
 		v := s.Field(i)
 		if !v.Exported() {
+			continue
+		}
+		if t := reflect.StructTag(s.Tag(i)).Get("sql"); t == "-" {
 			continue
 		}
 		typ, name := v.Type(), v.Name()

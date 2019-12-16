@@ -2,7 +2,10 @@ package plenc
 
 import (
 	"fmt"
+	"reflect"
+	"sync"
 	"time"
+	"unsafe"
 )
 
 // Time is a representation of time in UTC. It is used to encode time.Time
@@ -14,7 +17,8 @@ type Time struct {
 // Set sets the time from a time.Time
 func (e *Time) Set(t time.Time) {
 	e.Seconds = t.Unix()
-	e.Nanoseconds = int32(t.Nanosecond())
+	n := t.Nanosecond()
+	e.Nanoseconds = int32(n)
 }
 
 func (e *Time) Standard() time.Time {
@@ -82,4 +86,64 @@ func (e *Time) ΦλUnmarshal(data []byte) (int, error) {
 	}
 
 	return offset, nil
+}
+
+func init() {
+	registerCodec(reflect.TypeOf(time.Time{}), &TimeCodec{})
+}
+
+// TimeCodec is a codec for Time
+type TimeCodec struct {
+	Codec
+	once sync.Once
+}
+
+func (tc *TimeCodec) init() {
+	tc.once.Do(func() {
+		var err error
+		tc.Codec, err = codecForType(reflect.TypeOf(Time{}))
+		if err != nil {
+			panic(err)
+		}
+	})
+}
+
+// Size returns the number of bytes needed to encode a Time
+func (tc *TimeCodec) Size(ptr unsafe.Pointer) (size int) {
+	tc.init()
+	t := *(*time.Time)(ptr)
+	var e Time
+	e.Set(t)
+
+	return tc.Codec.Size(unsafe.Pointer(&e))
+}
+
+// Append encodes a Time
+func (tc *TimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+	tc.init()
+	t := *(*time.Time)(ptr)
+	var e Time
+	e.Set(t)
+
+	return tc.Codec.Append(data, unsafe.Pointer(&e))
+}
+
+// Read decodes a Time
+func (tc *TimeCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+	tc.init()
+	var e Time
+	n, err = tc.Codec.Read(data, unsafe.Pointer(&e))
+	if err != nil {
+		return n, err
+	}
+	*(*time.Time)(ptr) = e.Standard()
+	return n, nil
+}
+
+func (*TimeCodec) New() unsafe.Pointer {
+	return unsafe.Pointer(&time.Time{})
+}
+
+func (*TimeCodec) Omit(ptr unsafe.Pointer) bool {
+	return (*time.Time)(ptr).IsZero()
 }
