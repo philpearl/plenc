@@ -2,10 +2,13 @@ package plenc
 
 import (
 	"fmt"
+	"reflect"
+	"sync"
 	"unsafe"
 )
 
-// Codec is implmented by types that can encode and decode themselves.
+// Codec is what you implement to encode / decode a type. Note that codecs are separate from the types they
+// encode, and that they are registered with the system via RegisterCodec
 type Codec interface {
 	Omit(ptr unsafe.Pointer) bool
 	Size(ptr unsafe.Pointer) (size int)
@@ -15,146 +18,157 @@ type Codec interface {
 	WireType() WireType
 }
 
-// PointerWrapper wraps a codec so it can be used for a pointer to the type
-type PointerWrapper struct {
-	Underlying Codec
+var (
+	codecCache     sync.Map
+	codecCacheLock sync.RWMutex
+)
+
+// RegisterCodec makes a codec available for a type
+func RegisterCodec(typ reflect.Type, c Codec) {
+	registerCodec(typ, c)
 }
 
-func (p PointerWrapper) Omit(ptr unsafe.Pointer) bool {
-	t := *(*unsafe.Pointer)(ptr)
-	if t == nil {
-		return true
-	}
-	return p.Underlying.Omit(t)
+// registerCodec makes a codec available for a type
+func registerCodec(typ reflect.Type, c Codec) {
+	codecCache.Store(typ, c)
 }
 
-func (p PointerWrapper) Size(ptr unsafe.Pointer) (size int) {
-	t := *(*unsafe.Pointer)(ptr)
-	if t == nil {
-		return 0
-	}
-	return p.Underlying.Size(t)
-}
-
-func (p PointerWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
-	t := *(*unsafe.Pointer)(ptr)
-	if t == nil {
-		return data
+// codecForType finds an existing codec for a type or constructs a codec
+func codecForType(typ reflect.Type) (Codec, error) {
+	c, ok := codecCache.Load(typ)
+	if ok {
+		return c.(Codec), nil
 	}
 
-	return p.Underlying.Append(data, t)
-}
+	var err error
 
-func (p PointerWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
-	t := (*unsafe.Pointer)(ptr)
-	if *t == nil {
-		*t = p.Underlying.New()
-	}
-
-	return p.Underlying.Read(data, *t)
-}
-
-func (p PointerWrapper) New() unsafe.Pointer {
-	v := p.Underlying.New()
-	return unsafe.Pointer(&v)
-}
-
-func (p PointerWrapper) WireType() WireType {
-	return p.Underlying.WireType()
-}
-
-type SliceWrapper struct {
-	Underlying Codec
-	EltSize    uintptr
-}
-
-// sliceheader is a safer version of reflect.SliceHeader. The Data field here is a pointer that GC will track.
-type sliceHeader struct {
-	Data unsafe.Pointer
-	Len  int
-	Cap  int
-}
-
-func (c SliceWrapper) Omit(ptr unsafe.Pointer) bool {
-	h := *(*sliceHeader)(ptr)
-	return h.Len == 0
-}
-
-func (c SliceWrapper) Size(ptr unsafe.Pointer) int {
-	size := c.InternalSize(ptr)
-	return SizeVarUint(uint64(size)) + size
-}
-
-func (c SliceWrapper) InternalSize(ptr unsafe.Pointer) int {
-	h := *(*sliceHeader)(ptr)
-	size := 0
-	for i := 0; i < h.Len; i++ {
-		size += c.Underlying.Size(unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize))
-	}
-	return size
-}
-
-// Append encodes the slice without the tag
-func (c SliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
-
-	// Length tags are followed by a byte count
-	data = AppendVarUint(data, uint64(c.InternalSize(ptr)))
-
-	h := *(*sliceHeader)(ptr)
-	for i := 0; i < h.Len; i++ {
-		// TODO: If we do strict protobuf then structs should also have the tag repeated
-		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
-	}
-
-	return data
-}
-
-// Read decodes a slice. It assumes the WTLength tag has already been decoded
-func (c SliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
-	l, n := ReadVarUint(data)
-	if n <= 0 {
-		return 0, fmt.Errorf("slice length is corrupt")
-	}
-	data = data[n:]
-
-	// We step forward through out data to count how many things are in the slice
-	var offset, count int
-	for offset < int(l) {
-		n, err := Skip(data[offset:], c.Underlying.WireType())
+	switch typ.Kind() {
+	case reflect.Ptr:
+		subc, err := codecForType(typ.Elem())
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
-		offset += n
-		count++
-	}
+		c = PointerWrapper{Underlying: subc}
 
-	// Now make sure we have enough data in the slice
-	h := (*sliceHeader)(ptr)
-	if h.Cap < count {
-		// Do some crazy shit so this slice is treated as if it contains pointers.
-		// TODO: also try reflect.MakeSlice. Might be better if it isn't slower
-		slice := make([]unsafe.Pointer, 1+count*int(c.EltSize)/int(unsafe.Sizeof(unsafe.Pointer(nil))))
-		*h = *(*sliceHeader)(unsafe.Pointer(&slice))
-		h.Cap = count
-	}
-	h.Len = count
-
-	offset = 0
-	for i := 0; i < h.Len; i++ {
-		n, err := c.Underlying.Read(data[offset:], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
+	case reflect.Struct:
+		c, err = buildStructCodec(typ)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
-		offset += n
+
+	case reflect.Slice:
+		subt := typ.Elem()
+		subc, err := codecForType(subt)
+		if err != nil {
+			return nil, err
+		}
+		c = SliceWrapper{Underlying: subc, EltSize: subt.Size()}
+
+	case reflect.Map:
+		c, err = buildMapCodec(typ)
+		if err != nil {
+			return nil, err
+		}
+
+	// Really expect codecs for basic types to be pre-registered, but named types will have a different type for
+	// the same kind
+	case reflect.Bool:
+		c, err = codecForType(reflect.TypeOf(bool(false)))
+		if err != nil {
+			return nil, err
+		}
+
+	case reflect.Int:
+		c, err = codecForType(reflect.TypeOf(int(0)))
+		if err != nil {
+			return nil, err
+		}
+	case reflect.Int32:
+		c, err = codecForType(reflect.TypeOf(int32(0)))
+		if err != nil {
+			return nil, err
+		}
+
+	case reflect.Int64:
+		c, err = codecForType(reflect.TypeOf(int64(0)))
+		if err != nil {
+			return nil, err
+		}
+
+	case reflect.Uint:
+		c, err = codecForType(reflect.TypeOf(uint(0)))
+		if err != nil {
+			return nil, err
+		}
+
+	case reflect.Float32:
+		c, err = codecForType(reflect.TypeOf(float32(0)))
+		if err != nil {
+			return nil, err
+		}
+
+	case reflect.Float64:
+		c, err = codecForType(reflect.TypeOf(float64(0)))
+		if err != nil {
+			return nil, err
+		}
+
+	case reflect.String:
+		c, err = codecForType(reflect.TypeOf(""))
+		if err != nil {
+			return nil, err
+		}
+
+	case reflect.Int8:
+		c, err = codecForType(reflect.TypeOf(int8(0)))
+		if err != nil {
+			return nil, err
+		}
+
+	case reflect.Int16:
+		c, err = codecForType(reflect.TypeOf(int16(0)))
+		if err != nil {
+			return nil, err
+		}
+	case reflect.Uint8:
+		c, err = codecForType(reflect.TypeOf(uint8(0)))
+		if err != nil {
+			return nil, err
+		}
+
+	case reflect.Uint16:
+		c, err = codecForType(reflect.TypeOf(uint16(0)))
+		if err != nil {
+			return nil, err
+		}
+
+	case reflect.Uint32:
+		c, err = codecForType(reflect.TypeOf(uint32(0)))
+		if err != nil {
+			return nil, err
+		}
+
+	case reflect.Uint64:
+		c, err = codecForType(reflect.TypeOf(uint64(0)))
+		if err != nil {
+			return nil, err
+		}
+
+		// These are cases we can't do yet (or ever?)
+		// case reflect.Uintptr:
+		// case reflect.Complex64:
+		// case reflect.Complex128:
+		// case reflect.Array:
+		// case reflect.Interface:
+		// case reflect.Chan:
+		// case reflect.Func:
+		// case reflect.UnsafePointer:
 	}
 
-	return n + int(l), nil
-}
+	if c == nil {
+		return nil, fmt.Errorf("could not find or create a codec for %s", typ.Name())
+	}
 
-func (c SliceWrapper) New() unsafe.Pointer {
-	return unsafe.Pointer(&sliceHeader{})
-}
-
-func (c SliceWrapper) WireType() WireType {
-	return WTLength
+	cv, _ := codecCache.LoadOrStore(typ, c)
+	return cv.(Codec), nil
 }
