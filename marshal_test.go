@@ -12,33 +12,34 @@ import (
 func TestMarshal(t *testing.T) {
 
 	type TestThing struct {
-		A  float64
-		B  []float64
-		C  *float64
-		D  float32
-		E  []float32
-		F  *float32
-		G  int
-		H  []int
-		I  *int
-		J  uint
-		K  []uint
-		L  *uint
-		M  bool
-		N  []bool
-		O  *bool
-		P  string
-		Q  []string
-		R  *string
-		S  time.Time
-		T  []time.Time
-		U  *time.Time
-		V  int32
-		W  []int32
-		X  *int32
-		Y  int64
-		Z  []int64
-		A1 *int64
+		A  float64     `plenc:"1"`
+		B  []float64   `plenc:"2"`
+		C  *float64    `plenc:"3"`
+		D  float32     `plenc:"4"`
+		E  []float32   `plenc:"5"`
+		F  *float32    `plenc:"6"`
+		G  int         `plenc:"7"`
+		H  []int       `plenc:"8"`
+		I  *int        `plenc:"9"`
+		J  uint        `plenc:"10"`
+		K  []uint      `plenc:"11"`
+		L  *uint       `plenc:"12"`
+		M  bool        `plenc:"13"`
+		N  []bool      `plenc:"14"`
+		O  *bool       `plenc:"15"`
+		P  string      `plenc:"16"`
+		Q  []string    `plenc:"17"`
+		R  *string     `plenc:"18"`
+		S  time.Time   `plenc:"19"`
+		T  []time.Time `plenc:"20"`
+		U  *time.Time  `plenc:"21"`
+		V  int32       `plenc:"22"`
+		W  []int32     `plenc:"23"`
+		X  *int32      `plenc:"24"`
+		Y  int64       `plenc:"25"`
+		Z  []int64     `plenc:"26"`
+		A1 *int64      `plenc:"27"`
+		// A2 map[string]string `plenc:"28"`
 	}
 
 	f := fuzz.New()
@@ -76,24 +77,24 @@ func TestMarshal(t *testing.T) {
 
 func TestMarshal2(t *testing.T) {
 	type TestThing struct {
-		A float64
-		B []float64
-		C *float64
-		D float32
-		E []float32
-		F *float32
-		G int
-		H []int
-		I *int
-		J uint
-		K []uint
-		L *uint
-		M bool
-		N []bool
-		O *bool
-		P string
-		Q []string
-		R *string
+		A float64   `plenc:"1"`
+		B []float64 `plenc:"2"`
+		C *float64  `plenc:"3"`
+		D float32   `plenc:"4"`
+		E []float32 `plenc:"5"`
+		F *float32  `plenc:"6"`
+		G int       `plenc:"7"`
+		H []int     `plenc:"8"`
+		I *int      `plenc:"9"`
+		J uint      `plenc:"10"`
+		K []uint    `plenc:"11"`
+		L *uint     `plenc:"12"`
+		M bool      `plenc:"13"`
+		N []bool    `plenc:"14"`
+		O *bool     `plenc:"15"`
+		P string    `plenc:"16"`
+		Q []string  `plenc:"17"`
+		R *string   `plenc:"18"`
 		// S time.Time
 		// T []time.Time
 		// U *time.Time

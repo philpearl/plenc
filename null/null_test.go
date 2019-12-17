@@ -50,11 +50,11 @@ var fuzzFuncs = []interface{}{
 
 func TestNull(t *testing.T) {
 	type TestThing struct {
-		I null.Int
-		B null.Bool
-		F null.Float
-		S null.String
-		T null.Time
+		I null.Int    `plenc:"1"`
+		B null.Bool   `plenc:"2"`
+		F null.Float  `plenc:"3"`
+		S null.String `plenc:"4"`
+		T null.Time   `plenc:"5"`
 	}
 
 	f := fuzz.New().Funcs(fuzzFuncs...)

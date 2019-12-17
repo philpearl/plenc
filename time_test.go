@@ -35,8 +35,8 @@ func TestTime2(t *testing.T) {
 	f := fuzz.New()
 
 	type twrap struct {
-		T time.Time
-		U int
+		T time.Time `plenc:"1"`
+		U int       `plenc:"2"`
 	}
 
 	c, err := codecForType(reflect.TypeOf(twrap{}))

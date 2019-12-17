@@ -10,8 +10,8 @@ import (
 
 // Time is a representation of time in UTC. It is used to encode time.Time
 type Time struct {
-	Seconds     int64
-	Nanoseconds int32
+	Seconds     int64 `plenc:"1"`
+	Nanoseconds int32 `plenc:"2"`
 }
 
 // Set sets the time from a time.Time
@@ -94,8 +94,8 @@ func init() {
 
 // TimeCodec is a codec for Time
 type TimeCodec struct {
-	Codec
-	once sync.Once
+	Codec `plenc:"1"`
+	once  sync.Once `plenc:"2"`
 }
 
 func (tc *TimeCodec) init() {
