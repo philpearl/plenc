@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
+	"github.com/philpearl/plenc"
 )
 
 func TestEncDec(t *testing.T) {
@@ -112,6 +113,42 @@ func BenchmarkEncDecJSON(b *testing.B) {
 
 			var v MyStruct
 			if err := json.Unmarshal(data, &v); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func BenchmarkEncDecPlencMarshal(b *testing.B) {
+	m := MyStruct{
+		A: 1,
+		B: 329,
+		C: 32,
+		D: 3.14,
+		E: 872981721,
+		F: true,
+		H: Struct2{
+			A: 12,
+			B: "the swizz",
+		},
+		I: []Struct2{
+			{A: 128, B: "this is it"},
+			{A: 128, B: "the real thing"},
+		},
+	}
+
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		var data []byte
+		for pb.Next() {
+			var err error
+			data, err = plenc.Marshal(data[:0], &m)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			var v MyStruct
+			if err := plenc.Unmarshal(data, &v); err != nil {
 				b.Fatal(err)
 			}
 		}

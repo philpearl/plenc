@@ -91,17 +91,8 @@ func TestNull(t *testing.T) {
 }
 
 func BenchmarkNull(b *testing.B) {
-	type TestThing struct {
-		I  null.Int
-		I2 null.Int
-		B  null.Bool
-		B2 null.Bool
-		F  null.Float
-		S  null.String
-		T  null.Time
-	}
 
-	v := TestThing{
+	v := BenchThing{
 		I: null.IntFrom(42),
 		B: null.BoolFrom(true),
 		F: null.FloatFrom(3.14),
@@ -119,7 +110,7 @@ func BenchmarkNull(b *testing.B) {
 					b.Fatal(err)
 				}
 
-				var w TestThing
+				var w BenchThing
 				if err := plenc.Unmarshal(data, &w); err != nil {
 					b.Fatal(err)
 				}
@@ -137,7 +128,7 @@ func BenchmarkNull(b *testing.B) {
 					b.Fatal(err)
 				}
 
-				var w TestThing
+				var w BenchThing
 				if err := json.Unmarshal(data, &w); err != nil {
 					b.Fatal(err)
 				}
@@ -155,7 +146,7 @@ func BenchmarkNull(b *testing.B) {
 					b.Fatal(err)
 				}
 
-				var w TestThing
+				var w BenchThing
 				if err := easyjson.Unmarshal(data, &w); err != nil {
 					b.Fatal(err)
 				}

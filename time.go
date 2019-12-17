@@ -147,3 +147,8 @@ func (*TimeCodec) New() unsafe.Pointer {
 func (*TimeCodec) Omit(ptr unsafe.Pointer) bool {
 	return (*time.Time)(ptr).IsZero()
 }
+
+func (tc *TimeCodec) WireType() WireType {
+	tc.init()
+	return tc.Codec.WireType()
+}

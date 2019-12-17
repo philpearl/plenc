@@ -45,12 +45,12 @@ func (StringCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 
 // Read decodes a string
 func (StringCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
-	s, n := ReadString(data)
+	l, n := ReadVarUint(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
 	}
-	*(*string)(ptr) = s
-	return n, nil
+	*(*string)(ptr) = string(data[n : n+int(l)])
+	return n + int(l), nil
 }
 
 // New creates a pointer to a new bool

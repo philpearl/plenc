@@ -7,7 +7,6 @@ import (
 )
 
 func Marshal(data []byte, value interface{}) ([]byte, error) {
-
 	typ := reflect.TypeOf(value)
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()

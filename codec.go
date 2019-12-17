@@ -15,23 +15,6 @@ type Codec interface {
 	WireType() WireType
 }
 
-func SizeAsField(c Codec, ptr unsafe.Pointer, index int) int {
-	if c.Omit(ptr) {
-		return 0
-	}
-
-	s := c.Size(ptr)
-	return SizeTag(c.WireType(), index) + s
-}
-
-func AppendAsField(data []byte, c Codec, ptr unsafe.Pointer, index int) []byte {
-	if c.Omit(ptr) {
-		return data
-	}
-	data = AppendTag(data, c.WireType(), index)
-	return c.Append(data, ptr)
-}
-
 // PointerWrapper wraps a codec so it can be used for a pointer to the type
 type PointerWrapper struct {
 	Underlying Codec
@@ -126,7 +109,7 @@ func (c SliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return data
 }
 
-// Read decodes a []float64. It assumes the WTLength tag has already been decoded
+// Read decodes a slice. It assumes the WTLength tag has already been decoded
 func (c SliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
 	l, n := ReadVarUint(data)
 	if n <= 0 {
