@@ -6,31 +6,11 @@ import (
 	"unsafe"
 )
 
-// ReadBool reads a bool from data and returns it
-func ReadBool(data []byte) (v bool, n int) {
-	uv, n := ReadVarUint(data)
-	return uv != 0, n
-}
-
-// SizeBool determines how many bytes it would take to encode the bool v
-func SizeBool(v bool) int {
-	return 1
-}
-
-// AppendBool appends a varint encoding of v to data. It returns the resulting slice
-func AppendBool(data []byte, v bool) []byte {
-	var uv uint64
-	if v {
-		uv = 1
-	}
-	return AppendVarUint(data, uv)
-}
-
 func init() {
 	registerCodec(reflect.TypeOf(false), BoolCodec{})
 }
 
-// BoolCodec is a codec for an bool
+// BoolCodec is a codec for a bool
 type BoolCodec struct{}
 
 // Size returns the number of bytes needed to encode a bool
@@ -40,16 +20,20 @@ func (BoolCodec) Size(ptr unsafe.Pointer) int {
 
 // Append encodes a bool
 func (BoolCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
-	return AppendBool(data, *(*bool)(ptr))
+	var uv uint64
+	if *(*bool)(ptr) {
+		uv = 1
+	}
+	return AppendVarUint(data, uv)
 }
 
 // Read decodes a bool
 func (BoolCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
-	b, n := ReadBool(data)
+	uv, n := ReadVarUint(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
 	}
-	*(*bool)(ptr) = b
+	*(*bool)(ptr) = (uv != 0)
 	return n, nil
 }
 

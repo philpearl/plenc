@@ -7,8 +7,13 @@ import (
 	"unsafe"
 )
 
-// Codec is what you implement to encode / decode a type. Note that codecs are separate from the types they
-// encode, and that they are registered with the system via RegisterCodec
+// Codec is what you implement to encode / decode a type. Note that codecs are
+// separate from the types they encode, and that they are registered with the
+// system via RegisterCodec.
+//
+// It isn't normally necessary to build a codec for a struct. Codecs for structs
+// are generated automatically when plenc first sees them and then are re-used
+// for the life of the program.
 type Codec interface {
 	Omit(ptr unsafe.Pointer) bool
 	Size(ptr unsafe.Pointer) (size int)
@@ -23,7 +28,9 @@ var (
 	codecCacheLock sync.RWMutex
 )
 
-// RegisterCodec makes a codec available for a type
+// RegisterCodec registers a codec with plenc so it can be used for marshaling
+// and unmarshaling. If you write a custom codec then you need to register it
+// before it can be used.
 func RegisterCodec(typ reflect.Type, c Codec) {
 	registerCodec(typ, c)
 }
@@ -31,6 +38,14 @@ func RegisterCodec(typ reflect.Type, c Codec) {
 // registerCodec makes a codec available for a type
 func registerCodec(typ reflect.Type, c Codec) {
 	codecCache.Store(typ, c)
+}
+
+func codecForBasicType(typ reflect.Type) (Codec, error) {
+	c, ok := codecCache.Load(typ)
+	if ok {
+		return c.(Codec), nil
+	}
+	return nil, fmt.Errorf("no codec available for %s", typ.Name())
 }
 
 // codecForType finds an existing codec for a type or constructs a codec
@@ -70,86 +85,86 @@ func codecForType(typ reflect.Type) (Codec, error) {
 			return nil, err
 		}
 
-	// Really expect codecs for basic types to be pre-registered, but named types will have a different type for
-	// the same kind
+	// Really expect codecs for basic types to be pre-registered, but named
+	// types will have a different type for the same kind
 	case reflect.Bool:
-		c, err = codecForType(reflect.TypeOf(bool(false)))
+		c, err = codecForBasicType(reflect.TypeOf(bool(false)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int:
-		c, err = codecForType(reflect.TypeOf(int(0)))
+		c, err = codecForBasicType(reflect.TypeOf(int(0)))
 		if err != nil {
 			return nil, err
 		}
 	case reflect.Int32:
-		c, err = codecForType(reflect.TypeOf(int32(0)))
+		c, err = codecForBasicType(reflect.TypeOf(int32(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int64:
-		c, err = codecForType(reflect.TypeOf(int64(0)))
+		c, err = codecForBasicType(reflect.TypeOf(int64(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint:
-		c, err = codecForType(reflect.TypeOf(uint(0)))
+		c, err = codecForBasicType(reflect.TypeOf(uint(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Float32:
-		c, err = codecForType(reflect.TypeOf(float32(0)))
+		c, err = codecForBasicType(reflect.TypeOf(float32(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Float64:
-		c, err = codecForType(reflect.TypeOf(float64(0)))
+		c, err = codecForBasicType(reflect.TypeOf(float64(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.String:
-		c, err = codecForType(reflect.TypeOf(""))
+		c, err = codecForBasicType(reflect.TypeOf(""))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int8:
-		c, err = codecForType(reflect.TypeOf(int8(0)))
+		c, err = codecForBasicType(reflect.TypeOf(int8(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int16:
-		c, err = codecForType(reflect.TypeOf(int16(0)))
+		c, err = codecForBasicType(reflect.TypeOf(int16(0)))
 		if err != nil {
 			return nil, err
 		}
 	case reflect.Uint8:
-		c, err = codecForType(reflect.TypeOf(uint8(0)))
+		c, err = codecForBasicType(reflect.TypeOf(uint8(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint16:
-		c, err = codecForType(reflect.TypeOf(uint16(0)))
+		c, err = codecForBasicType(reflect.TypeOf(uint16(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint32:
-		c, err = codecForType(reflect.TypeOf(uint32(0)))
+		c, err = codecForBasicType(reflect.TypeOf(uint32(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint64:
-		c, err = codecForType(reflect.TypeOf(uint64(0)))
+		c, err = codecForBasicType(reflect.TypeOf(uint64(0)))
 		if err != nil {
 			return nil, err
 		}

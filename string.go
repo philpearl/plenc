@@ -6,26 +6,6 @@ import (
 	"unsafe"
 )
 
-// ReadString reads a string from data
-func ReadString(data []byte) (string, int) {
-	l, n := ReadVarUint(data)
-	if n < 0 {
-		return "", n
-	}
-	return string(data[n : n+int(l)]), n + int(l)
-}
-
-// SizeString works out how much room you need to store a string
-func SizeString(v string) int {
-	return SizeVarUint(uint64(len(v))) + len(v)
-}
-
-// AppendString appends a string encoding to data
-func AppendString(data []byte, v string) []byte {
-	data = AppendVarUint(data, uint64(len(v)))
-	return append(data, v...)
-}
-
 func init() {
 	registerCodec(reflect.TypeOf(""), StringCodec{})
 }
@@ -35,12 +15,15 @@ type StringCodec struct{}
 
 // Size returns the number of bytes needed to encode a string
 func (StringCodec) Size(ptr unsafe.Pointer) int {
-	return SizeString(*(*string)(ptr))
+	l := len(*(*string)(ptr))
+	return SizeVarUint(uint64(l)) + l
 }
 
 // Append encodes a string
 func (StringCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
-	return AppendString(data, *(*string)(ptr))
+	s := *(*string)(ptr)
+	data = AppendVarUint(data, uint64(len(s)))
+	return append(data, s...)
 }
 
 // Read decodes a string

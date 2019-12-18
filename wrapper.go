@@ -53,6 +53,7 @@ func (p PointerWrapper) WireType() WireType {
 	return p.Underlying.WireType()
 }
 
+// SliceWrapper is a codec for a slice of a type.
 type SliceWrapper struct {
 	Underlying Codec
 	EltSize    uintptr

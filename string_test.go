@@ -22,15 +22,27 @@ func TestString(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
-			l := SizeString(test)
-			b := make([]byte, 0, l)
-			b = AppendString(b, test)
-			actual, n := ReadString(b)
-			if n != l {
-				t.Errorf("length %d is not as expected (%d)", n, l)
+			c, err := codecForType(reflect.TypeOf(test))
+			if err != nil {
+				t.Fatal(err)
 			}
-			if actual != test {
-				t.Errorf("result %q is not as expected %q", actual, test)
+
+			l := c.Size(unsafe.Pointer(&test))
+
+			data := c.Append(nil, unsafe.Pointer(&test))
+
+			if len(data) != l {
+				t.Errorf("data not expected length. %d %d", l, len(data))
+			}
+
+			var out string
+			_, err = c.Read(data, unsafe.Pointer(&out))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(test, out); diff != "" {
+				t.Fatal(diff)
 			}
 		})
 	}

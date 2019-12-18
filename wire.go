@@ -4,7 +4,7 @@ import "fmt"
 
 // WireType represents a protobuf wire type. It's really all about how you can skip
 // over fields in encoded data that aren't recognised because the field no longer
-// exists in the struct
+// exists in the struct.
 type WireType int8
 
 const (

@@ -4,19 +4,23 @@ import (
 	"math"
 	"strconv"
 	"testing"
+	"unsafe"
 )
 
 func TestFloat32(t *testing.T) {
-
+	c := Float32Codec{}
 	tests := []float32{0, 1, -1, 3.14, math.MaxFloat32, math.SmallestNonzeroFloat32}
 
 	for _, test := range tests {
 		t.Run(strconv.FormatFloat(float64(test), 'g', -1, 32), func(t *testing.T) {
-			l := SizeFloat32(test)
+			l := c.Size(unsafe.Pointer(&test))
 			b := make([]byte, 0, l)
-			data := AppendFloat32(b, test)
-			actual, n := ReadFloat32(data)
-
+			data := c.Append(b, unsafe.Pointer(&test))
+			var actual float32
+			n, err := c.Read(data, unsafe.Pointer(&actual))
+			if err != nil {
+				t.Fatal(err)
+			}
 			if n != l {
 				t.Errorf("lengths differ %d %d", l, n)
 			}
@@ -28,16 +32,19 @@ func TestFloat32(t *testing.T) {
 }
 
 func TestFloat64(t *testing.T) {
-
+	c := Float64Codec{}
 	tests := []float64{0, 1, -1, 3.14, math.MaxFloat32, math.SmallestNonzeroFloat32, math.MaxFloat64, math.SmallestNonzeroFloat64}
 
 	for _, test := range tests {
-		t.Run(strconv.FormatFloat(float64(test), 'g', -1, 32), func(t *testing.T) {
-			l := SizeFloat64(test)
+		t.Run(strconv.FormatFloat(float64(test), 'g', -1, 64), func(t *testing.T) {
+			l := c.Size(unsafe.Pointer(&test))
 			b := make([]byte, 0, l)
-			data := AppendFloat64(b, test)
-			actual, n := ReadFloat64(data)
-
+			data := c.Append(b, unsafe.Pointer(&test))
+			var actual float64
+			n, err := c.Read(data, unsafe.Pointer(&actual))
+			if err != nil {
+				t.Fatal(err)
+			}
 			if n != l {
 				t.Errorf("lengths differ %d %d", l, n)
 			}
@@ -46,16 +53,4 @@ func TestFloat64(t *testing.T) {
 			}
 		})
 	}
-}
-
-func BenchmarkAppendFloat64(b *testing.B) {
-	b.ReportAllocs()
-	b.RunParallel(func(pb *testing.PB) {
-		var buf []byte
-		for pb.Next() {
-			buf = AppendFloat64(buf[:0], 3.138383)
-			buf = AppendFloat64(buf, 5.138383)
-			buf = AppendFloat64(buf, 83.138383)
-		}
-	})
 }
