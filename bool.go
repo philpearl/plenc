@@ -30,7 +30,7 @@ func init() {
 	registerCodec(reflect.TypeOf(false), BoolCodec{})
 }
 
-// BoolCodec is a coddec for an bool
+// BoolCodec is a codec for an bool
 type BoolCodec struct{}
 
 // Size returns the number of bytes needed to encode a bool
