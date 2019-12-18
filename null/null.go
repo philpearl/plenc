@@ -11,7 +11,8 @@ import (
 	"github.com/unravelin/null"
 )
 
-// RegisterCodecs registers the codecs from this package
+// RegisterCodecs registers the codecs from this package and makes them
+// available to plenc.
 func RegisterCodecs() {
 	plenc.RegisterCodec(reflect.TypeOf(null.Int{}), nullIntCodec{})
 	plenc.RegisterCodec(reflect.TypeOf(null.Bool{}), nullBoolCodec{})

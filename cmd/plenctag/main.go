@@ -1,3 +1,4 @@
+// plenctag adds plenc tags to your structs
 package main
 
 import (
