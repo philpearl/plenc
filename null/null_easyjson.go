@@ -17,7 +17,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjson60751f33DecodeGithubComPhilpearlPlencNull(in *jlexer.Lexer, out *BenchThing) {
+func easyjson60751f33DecodeGithubComPhilpearlPlencNull(in *jlexer.Lexer, out *benchThing) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -68,7 +68,7 @@ func easyjson60751f33DecodeGithubComPhilpearlPlencNull(in *jlexer.Lexer, out *Be
 		in.Consumed()
 	}
 }
-func easyjson60751f33EncodeGithubComPhilpearlPlencNull(out *jwriter.Writer, in BenchThing) {
+func easyjson60751f33EncodeGithubComPhilpearlPlencNull(out *jwriter.Writer, in benchThing) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -111,11 +111,11 @@ func easyjson60751f33EncodeGithubComPhilpearlPlencNull(out *jwriter.Writer, in B
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v BenchThing) MarshalEasyJSON(w *jwriter.Writer) {
+func (v benchThing) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson60751f33EncodeGithubComPhilpearlPlencNull(w, v)
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *BenchThing) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *benchThing) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson60751f33DecodeGithubComPhilpearlPlencNull(l, v)
 }

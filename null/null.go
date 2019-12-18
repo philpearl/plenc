@@ -1,3 +1,5 @@
+// Package null contains plenc codecs for the types in github.com/unravelin/null.
+// Call RegisterCodecs to make these codecs available to plenc
 package null
 
 import (

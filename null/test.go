@@ -5,7 +5,7 @@ import "github.com/unravelin/null"
 //go:generate easyjson -no_std_marshalers -pkg
 
 //easyjson:json
-type BenchThing struct {
+type benchThing struct {
 	I  null.Int    `plenc:"1"`
 	I2 null.Int    `plenc:"2"`
 	B  null.Bool   `plenc:"3"`
