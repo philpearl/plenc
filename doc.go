@@ -22,4 +22,21 @@
 //
 // plenc only encodes fields that are exported - ones where the field name
 // begins with a capital letter.
+//
+// Once your structs have plenc tags, encoding and decoding data is very much
+// like the standard JSON library using Marshal and Unmarshal calls. The one
+// difference is that the Marshal function allows you to append encoded data to
+// an existing slice.
+//
+//         var in mystruct
+//         data, err := plenc.Marshal(data[:0], &in)
+//         if err != nil {
+//         			return err
+//         }
+//
+//         var out mystruct
+//         if err := plenc.Unmarshal(data, &out); err != nil {
+//         			return err
+//         }
+
 package plenc
