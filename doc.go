@@ -28,14 +28,4 @@
 // difference is that the Marshal function allows you to append encoded data to
 // an existing slice.
 //
-//   var in mystruct
-//   data, err := plenc.Marshal(data[:0], &in)
-//   if err != nil {
-//       return err
-//   }
-//
-//   var out mystruct
-//   if err := plenc.Unmarshal(data, &out); err != nil {
-//       return err
-//   }
 package plenc
