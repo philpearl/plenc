@@ -105,8 +105,8 @@ func TestMarshalUnmarked(t *testing.T) {
 
 func TestMarshalDuplicate(t *testing.T) {
 	type duplicate struct {
-		A string `plenc:"1"`
-		B string `plenc:"1"`
+		A string  `plenc:"1"`
+		B *string `plenc:"1"`
 	}
 
 	var in duplicate
@@ -115,6 +115,47 @@ func TestMarshalDuplicate(t *testing.T) {
 		t.Errorf("expected an error as fields have duplicate plenc tags")
 	}
 	if err.Error() != "failed building codec for duplicate. Multiple fields have index 1" {
+		t.Errorf("error %q not as expected", err)
+	}
+}
+
+func TestMarshalComplex(t *testing.T) {
+	type my struct {
+		A complex64 `plenc:"1"`
+	}
+
+	var in my
+	_, err := Marshal(nil, &in)
+	if err == nil {
+		t.Errorf("expected an error as complex types aren't supported")
+	}
+	if err.Error() != "failed to find codec for field 0 (A) of my. could not find or create a codec for complex64" {
+		t.Errorf("error %q not as expected", err)
+	}
+}
+
+func TestUnMarshalComplex(t *testing.T) {
+	type my struct {
+		A complex64 `plenc:"1"`
+	}
+
+	var in my
+	err := Unmarshal(nil, &in)
+	if err == nil {
+		t.Errorf("expected an error as complex types aren't supported")
+	}
+	if err.Error() != "failed to find codec for field 0 (A) of my. could not find or create a codec for complex64" {
+		t.Errorf("error %q not as expected", err)
+	}
+}
+
+func TestUnmarshalNoPtr(t *testing.T) {
+	var a int
+	err := Unmarshal([]byte{}, a)
+	if err == nil {
+		t.Fatal("expected an error from unmarshal as is requires a pointer")
+	}
+	if err.Error() != "you must pass in a pointer" {
 		t.Errorf("error %q not as expected", err)
 	}
 }
@@ -166,6 +207,7 @@ func TestNamedTypes(t *testing.T) {
 	type Float64 float64
 	type Float32 float32
 	type Uint uint
+	type String string
 
 	type MyStruct struct {
 		V1 Bool    `plenc:"1"`
@@ -173,6 +215,7 @@ func TestNamedTypes(t *testing.T) {
 		V3 Float64 `plenc:"3"`
 		V4 Float32 `plenc:"4"`
 		V5 Uint    `plenc:"5"`
+		V6 String  `plenc:"6"`
 	}
 
 	var in, out MyStruct
