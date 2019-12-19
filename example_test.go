@@ -43,6 +43,6 @@ func Example() {
 
 	fmt.Printf("%#v\n", out)
 
-	// Output: 260A044C75637910321A1C0D0A064665646F7261150000C0400D0A06666C6F707079150000B040
+	// Output: 0A044C75637910321A1C0D0A064665646F7261150000C0400D0A06666C6F707079150000B040
 	// plenc_test.Person{Name:"Lucy", Age:25, Hats:[]plenc_test.Hat{plenc_test.Hat{Type:"Fedora", Size:6}, plenc_test.Hat{Type:"floppy", Size:5.5}}}
 }

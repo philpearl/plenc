@@ -1,7 +1,6 @@
 package plenc
 
 import (
-	"encoding/binary"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -92,42 +91,37 @@ func (c *structCodec) Omit(ptr unsafe.Pointer) bool {
 }
 
 func (c *structCodec) Size(ptr unsafe.Pointer) (size int) {
-	size = c.SizeInternal(ptr)
-	return SizeVarUint(uint64(size)) + size
-}
-
-func (c *structCodec) SizeInternal(ptr unsafe.Pointer) (size int) {
 	for _, field := range c.fields {
 		fptr := unsafe.Pointer(uintptr(ptr) + field.offset)
 		if !field.codec.Omit(fptr) {
-			size += len(field.tag) + field.codec.Size(fptr)
+			s := field.codec.Size(fptr)
+			if field.codec.WireType() == WTLength {
+				s += SizeVarUint(uint64(s))
+			}
+			size += len(field.tag) + s
 		}
 	}
 	return size
 }
 
 func (c *structCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
-	lOrig := len(data)
-
-	// We avoid calculating the size of the data we need to add by guessing it will fit in 1 byte and
-	// shuffling if not.
-	data = append(data, 0)
-
 	for _, field := range c.fields {
 		fptr := unsafe.Pointer(uintptr(ptr) + field.offset)
 		if field.codec.Omit(fptr) {
 			continue
 		}
+		// TODO: In protobuf arrays of anything other than numbers are not
+		// "packed", but are repeated tag and all. This isn't strictly necessary
+		// from the protocol, but if we want to inter-operate... Well, we could
+		// just be able to read that without necessarily being able to write it.
+		// Also in these cases lengths are different
+		//
+		// TODO: Also the outer struct shouldn't have a length. So perhaps we need to add lengths here and not within the append
 		data = append(data, field.tag...)
+		if field.codec.WireType() == WTLength {
+			data = AppendVarUint(data, uint64(field.codec.Size(fptr)))
+		}
 		data = field.codec.Append(data, fptr)
-	}
-
-	if s := len(data) - lOrig - 1; s > 0x7F {
-		// Need to shuffle data as our size is longer
-		data = moveForward(data, lOrig+1, SizeVarUint(uint64(s))-1)
-		binary.PutUvarint(data[lOrig:], uint64(s))
-	} else {
-		data[lOrig] = byte(s)
 	}
 
 	return data
@@ -149,17 +143,10 @@ func moveForward(data []byte, from, dist int) []byte {
 }
 
 func (c *structCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
-	l, n := ReadVarUint(data)
-	if n <= 0 {
-		return 0, fmt.Errorf("varuint overflow reading %s", c.rtype.Name())
-	}
-	data = data[n:]
-	if len(data) < int(l) {
-		return 0, fmt.Errorf("not enough data to read %s. Have %d bytes, need %d", c.rtype.Name(), len(data), l)
-	}
+	l := len(data)
 
 	var offset int
-	for offset < int(l) {
+	for offset < l {
 		wt, index, n := ReadTag(data[offset:])
 		offset += n
 
@@ -173,8 +160,23 @@ func (c *structCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
 			continue
 		}
 
+		fl := l
+		if wt == WTLength {
+			// For WTLength types we read out the length and ensure the data we
+			// read the field from is the right length
+			v, n := ReadVarUint(data[offset:])
+			if n <= 0 {
+				return 0, fmt.Errorf("varuint overflow reading field %d of %s", index, c.rtype.Name())
+			}
+			offset += n
+			fl = int(v) + offset
+			if fl > l {
+				return 0, fmt.Errorf("length %d of field %d of %s exceeds data length", fl, index, c.rtype.Name())
+			}
+		}
+
 		d := c.fieldsByIndex[index]
-		n, err := d.codec.Read(data[offset:], unsafe.Pointer(uintptr(ptr)+d.offset))
+		n, err := d.codec.Read(data[offset:fl], unsafe.Pointer(uintptr(ptr)+d.offset))
 		if err != nil {
 			return 0, fmt.Errorf("failed reading field %d of %s. %w", index, c.rtype.Name(), err)
 		}

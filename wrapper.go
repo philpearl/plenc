@@ -72,51 +72,75 @@ func (c SliceWrapper) Omit(ptr unsafe.Pointer) bool {
 }
 
 func (c SliceWrapper) Size(ptr unsafe.Pointer) int {
-	size := c.InternalSize(ptr)
-	return SizeVarUint(uint64(size)) + size
-}
-
-func (c SliceWrapper) InternalSize(ptr unsafe.Pointer) int {
 	h := *(*sliceHeader)(ptr)
 	size := 0
-	for i := 0; i < h.Len; i++ {
-		size += c.Underlying.Size(unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize))
+	if c.Underlying.WireType() == WTLength {
+		for i := 0; i < h.Len; i++ {
+			ptr := unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize)
+			s := c.Underlying.Size(ptr)
+			size += s + SizeVarUint(uint64(s))
+		}
+	} else {
+		for i := 0; i < h.Len; i++ {
+			size += c.Underlying.Size(unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize))
+		}
 	}
+
 	return size
 }
 
 // Append encodes the slice without the tag
 func (c SliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
-
-	// Length tags are followed by a byte count
-	data = AppendVarUint(data, uint64(c.InternalSize(ptr)))
-
 	h := *(*sliceHeader)(ptr)
-	for i := 0; i < h.Len; i++ {
-		// TODO: If we do strict protobuf then structs should also have the tag repeated
-		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
-	}
 
+	if c.Underlying.WireType() == WTLength {
+		for i := 0; i < h.Len; i++ {
+			// TODO: If we do strict protobuf then structs should also have the tag repeated.
+			// This is a half-way house!
+			ptr := unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize)
+			data = AppendVarUint(data, uint64(c.Underlying.Size(ptr)))
+			data = c.Underlying.Append(data, ptr)
+		}
+	} else {
+		for i := 0; i < h.Len; i++ {
+			data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
+		}
+
+	}
 	return data
 }
 
 // Read decodes a slice. It assumes the WTLength tag has already been decoded
+// and that the data slice is the corect size for the slice
 func (c SliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
-	l, n := ReadVarUint(data)
-	if n <= 0 {
-		return 0, fmt.Errorf("slice length is corrupt")
-	}
-	data = data[n:]
+	l := len(data)
 
 	// We step forward through out data to count how many things are in the slice
+	wt := c.Underlying.WireType()
 	var offset, count int
-	for offset < int(l) {
-		n, err := Skip(data[offset:], c.Underlying.WireType())
-		if err != nil {
-			return 0, err
+	switch wt {
+	case WTVarInt:
+		for offset < l {
+			_, n := ReadVarUint(data[offset:])
+			if n < 0 {
+				return 0, fmt.Errorf("corrupt data")
+			}
+			offset += n
+			count++
 		}
-		offset += n
-		count++
+	case WT64:
+		count = l / 8
+	case WTLength:
+		for offset < l {
+			ll, n := ReadVarUint(data[offset:])
+			if n < 0 {
+				return 0, fmt.Errorf("corrupt data")
+			}
+			offset += int(ll) + n
+			count++
+		}
+	case WT32:
+		count = l / 4
 	}
 
 	// Now make sure we have enough data in the slice
@@ -131,15 +155,30 @@ func (c SliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
 	h.Len = count
 
 	offset = 0
-	for i := 0; i < h.Len; i++ {
-		n, err := c.Underlying.Read(data[offset:], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
-		if err != nil {
-			return 0, err
+	if wt == WTLength {
+		for i := 0; i < h.Len; i++ {
+			s, n := ReadVarUint(data[offset:])
+			if n <= 0 {
+				return 0, fmt.Errorf("invalid varint for slice entry %d", i)
+			}
+			offset += n
+			n, err := c.Underlying.Read(data[offset:offset+int(s)], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
+			if err != nil {
+				return 0, err
+			}
+			offset += n
 		}
-		offset += n
+	} else {
+		for i := 0; i < h.Len; i++ {
+			n, err := c.Underlying.Read(data[offset:], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
+			if err != nil {
+				return 0, err
+			}
+			offset += n
+		}
 	}
 
-	return n + int(l), nil
+	return offset, nil
 }
 
 func (c SliceWrapper) New() unsafe.Pointer {

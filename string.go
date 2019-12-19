@@ -1,7 +1,6 @@
 package plenc
 
 import (
-	"fmt"
 	"reflect"
 	"unsafe"
 )
@@ -15,25 +14,19 @@ type StringCodec struct{}
 
 // Size returns the number of bytes needed to encode a string
 func (StringCodec) Size(ptr unsafe.Pointer) int {
-	l := len(*(*string)(ptr))
-	return SizeVarUint(uint64(l)) + l
+	return len(*(*string)(ptr))
 }
 
 // Append encodes a string
 func (StringCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	s := *(*string)(ptr)
-	data = AppendVarUint(data, uint64(len(s)))
 	return append(data, s...)
 }
 
 // Read decodes a string
 func (StringCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
-	l, n := ReadVarUint(data)
-	if n < 0 {
-		return 0, fmt.Errorf("corrupt var int")
-	}
-	*(*string)(ptr) = string(data[n : n+int(l)])
-	return n + int(l), nil
+	*(*string)(ptr) = string(data)
+	return len(data), nil
 }
 
 // New creates a pointer to a new bool
