@@ -77,7 +77,17 @@ func codecForType(typ reflect.Type) (Codec, error) {
 		if err != nil {
 			return nil, err
 		}
-		c = SliceWrapper{Underlying: subc, EltSize: subt.Size()}
+		bs := baseSliceWrapper{Underlying: subc, EltSize: subt.Size()}
+		switch subc.WireType() {
+		case WTVarInt:
+			c = WTVarIntSliceWrapper{baseSliceWrapper: bs}
+		case WT64, WT32:
+			c = WTFixedSliceWrapper{baseSliceWrapper: bs}
+		case WTLength:
+			c = WTLengthSliceWrapper{baseSliceWrapper: bs}
+		default:
+			return nil, fmt.Errorf("unexpected wire type %d for slice wrapper for type %s", subc.WireType(), typ.Name())
+		}
 
 	case reflect.Map:
 		c, err = buildMapCodec(typ)

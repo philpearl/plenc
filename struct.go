@@ -112,11 +112,8 @@ func (c *structCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 		}
 		// TODO: In protobuf arrays of anything other than numbers are not
 		// "packed", but are repeated tag and all. This isn't strictly necessary
-		// from the protocol, but if we want to inter-operate... Well, we could
+		// for the protocol, but if we want to inter-operate... Well, we could
 		// just be able to read that without necessarily being able to write it.
-		// Also in these cases lengths are different
-		//
-		// TODO: Also the outer struct shouldn't have a length. So perhaps we need to add lengths here and not within the append
 		data = append(data, field.tag...)
 		if field.codec.WireType() == WTLength {
 			data = AppendVarUint(data, uint64(field.codec.Size(fptr)))
