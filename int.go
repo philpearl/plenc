@@ -60,10 +60,12 @@ func AppendVarInt(data []byte, v int64) []byte {
 
 func init() {
 	registerCodec(reflect.TypeOf(int(0)), IntCodec{})
+	registerCodec(reflect.TypeOf(int8(0)), Int8Codec{})
 	registerCodec(reflect.TypeOf(int16(0)), Int16Codec{})
 	registerCodec(reflect.TypeOf(int32(0)), Int32Codec{})
 	registerCodec(reflect.TypeOf(int64(0)), Int64Codec{})
 	registerCodec(reflect.TypeOf(uint(0)), UintCodec{})
+	registerCodec(reflect.TypeOf(uint64(0)), Uint64Codec{})
 	registerCodec(reflect.TypeOf(uint32(0)), Uint32Codec{})
 	registerCodec(reflect.TypeOf(uint16(0)), Uint16Codec{})
 	registerCodec(reflect.TypeOf(uint8(0)), Uint8Codec{})
@@ -223,6 +225,45 @@ func (c Int16Codec) Omit(ptr unsafe.Pointer) bool {
 	return false
 }
 
+// Int8Codec is a coddec for an int
+type Int8Codec struct{}
+
+// Size returns the number of bytes needed to encode a Int
+func (Int8Codec) Size(ptr unsafe.Pointer) int {
+	return SizeVarInt(int64(*(*int8)(ptr)))
+}
+
+// Append encodes a int8
+func (Int8Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
+	return AppendVarInt(data, int64(*(*int8)(ptr)))
+}
+
+// Read decodes a int8
+func (Int8Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+	i, n := ReadVarInt(data)
+	if n < 0 {
+		return 0, fmt.Errorf("corrupt var int")
+	}
+
+	*(*int8)(ptr) = int8(i)
+	return n, nil
+}
+
+// New creates a pointer to a new Int
+func (c Int8Codec) New() unsafe.Pointer {
+	return unsafe.Pointer(new(int8))
+}
+
+// WireType returns the wire type used to encode this type
+func (c Int8Codec) WireType() WireType {
+	return WTVarInt
+}
+
+// Omit indicates whether this field should be omitted
+func (c Int8Codec) Omit(ptr unsafe.Pointer) bool {
+	return false
+}
+
 // UintCodec is a coddec for a uint
 type UintCodec struct{}
 
@@ -258,6 +299,44 @@ func (c UintCodec) WireType() WireType {
 
 // Omit indicates whether this field should be omitted
 func (c UintCodec) Omit(ptr unsafe.Pointer) bool {
+	return false
+}
+
+// Uint64Codec is a coddec for a uint
+type Uint64Codec struct{}
+
+// Size returns the number of bytes needed to encode a Int
+func (Uint64Codec) Size(ptr unsafe.Pointer) int {
+	return SizeVarUint(uint64(*(*uint64)(ptr)))
+}
+
+// Append encodes a Int
+func (Uint64Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
+	return AppendVarUint(data, uint64(*(*uint64)(ptr)))
+}
+
+// Read decodes a Int
+func (Uint64Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+	i, n := ReadVarUint(data)
+	if n < 0 {
+		return 0, fmt.Errorf("corrupt var int")
+	}
+	*(*uint64)(ptr) = uint64(i)
+	return n, nil
+}
+
+// New creates a pointer to a new Int
+func (c Uint64Codec) New() unsafe.Pointer {
+	return unsafe.Pointer(new(uint64))
+}
+
+// WireType returns the wire type used to encode this type
+func (c Uint64Codec) WireType() WireType {
+	return WTVarInt
+}
+
+// Omit indicates whether this field should be omitted
+func (c Uint64Codec) Omit(ptr unsafe.Pointer) bool {
 	return false
 }
 

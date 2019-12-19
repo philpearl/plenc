@@ -16,41 +16,52 @@ type InnerThing struct {
 }
 
 type TestThing struct {
-	A  float64     `plenc:"1"`
-	B  []float64   `plenc:"2"`
-	C  *float64    `plenc:"3"`
-	D  float32     `plenc:"4"`
-	E  []float32   `plenc:"5"`
-	F  *float32    `plenc:"6"`
-	G  int         `plenc:"7"`
-	H  []int       `plenc:"8"`
-	I  *int        `plenc:"9"`
-	J  uint        `plenc:"10"`
-	K  []uint      `plenc:"11"`
-	L  *uint       `plenc:"12"`
-	M  bool        `plenc:"13"`
-	N  []bool      `plenc:"14"`
-	O  *bool       `plenc:"15"`
-	P  string      `plenc:"16"`
-	Q  []string    `plenc:"17"`
-	R  *string     `plenc:"18"`
-	S  time.Time   `plenc:"19"`
-	T  []time.Time `plenc:"20"`
-	U  *time.Time  `plenc:"21"`
-	V  int32       `plenc:"22"`
-	W  []int32     `plenc:"23"`
-	X  *int32      `plenc:"24"`
-	Y  int64       `plenc:"25"`
-	Z  []int64     `plenc:"26"`
-	A1 *int64      `plenc:"27"`
-	A2 int16       `plenc:"29"`
-	A3 []int16     `plenc:"30"`
-	A4 *int16      `plenc:"31"`
-	A5 uint8       `plenc:"32"`
-	A6 []uint8     `plenc:"33"`
-	A7 *uint8      `plenc:"34"`
+	A   float64     `plenc:"1"`
+	B   []float64   `plenc:"2"`
+	C   *float64    `plenc:"3"`
+	D   float32     `plenc:"4"`
+	E   []float32   `plenc:"5"`
+	F   *float32    `plenc:"6"`
+	G   int         `plenc:"7"`
+	H   []int       `plenc:"8"`
+	I   *int        `plenc:"9"`
+	J   uint        `plenc:"10"`
+	K   []uint      `plenc:"11"`
+	L   *uint       `plenc:"12"`
+	M   bool        `plenc:"13"`
+	N   []bool      `plenc:"14"`
+	O   *bool       `plenc:"15"`
+	P   string      `plenc:"16"`
+	Q   []string    `plenc:"17"`
+	R   *string     `plenc:"18"`
+	S   time.Time   `plenc:"19"`
+	T   []time.Time `plenc:"20"`
+	U   *time.Time  `plenc:"21"`
+	V   int32       `plenc:"22"`
+	W   []int32     `plenc:"23"`
+	X   *int32      `plenc:"24"`
+	Y   int64       `plenc:"25"`
+	Z   []int64     `plenc:"26"`
+	A1  *int64      `plenc:"27"`
+	A2  int16       `plenc:"29"`
+	A3  []int16     `plenc:"30"`
+	A4  *int16      `plenc:"31"`
+	A5  uint8       `plenc:"32"`
+	A6  []uint8     `plenc:"33"`
+	A7  *uint8      `plenc:"34"`
+	A8  int8        `plenc:"37"`
+	A9  []int8      `plenc:"38"`
+	A10 *int8       `plenc:"39"`
+	A11 uint64      `plenc:"40"`
+	A12 []uint64    `plenc:"41"`
+	A13 *uint64     `plenc:"42"`
+	A14 uint16      `plenc:"43"`
+	A15 []uint16    `plenc:"44"`
+	A16 *uint16     `plenc:"45"`
 
-	Z1 InnerThing `plenc:"28"`
+	Z1 InnerThing   `plenc:"28"`
+	Z2 []InnerThing `plenc:"35"`
+	Z3 *InnerThing  `plenc:"36"`
 }
 
 func TestMarshal(t *testing.T) {
@@ -204,18 +215,34 @@ func BenchmarkCycle(b *testing.B) {
 func TestNamedTypes(t *testing.T) {
 	type Bool bool
 	type Int int
+	type Int64 int64
+	type Int32 int32
+	type Int16 int16
+	type Int8 int8
 	type Float64 float64
 	type Float32 float32
 	type Uint uint
+	type Uint64 uint64
+	type Uint32 uint32
+	type Uint16 uint16
+	type Uint8 uint8
 	type String string
 
 	type MyStruct struct {
-		V1 Bool    `plenc:"1"`
-		V2 Int     `plenc:"2"`
-		V3 Float64 `plenc:"3"`
-		V4 Float32 `plenc:"4"`
-		V5 Uint    `plenc:"5"`
-		V6 String  `plenc:"6"`
+		V1  Bool    `plenc:"1"`
+		V2  Int     `plenc:"2"`
+		V3  Float64 `plenc:"3"`
+		V4  Float32 `plenc:"4"`
+		V5  Uint    `plenc:"5"`
+		V6  String  `plenc:"6"`
+		V7  Int64   `plenc:"7"`
+		V8  Int32   `plenc:"8"`
+		V9  Int16   `plenc:"9"`
+		V10 Int8    `plenc:"10"`
+		V11 Uint64  `plenc:"11"`
+		V12 Uint32  `plenc:"12"`
+		V13 Uint16  `plenc:"13"`
+		V14 Uint8   `plenc:"14"`
 	}
 
 	var in, out MyStruct

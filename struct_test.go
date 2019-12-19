@@ -62,5 +62,4 @@ func TestFieldRemoval(t *testing.T) {
 	if out.B != 2 {
 		t.Fatalf("Unmarshal unexpected value for B. %d", out.B)
 	}
-
 }
