@@ -84,6 +84,8 @@ func (c baseSliceWrapper) WireType() WireType {
 	return WTLength
 }
 
+// WTLengthSliceWrapper is a codec for a slice of a type that's encoded using
+// the WTLength wire type.
 type WTLengthSliceWrapper struct {
 	baseSliceWrapper
 }
@@ -154,6 +156,8 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err 
 	return offset, nil
 }
 
+// WTFixedSliceWrapper is a codec for a type that's encoded as a fixed 32 or 64
+// byte value (i.e. float32 or float64)
 type WTFixedSliceWrapper struct {
 	baseSliceWrapper
 }
@@ -200,6 +204,8 @@ func (c WTFixedSliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err e
 	return offset, nil
 }
 
+// WTVarIntSliceWrapper is a codec for a type encoded using the WTVarInt wire
+// type
 type WTVarIntSliceWrapper struct {
 	baseSliceWrapper
 }
