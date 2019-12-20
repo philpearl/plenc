@@ -18,7 +18,7 @@ type Codec interface {
 	Omit(ptr unsafe.Pointer) bool
 	Size(ptr unsafe.Pointer) (size int)
 	Append(data []byte, ptr unsafe.Pointer) []byte
-	Read(data []byte, ptr unsafe.Pointer) (n int, err error)
+	Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error)
 	New() unsafe.Pointer
 	WireType() WireType
 }

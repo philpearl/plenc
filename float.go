@@ -29,7 +29,7 @@ func (Float64Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a float64
-func (Float64Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (Float64Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	if len(data) < 8 {
 		return 0, fmt.Errorf("not enough data to read a float64. Have %d bytes", len(data))
 	}
@@ -69,7 +69,7 @@ func (Float32Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a float32
-func (Float32Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (Float32Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	if len(data) < 4 {
 		return 0, fmt.Errorf("not enough data to read a float32. Have %d bytes", len(data))
 	}

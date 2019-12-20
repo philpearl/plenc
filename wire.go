@@ -2,21 +2,26 @@ package plenc
 
 import "fmt"
 
-// WireType represents a protobuf wire type. It's really all about how you can skip
-// over fields in encoded data that aren't recognised because the field no longer
-// exists in the struct.
+// WireType represents a protobuf wire type. It's really all about how you can
+// skip over fields in encoded data that aren't recognised because the field no
+// longer exists in the struct.
 type WireType int8
 
 const (
-	// WTVarInt signals a variable-length encoded integer. Signed integers are encoded
-	// with zig-zag encoding first.
+	// WTVarInt signals a variable-length encoded integer. Signed integers are
+	// encoded with zig-zag encoding first.
 	WTVarInt WireType = iota
 	// WT64 signals a 64 bit value. Used for float64
 	WT64
-	// WTLength signals length-value data. Length is encoded as a varint and is a byte
-	// count. This is used for structs and strings
+	// WTLength signals length-value data. Length is encoded as a varint and is
+	// a byte count. This is used for structs and strings, and for slices of
+	// types encoded using WTVarInt, WT64 or WT32
 	WTLength
-	wtStartGroupDeprecated
+	// WTSlice re-uses the code point used for the deprecated 'StartGroup' wire
+	// type. It is used for slices of types implemented with WTLength. It is
+	// followed by a count of items in the slice encoded as a VarUint. Each
+	// entry is then encoded starting with its length encoded as a VarUint.
+	WTSlice
 	wtEndGroupDeprecated
 	// WT32 signals a 32 bit value. Used for float32
 	WT32
@@ -62,9 +67,24 @@ func Skip(data []byte, wt WireType) (int, error) {
 	case WTLength:
 		l, n := ReadVarUint(data)
 		if n < 0 {
-			return 0, fmt.Errorf("corrupt data")
+			return 0, fmt.Errorf("corrupt data for WTLength tag")
 		}
 		return int(l) + n, nil
+	case WTSlice:
+		count, n := ReadVarUint(data)
+		if n < 0 {
+			return 0, fmt.Errorf("corrupt data for WTSkip tag")
+		}
+		// We now expect count length-value encoded items
+		offset := n
+		for i := uint64(0); i < count; i++ {
+			l, n := ReadVarUint(data[offset:])
+			if n < 0 {
+				return 0, fmt.Errorf("corrupt length for entry %d of WTSlice", i)
+			}
+			offset += int(l) + n
+		}
+		return offset, nil
 	case WT32:
 		return 4, nil
 	}

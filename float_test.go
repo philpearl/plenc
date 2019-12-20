@@ -17,7 +17,7 @@ func TestFloat32(t *testing.T) {
 			b := make([]byte, 0, l)
 			data := c.Append(b, unsafe.Pointer(&test))
 			var actual float32
-			n, err := c.Read(data, unsafe.Pointer(&actual))
+			n, err := c.Read(data, unsafe.Pointer(&actual), c.WireType())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -41,7 +41,7 @@ func TestFloat64(t *testing.T) {
 			b := make([]byte, 0, l)
 			data := c.Append(b, unsafe.Pointer(&test))
 			var actual float64
-			n, err := c.Read(data, unsafe.Pointer(&actual))
+			n, err := c.Read(data, unsafe.Pointer(&actual), c.WireType())
 			if err != nil {
 				t.Fatal(err)
 			}

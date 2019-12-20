@@ -30,6 +30,6 @@ func Unmarshal(data []byte, value interface{}) error {
 		return err
 	}
 
-	_, err = c.Read(data, unsafe.Pointer(reflect.ValueOf(value).Pointer()))
+	_, err = c.Read(data, unsafe.Pointer(reflect.ValueOf(value).Pointer()), c.WireType())
 	return err
 }

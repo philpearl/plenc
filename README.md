@@ -47,3 +47,15 @@ Here's a rough benchmark to show the kind of gains you could get using plenc.
 BenchmarkCycle/plenc-16    1369533     881 ns/op    1400 B/op     38 allocs/op
 BenchmarkCycle/json-16      214154    5620 ns/op    5211 B/op    120 allocs/op
 ```
+
+## Is this protobuf?
+No, as it stands it is not quite protobuf. It is largely protobuf and has a soft aim to at least be able to read standard protobuf, but there are differences.
+
+The big difference is that plenc uses its own encoding for slices of types that are implemented with WTLength. Plenc introduces a new wire-type for these - WTSlice (3). The Tag byte is followed by a unsigned varint containing the number of elements in the slice, then each element is encoded with its length as an unsigned varint then the element encoding. This encoding means the receiver easily knows the length of the slice and can allocate it in a single operation.
+
+Plenc does aim to be able to read standard protobuf. It can read slices encoded with the standard protobuf encoding. There may be gaps in support. 
+
+In particular using fixed32 and fixed64 encodings for integer types is not currently supported. I think we could support that via an option on the plenc tag that would select a different codec.
+
+## Known problems
+Plenc cannot currently encode maps. There's some code written, but it doesn't work.

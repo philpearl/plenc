@@ -72,7 +72,7 @@ func (c mapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return data
 }
 
-func (c mapCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (c mapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	l, n := ReadVarUint(data)
 	if n <= 0 {
 		return 0, fmt.Errorf("varuint overflow reading %s", c.rtype.Name())
@@ -89,12 +89,12 @@ func (c mapCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
 		k := c.keyCodec.New()
 		v := c.valueCodec.New()
 
-		n, err = c.keyCodec.Read(data[offset:], k)
+		n, err = c.keyCodec.Read(data[offset:], k, c.keyCodec.WireType())
 		if err != nil {
 			return 0, err
 		}
 		offset += n
-		n, err = c.valueCodec.Read(data[offset:], v)
+		n, err = c.valueCodec.Read(data[offset:], v, c.valueCodec.WireType())
 		if err != nil {
 			return 0, err
 		}

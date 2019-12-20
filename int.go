@@ -85,7 +85,7 @@ func (IntCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a Int
-func (IntCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (IntCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	i, n := ReadVarInt(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
@@ -123,7 +123,7 @@ func (Int64Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a int64
-func (Int64Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (Int64Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	i, n := ReadVarInt(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
@@ -161,7 +161,7 @@ func (Int32Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a int32
-func (Int32Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (Int32Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	i, n := ReadVarInt(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
@@ -200,7 +200,7 @@ func (Int16Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a int16
-func (Int16Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (Int16Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	i, n := ReadVarInt(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
@@ -239,7 +239,7 @@ func (Int8Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a int8
-func (Int8Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (Int8Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	i, n := ReadVarInt(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
@@ -278,7 +278,7 @@ func (UintCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a Int
-func (UintCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (UintCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	i, n := ReadVarUint(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
@@ -316,7 +316,7 @@ func (Uint64Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a Int
-func (Uint64Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (Uint64Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	i, n := ReadVarUint(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
@@ -354,7 +354,7 @@ func (Uint32Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a Int
-func (Uint32Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (Uint32Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	i, n := ReadVarUint(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
@@ -392,7 +392,7 @@ func (Uint16Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a Int
-func (Uint16Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (Uint16Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	i, n := ReadVarUint(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
@@ -430,7 +430,7 @@ func (Uint8Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a Int
-func (Uint8Codec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (Uint8Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	i, n := ReadVarUint(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")

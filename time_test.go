@@ -30,7 +30,7 @@ func TestTime(t *testing.T) {
 		data := c.Append(nil, unsafe.Pointer(&t0))
 
 		var t1 twrap
-		n, err := c.Read(data, unsafe.Pointer(&t1))
+		n, err := c.Read(data, unsafe.Pointer(&t1), WTLength)
 		if n != len(data) {
 			t.Errorf("not all data read. %d", n)
 		}

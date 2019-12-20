@@ -28,7 +28,7 @@ func (BoolCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a bool
-func (BoolCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (BoolCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	uv, n := ReadVarUint(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")

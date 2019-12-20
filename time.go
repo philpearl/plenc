@@ -65,10 +65,10 @@ func (tc *TimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a Time
-func (tc *TimeCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (tc *TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	tc.init()
 	var e ptime
-	n, err = tc.Codec.Read(data, unsafe.Pointer(&e))
+	n, err = tc.Codec.Read(data, unsafe.Pointer(&e), wt)
 	if err != nil {
 		return n, err
 	}

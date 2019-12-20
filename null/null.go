@@ -37,9 +37,9 @@ func (c nullIntCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	ni := (*null.Int)(ptr)
 	return c.Int64Codec.Append(data, unsafe.Pointer(&ni.Int64))
 }
-func (c nullIntCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (c nullIntCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
 	var i int64
-	n, err = c.Int64Codec.Read(data, unsafe.Pointer(&i))
+	n, err = c.Int64Codec.Read(data, unsafe.Pointer(&i), wt)
 	if err != nil {
 		return n, err
 	}
@@ -68,9 +68,9 @@ func (c nullBoolCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	ni := (*null.Bool)(ptr)
 	return c.BoolCodec.Append(data, unsafe.Pointer(&ni.Bool))
 }
-func (c nullBoolCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (c nullBoolCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
 	var b bool
-	n, err = c.BoolCodec.Read(data, unsafe.Pointer(&b))
+	n, err = c.BoolCodec.Read(data, unsafe.Pointer(&b), wt)
 	if err != nil {
 		return n, err
 	}
@@ -99,9 +99,9 @@ func (c nullFloatCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	nf := (*null.Float)(ptr)
 	return c.Float64Codec.Append(data, unsafe.Pointer(&nf.Float64))
 }
-func (c nullFloatCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (c nullFloatCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
 	var f float64
-	n, err = c.Float64Codec.Read(data, unsafe.Pointer(&f))
+	n, err = c.Float64Codec.Read(data, unsafe.Pointer(&f), wt)
 	if err != nil {
 		return n, err
 	}
@@ -130,9 +130,9 @@ func (c nullStringCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	ns := (*null.String)(ptr)
 	return c.StringCodec.Append(data, unsafe.Pointer(&ns.String))
 }
-func (c nullStringCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (c nullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
 	var s string
-	n, err = c.StringCodec.Read(data, unsafe.Pointer(&s))
+	n, err = c.StringCodec.Read(data, unsafe.Pointer(&s), wt)
 	if err != nil {
 		return n, err
 	}
@@ -161,9 +161,9 @@ func (c *nullTimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	nt := (*null.Time)(ptr)
 	return c.TimeCodec.Append(data, unsafe.Pointer(&nt.Time))
 }
-func (c *nullTimeCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (c *nullTimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
 	var t time.Time
-	n, err = c.TimeCodec.Read(data, unsafe.Pointer(&t))
+	n, err = c.TimeCodec.Read(data, unsafe.Pointer(&t), wt)
 	if err != nil {
 		return n, err
 	}

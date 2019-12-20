@@ -11,7 +11,7 @@ func TestBool(t *testing.T) {
 		s := c.Size(unsafe.Pointer(&b))
 		data := c.Append(nil, unsafe.Pointer(&b))
 		var a bool
-		n, err := c.Read(data, unsafe.Pointer(&a))
+		n, err := c.Read(data, unsafe.Pointer(&a), c.WireType())
 		if err != nil {
 			t.Fatal(err)
 		}

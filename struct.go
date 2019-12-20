@@ -139,7 +139,7 @@ func moveForward(data []byte, from, dist int) []byte {
 	return data
 }
 
-func (c *structCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (c *structCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	l := len(data)
 
 	var offset int
@@ -173,7 +173,7 @@ func (c *structCodec) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
 		}
 
 		d := c.fieldsByIndex[index]
-		n, err := d.codec.Read(data[offset:fl], unsafe.Pointer(uintptr(ptr)+d.offset))
+		n, err := d.codec.Read(data[offset:fl], unsafe.Pointer(uintptr(ptr)+d.offset), wt)
 		if err != nil {
 			return 0, fmt.Errorf("failed reading field %d of %s. %w", index, c.rtype.Name(), err)
 		}

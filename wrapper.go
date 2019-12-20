@@ -35,13 +35,13 @@ func (p PointerWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return p.Underlying.Append(data, t)
 }
 
-func (p PointerWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (p PointerWrapper) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	t := (*unsafe.Pointer)(ptr)
 	if *t == nil {
 		*t = p.Underlying.New()
 	}
 
-	return p.Underlying.Read(data, *t)
+	return p.Underlying.Read(data, *t, wt)
 }
 
 func (p PointerWrapper) New() unsafe.Pointer {
@@ -92,7 +92,7 @@ type WTLengthSliceWrapper struct {
 
 func (c WTLengthSliceWrapper) Size(ptr unsafe.Pointer) int {
 	h := *(*sliceHeader)(ptr)
-	size := 0
+	size := SizeVarUint(uint64(h.Len))
 	for i := 0; i < h.Len; i++ {
 		s := c.Underlying.Size(unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize))
 		size += s + SizeVarUint(uint64(s))
@@ -104,9 +104,10 @@ func (c WTLengthSliceWrapper) Size(ptr unsafe.Pointer) int {
 func (c WTLengthSliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
 	h := *(*sliceHeader)(ptr)
 
+	// Append the count of items in the slice
+	data = AppendVarUint(data, uint64(h.Len))
+	// Append each of the items. They're all prefixed by their length
 	for i := 0; i < h.Len; i++ {
-		// TODO: If we do strict protobuf then structs should also have the tag repeated.
-		// This is a half-way house!
 		ptr := unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize)
 		data = AppendVarUint(data, uint64(c.Underlying.Size(ptr)))
 		data = c.Underlying.Append(data, ptr)
@@ -116,37 +117,36 @@ func (c WTLengthSliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
 
 // Read decodes a slice. It assumes the WTLength tag has already been decoded
 // and that the data slice is the corect size for the slice
-func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
-	// We step forward through out data to count how many things are in the slice
-	var offset, count int
-	for offset < len(data) {
-		ll, n := ReadVarUint(data[offset:])
-		if n < 0 {
-			return 0, fmt.Errorf("corrupt data")
-		}
-		offset += int(ll) + n
-		count++
+func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
+	if wt == WTLength {
+		return c.readAsWTLength(data, ptr)
 	}
 
-	// Now make sure we have enough data in the slice
+	// First we read the number of items in the slice
+	count, n := ReadVarUint(data)
+	if n < 0 {
+		return 0, fmt.Errorf("corrupt data looking for WTSlice count")
+	}
+
+	// Now make sure we have enough capacity in the slice
 	h := (*sliceHeader)(ptr)
-	if h.Cap < count {
+	if h.Cap < int(count) {
 		// Do some crazy shit so this slice is treated as if it contains pointers.
 		// TODO: also try reflect.MakeSlice. Might be better if it isn't slower
-		slice := make([]unsafe.Pointer, 1+count*int(c.EltSize)/int(unsafe.Sizeof(unsafe.Pointer(nil))))
+		slice := make([]unsafe.Pointer, 1+int(count)*int(c.EltSize)/int(unsafe.Sizeof(unsafe.Pointer(nil))))
 		*h = *(*sliceHeader)(unsafe.Pointer(&slice))
-		h.Cap = count
+		h.Cap = int(count)
 	}
-	h.Len = count
+	h.Len = int(count)
 
-	offset = 0
+	offset := n
 	for i := 0; i < h.Len; i++ {
 		s, n := ReadVarUint(data[offset:])
 		if n <= 0 {
 			return 0, fmt.Errorf("invalid varint for slice entry %d", i)
 		}
 		offset += n
-		n, err := c.Underlying.Read(data[offset:offset+int(s)], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
+		n, err := c.Underlying.Read(data[offset:offset+int(s)], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), WTLength)
 		if err != nil {
 			return 0, err
 		}
@@ -154,6 +154,52 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err 
 	}
 
 	return offset, nil
+}
+
+// readAsWTLength is here for protobuf compatibility. protobuf writes certain array types by simply repeating the encoding for an individual field. So here we just read one underlying value and append it to the slice
+func (c WTLengthSliceWrapper) readAsWTLength(data []byte, ptr unsafe.Pointer) (n int, err error) {
+	h := (*sliceHeader)(ptr)
+	if h.Cap == h.Len {
+		// Need to make room
+		cap := h.Cap * 2
+		if cap == 0 {
+			cap = 8
+		}
+		// Do some crazy shit so this slice is treated as if it contains pointers.
+		// TODO: also try reflect.MakeSlice. Might be better if it isn't slower
+		slice := make([]unsafe.Pointer, 1+int(cap)*int(c.EltSize)/int(unsafe.Sizeof(unsafe.Pointer(nil))))
+		nh := *(*sliceHeader)(unsafe.Pointer(&slice))
+		if h.Len != 0 {
+			// copy over the old data
+			copy(
+				*(*[]byte)(unsafe.Pointer(&sliceHeader{
+					Data: nh.Data,
+					Cap:  nh.Cap * int(c.EltSize),
+					Len:  h.Len,
+				})),
+				*(*[]byte)(unsafe.Pointer(&sliceHeader{
+					Data: h.Data,
+					Cap:  h.Cap * int(c.EltSize),
+					Len:  h.Len,
+				})),
+			)
+		}
+		nh.Len = h.Len
+		nh.Cap = cap
+
+		*h = nh
+	}
+
+	n, err = c.Underlying.Read(data, unsafe.Pointer(uintptr(h.Data)+uintptr(h.Len)*c.EltSize), WTLength)
+	if err != nil {
+		return 0, err
+	}
+	h.Len++
+	return n, nil
+}
+
+func (c WTLengthSliceWrapper) WireType() WireType {
+	return WTSlice
 }
 
 // WTFixedSliceWrapper is a codec for a type that's encoded as a fixed 32 or 64
@@ -178,7 +224,7 @@ func (c WTFixedSliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
 
 // Read decodes a slice. It assumes the WTLength tag has already been decoded
 // and that the data slice is the corect size for the slice
-func (c WTFixedSliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (c WTFixedSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	count := len(data) / c.Underlying.Size(nil)
 
 	// Now make sure we have enough data in the slice
@@ -194,7 +240,7 @@ func (c WTFixedSliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err e
 
 	var offset int
 	for i := 0; i < h.Len; i++ {
-		n, err := c.Underlying.Read(data[offset:], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
+		n, err := c.Underlying.Read(data[offset:], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), c.Underlying.WireType())
 		if err != nil {
 			return 0, err
 		}
@@ -230,7 +276,7 @@ func (c WTVarIntSliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
 
 // Read decodes a slice. It assumes the WTLength tag has already been decoded
 // and that the data slice is the corect size for the slice
-func (c WTVarIntSliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err error) {
+func (c WTVarIntSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	// We step forward through out data to count how many things are in the slice
 	var offset, count int
 	for offset < len(data) {
@@ -255,7 +301,7 @@ func (c WTVarIntSliceWrapper) Read(data []byte, ptr unsafe.Pointer) (n int, err 
 
 	offset = 0
 	for i := 0; i < h.Len; i++ {
-		n, err := c.Underlying.Read(data[offset:], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
+		n, err := c.Underlying.Read(data[offset:], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), WTVarInt)
 		if err != nil {
 			return 0, err
 		}

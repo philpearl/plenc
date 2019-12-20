@@ -37,7 +37,7 @@ func TestString(t *testing.T) {
 			}
 
 			var out string
-			_, err = c.Read(data, unsafe.Pointer(&out))
+			_, err = c.Read(data, unsafe.Pointer(&out), c.WireType())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -92,7 +92,7 @@ func TestStringSlice(t *testing.T) {
 	*/
 
 	var out []string
-	_, err = c.Read(data, unsafe.Pointer(&out))
+	_, err = c.Read(data, unsafe.Pointer(&out), c.WireType())
 	if err != nil {
 		t.Fatal(err)
 	}
