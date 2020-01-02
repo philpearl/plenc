@@ -30,17 +30,17 @@ func init() {
 
 // TimeCodec is a codec for Time
 type TimeCodec struct {
-	Codec `plenc:"1"`
-	once  sync.Once `plenc:"2"`
+	codec Codec
+	once  sync.Once
 }
 
 func (tc *TimeCodec) init() {
 	tc.once.Do(func() {
-		var err error
-		tc.Codec, err = codecForType(reflect.TypeOf(ptime{}))
+		codec, err := codecForType(reflect.TypeOf(ptime{}))
 		if err != nil {
 			panic(err)
 		}
+		tc.codec = codec
 	})
 }
 
@@ -48,27 +48,31 @@ func (tc *TimeCodec) init() {
 func (tc *TimeCodec) Size(ptr unsafe.Pointer) (size int) {
 	tc.init()
 	t := *(*time.Time)(ptr)
-	var e ptime
+	e := timePool.Get().(*ptime)
+	defer timePool.Put(e)
 	e.Set(t)
 
-	return tc.Codec.Size(unsafe.Pointer(&e))
+	return tc.codec.Size(unsafe.Pointer(e))
 }
 
 // Append encodes a Time
 func (tc *TimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	tc.init()
 	t := *(*time.Time)(ptr)
-	var e ptime
+	e := timePool.Get().(*ptime)
+	defer timePool.Put(e)
 	e.Set(t)
 
-	return tc.Codec.Append(data, unsafe.Pointer(&e))
+	return tc.codec.Append(data, unsafe.Pointer(e))
 }
 
 // Read decodes a Time
 func (tc *TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	tc.init()
-	var e ptime
-	n, err = tc.Codec.Read(data, unsafe.Pointer(&e), wt)
+	e := timePool.Get().(*ptime)
+	defer timePool.Put(e)
+
+	n, err = tc.codec.Read(data, unsafe.Pointer(e), wt)
 	if err != nil {
 		return n, err
 	}
@@ -86,5 +90,11 @@ func (*TimeCodec) Omit(ptr unsafe.Pointer) bool {
 
 func (tc *TimeCodec) WireType() WireType {
 	tc.init()
-	return tc.Codec.WireType()
+	return tc.codec.WireType()
+}
+
+var timePool = sync.Pool{
+	New: func() interface{} {
+		return &ptime{}
+	},
 }

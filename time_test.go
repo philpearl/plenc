@@ -44,3 +44,22 @@ func TestTime(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkTime(b *testing.B) {
+	b.ReportAllocs()
+	in := time.Now()
+	b.RunParallel(func(pb *testing.PB) {
+		var data []byte
+		for pb.Next() {
+			var err error
+			data, err = Marshal(data[:0], &in)
+			if err != nil {
+				b.Fatal(err)
+			}
+			var out time.Time
+			if err := Unmarshal(data, &out); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
