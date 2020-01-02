@@ -1,0 +1,73 @@
+plenc
+It's all about the cylinders
+18 Dec 2019
+
+Phil Pearl
+Ravelin
+phil.pearl@ravelin.com
+https://philpearl.github.io/
+@philpearl
+
+* Cylinders
+
+- We all remember the cylinders.
+- But what are the cylinders for?
+.image cylinder.png
+
+* Squares
+
+- Cylinders are for storing squares.
+- We have a lot of squares
+.image squares.jpg
+
+* JSON
+
+- We can't just put squares in cylinders: that would be silly
+- We could ask JSON to put squares in cylinders for us.
+- Hello JSON! JSON is friendly
+.image jason.jpg
+
+* Fat
+
+- But JSON is slow and fat.
+- We don't like that.
+.image fatjson.jpg 400 _
+
+* Protobuf
+
+- Protobuf is buff
+- Protobuf is not slow or fat.
+- But Protobuf doesn't like squares
+.background bufsq2.png
+
+* Greater-stellated cube-cuboctahedrons
+
+- We can convert our squares into greater-stellated cube-cuboctahedrons
+- Protobuf likes greater-stellated cube-cuboctrahedrons
+- This is (really!) how we put things in the cylinders
+.image complex.png 400 1000
+
+* Double-plus un-good
+
+- Turning squares into greater-stellated cube-cuboctahedrons is complicated
+- Slower and fatter than JSON
+- Who knew?
+.image FatElephant.svg 400 _
+
+* Introducing plenc
+
+- Plenc is as buff as protobuf
+- Plenc is as friendly as JSON
+- Plenc doesn't have a fixation with the higher-order stellations of complex polyhedra
+- Hello Plenc!
+.image plank.jpg 350 _
+
+* plenc
+
+- plenc can put squares directly into cylinders.
+- github.com/philpearl/plenc
+
+ BenchmarkRoundtrip/proto-16 	     20311 ns/op	   36382 B/op	     517 allocs/op
+ BenchmarkRoundtrip/plenc-16 	      2898 ns/op	    7532 B/op	      90 allocs/op
+
+.image sqplenccyl.png 400 _
