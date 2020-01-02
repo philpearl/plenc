@@ -35,7 +35,7 @@ func main() {
 func run() error {
 	var cfg config
 
-	flag.BoolVar(&cfg.write, "w", false, "Write result to (source) file instead of stdout")
+	flag.BoolVar(&cfg.write, "w", true, "Write result to (source) file instead of stdout")
 	flag.BoolVar(&cfg.excludeJSONMinus, "json", false, "Exclude json:\"-\"")
 	flag.BoolVar(&cfg.excludeSQLMinus, "sql", true, "Exclude sql:\"-\"")
 

@@ -32,11 +32,6 @@ func (c mapCodec) Omit(ptr unsafe.Pointer) bool {
 }
 
 func (c mapCodec) Size(ptr unsafe.Pointer) (size int) {
-	size = c.SizeInternal(ptr)
-	return SizeVarUint(uint64(size)) + size
-}
-
-func (c mapCodec) SizeInternal(ptr unsafe.Pointer) (size int) {
 	val := reflect.NewAt(c.rtype, ptr).Elem()
 	iter := val.MapRange()
 	for iter.Next() {

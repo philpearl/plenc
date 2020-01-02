@@ -85,7 +85,7 @@ func (c baseSliceWrapper) WireType() WireType {
 }
 
 // WTLengthSliceWrapper is a codec for a slice of a type that's encoded using
-// the WTLength wire type.
+// the WTSlice wire type.
 type WTLengthSliceWrapper struct {
 	baseSliceWrapper
 }
