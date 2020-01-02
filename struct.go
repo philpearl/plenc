@@ -180,7 +180,7 @@ func (c *structCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int,
 		offset += n
 	}
 
-	return offset + n, nil
+	return offset, nil
 }
 func (c *structCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(reflect.New(c.rtype).Pointer())

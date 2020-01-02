@@ -1,8 +1,8 @@
 package plenc
 
 import (
+	"fmt"
 	"reflect"
-	"sync"
 	"time"
 	"unsafe"
 )
@@ -29,55 +29,69 @@ func init() {
 }
 
 // TimeCodec is a codec for Time
-type TimeCodec struct {
-	codec Codec
-	once  sync.Once
-}
-
-func (tc *TimeCodec) init() {
-	tc.once.Do(func() {
-		codec, err := codecForType(reflect.TypeOf(ptime{}))
-		if err != nil {
-			panic(err)
-		}
-		tc.codec = codec
-	})
-}
+type TimeCodec struct{}
 
 // Size returns the number of bytes needed to encode a Time
 func (tc *TimeCodec) Size(ptr unsafe.Pointer) (size int) {
-	tc.init()
 	t := *(*time.Time)(ptr)
-	e := timePool.Get().(*ptime)
-	defer timePool.Put(e)
+	var e ptime
 	e.Set(t)
-
-	return tc.codec.Size(unsafe.Pointer(e))
+	sl := Int64Codec{}.Size(unsafe.Pointer(&e.Seconds))
+	nl := Int32Codec{}.Size(unsafe.Pointer(&e.Nanoseconds))
+	return SizeTag(WTVarInt, 1) + sl + SizeTag(WTVarInt, 2) + nl
 }
 
 // Append encodes a Time
 func (tc *TimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
-	tc.init()
 	t := *(*time.Time)(ptr)
-	e := timePool.Get().(*ptime)
-	defer timePool.Put(e)
+	var e ptime
 	e.Set(t)
 
-	return tc.codec.Append(data, unsafe.Pointer(e))
+	data = AppendTag(data, WTVarInt, 1)
+	data = Int64Codec{}.Append(data, unsafe.Pointer(&e.Seconds))
+	data = AppendTag(data, WTVarInt, 2)
+	data = Int32Codec{}.Append(data, unsafe.Pointer(&e.Nanoseconds))
+	return data
 }
 
 // Read decodes a Time
 func (tc *TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
-	tc.init()
-	e := timePool.Get().(*ptime)
-	defer timePool.Put(e)
+	var e ptime
+	l := len(data)
 
-	n, err = tc.codec.Read(data, unsafe.Pointer(e), wt)
-	if err != nil {
-		return n, err
+	var offset int
+	for offset < l {
+		wt, index, n := ReadTag(data[offset:])
+		offset += n
+
+		switch index {
+		case 1:
+			n, err := Int64Codec{}.Read(data[offset:], unsafe.Pointer(&e.Seconds), wt)
+			if err != nil {
+				return 0, fmt.Errorf("failed reading seconds field of time. %w", err)
+			}
+			offset += n
+
+		case 2:
+			n, err := Int32Codec{}.Read(data[offset:], unsafe.Pointer(&e.Nanoseconds), wt)
+			if err != nil {
+				return 0, fmt.Errorf("failed reading nanoseconds field of time. %w", err)
+			}
+			offset += n
+
+		default:
+			// Field corresponding to index does not exist
+			n, err := Skip(data[offset:], wt)
+			if err != nil {
+				return 0, fmt.Errorf("failed to skip field %d of time. %w", index, err)
+			}
+			offset += n
+		}
 	}
+
 	*(*time.Time)(ptr) = e.Standard()
-	return n, nil
+
+	return offset, nil
 }
 
 func (*TimeCodec) New() unsafe.Pointer {
@@ -89,12 +103,5 @@ func (*TimeCodec) Omit(ptr unsafe.Pointer) bool {
 }
 
 func (tc *TimeCodec) WireType() WireType {
-	tc.init()
-	return tc.codec.WireType()
-}
-
-var timePool = sync.Pool{
-	New: func() interface{} {
-		return &ptime{}
-	},
+	return WTLength
 }
