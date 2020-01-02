@@ -5,9 +5,15 @@ import (
 	"unsafe"
 )
 
-// TODO: perhaps first map to handle is one that can deal with JSON map[string]interface{}. In this case the value is either nil, string, integer, float64, bool, array (of these types) or object (another map[string]interface). We would need to encode the value type as the standard wire types of proto don't encode enough info.
-// Encode as a list of key value pairs with a value type field. There's some unfortunate overlap between the types we need and wire types, but it's probably better to make consistent use of the proto encoding??
-// Why is this better than just serialising with JSON and dumping the bytes? It's probably a bit denser has faster to parse.
+// One map we handle is one that can deal with JSON map[string]interface{}. In
+// this case the value is either nil, string, integer, float64, bool, array (of
+// these types) or object (another map[string]interface). We would need to
+// encode the value type as the standard wire types of proto don't encode enough
+// info. Encode as a list of key value pairs with a value type field. There's
+// some unfortunate overlap between the types we need and wire types, but it's
+// probably better to make consistent use of the proto encoding?? Why is this
+// better than just serialising with JSON and dumping the bytes? It's probably a
+// bit denser has faster to parse.
 
 // JSONMapCodec is for serialising JSON maps encoded in Go as
 // map[string]interface{}. To use this codec you must register it for use with
