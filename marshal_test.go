@@ -99,6 +99,44 @@ func TestMarshal(t *testing.T) {
 	}
 }
 
+func TestSkip(t *testing.T) {
+	f := fuzz.New()
+	for i := 0; i < 100; i++ {
+		var in TestThing
+		f.Fuzz(&in)
+
+		data, err := Marshal(nil, &in)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// This should skip everything, but we don't know unless it errors
+		type nowt struct{}
+		var nothing nowt
+		if err := Unmarshal(data, &nothing); err != nil {
+			t.Fatal(err)
+		}
+
+		// So lets do a lower level skip
+		i := 0
+		for i < len(data) {
+			wt, _, n := ReadTag(data[i:])
+			if n < 0 {
+				t.Fatalf("problem reading tag")
+			}
+			i += n
+			n, err := Skip(data[i:], wt)
+			if err != nil {
+				t.Fatal(err)
+			}
+			i += n
+		}
+		if i != len(data) {
+			t.Fatal("data length not as expected")
+		}
+	}
+}
+
 func TestMarshalUnmarked(t *testing.T) {
 	type unmarked struct {
 		A string
