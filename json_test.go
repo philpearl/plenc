@@ -51,7 +51,35 @@ func TestJSONMap(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestJSONMapStruct(t *testing.T) {
+	type customMap map[string]interface{}
+	RegisterCodec(reflect.TypeOf(customMap{}), JSONMapCodec{})
+
+	type my struct {
+		A customMap `plenc:"1"`
+		B customMap `plenc:"2"`
+	}
+
+	in := my{
+		A: make(customMap),
+		B: nil,
+	}
+
+	d, err := Marshal(nil, &in)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out my
+	if err := Unmarshal(d, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(in, out); diff != "" {
+		t.Fatalf("maps differ. %s", diff)
+	}
 }
 
 func TestJSONMapSkip(t *testing.T) {
