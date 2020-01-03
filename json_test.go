@@ -1,6 +1,7 @@
 package plenc
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 
@@ -22,6 +23,7 @@ func TestJSONMap(t *testing.T) {
 		},
 		"f": nil,
 		"g": true,
+		"h": json.Number("3.1415"),
 	}
 
 	var (
@@ -40,5 +42,55 @@ func TestJSONMap(t *testing.T) {
 
 	if diff := cmp.Diff(in, out); diff != "" {
 		t.Fatalf("maps differ. %s", diff)
+	}
+}
+
+func TestJSONMapSkip(t *testing.T) {
+	type customMap map[string]interface{}
+	RegisterCodec(reflect.TypeOf(customMap{}), JSONMapCodec{})
+
+	type my struct {
+		A int       `plenc:"1"`
+		B customMap `plenc:"2"`
+		C string    `plenc:"3"`
+	}
+
+	in := my{
+		A: 37,
+		B: customMap{
+			"a": 1,
+			"b": -1,
+			"c": 1.1,
+			"d": "hat",
+			"e": map[string]interface{}{
+				"f": 1,
+				"a": []interface{}{1, 2, 3},
+			},
+			"f": nil,
+			"g": true,
+			"h": json.Number("3.1415"),
+		},
+		C: "hello",
+	}
+
+	var (
+		d   []byte
+		err error
+	)
+	d, err = Marshal(d, &in)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out struct {
+		A int    `plenc:"1"`
+		C string `plenc:"3"`
+	}
+	if err := Unmarshal(d, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	if out.A != 37 && out.C != "hello" {
+		t.Fatalf("output not as expected. %#v", out)
 	}
 }
