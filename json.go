@@ -40,10 +40,14 @@ const (
 )
 
 func (JSONMapCodec) Omit(ptr unsafe.Pointer) bool {
-	return ptr == nil
+	m := *(*map[string]interface{})(ptr)
+	return m == nil
 }
 
 func (c JSONMapCodec) Size(ptr unsafe.Pointer) (size int) {
+	if ptr == nil {
+		return 0
+	}
 	m := *(*map[string]interface{})(ptr)
 	// We'll use the WTSlice wire type, so first is the number of items
 	size = SizeVarUint(uint64(len(m)))
@@ -87,6 +91,9 @@ func (c JSONMapCodec) appendKV(data []byte, k string, v interface{}) []byte {
 
 func (c JSONMapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	count, n := ReadVarUint(data)
+	if n == 0 {
+		return 0, nil
+	}
 	offset := n
 
 	m := *(*map[string]interface{})(ptr)

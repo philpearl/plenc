@@ -12,37 +12,46 @@ func TestJSONMap(t *testing.T) {
 	type customMap map[string]interface{}
 	RegisterCodec(reflect.TypeOf(customMap{}), JSONMapCodec{})
 
-	in := customMap{
-		"a": 1,
-		"b": -1,
-		"c": 1.1,
-		"d": "hat",
-		"e": map[string]interface{}{
-			"f": 1,
-			"a": []interface{}{1, 2, 3},
+	tests := []customMap{
+		{
+			"a": 1,
+			"b": -1,
+			"c": 1.1,
+			"d": "hat",
+			"e": map[string]interface{}{
+				"f": 1,
+				"a": []interface{}{1, 2, 3},
+			},
+			"f": nil,
+			"g": true,
+			"h": json.Number("3.1415"),
 		},
-		"f": nil,
-		"g": true,
-		"h": json.Number("3.1415"),
+		{},
+		nil,
 	}
 
-	var (
-		d   []byte
-		err error
-	)
-	d, err = Marshal(d, &in)
-	if err != nil {
-		t.Fatal(err)
+	for _, test := range tests {
+		t.Run("", func(t *testing.T) {
+			var (
+				d   []byte
+				err error
+			)
+			d, err = Marshal(d, &test)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var out customMap
+			if err := Unmarshal(d, &out); err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(test, out); diff != "" {
+				t.Fatalf("maps differ. %s", diff)
+			}
+		})
 	}
 
-	var out customMap
-	if err := Unmarshal(d, &out); err != nil {
-		t.Fatal(err)
-	}
-
-	if diff := cmp.Diff(in, out); diff != "" {
-		t.Fatalf("maps differ. %s", diff)
-	}
 }
 
 func TestJSONMapSkip(t *testing.T) {

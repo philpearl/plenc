@@ -16,11 +16,15 @@ func Marshal(data []byte, value interface{}) ([]byte, error) {
 		return nil, err
 	}
 
+	ptr := unsafe.Pointer(reflect.ValueOf(value).Pointer())
+	if c.Omit(ptr) {
+		return nil, nil
+	}
 	if data == nil {
-		data = make([]byte, 0, c.Size(unsafe.Pointer(reflect.ValueOf(value).Pointer())))
+		data = make([]byte, 0, c.Size(ptr))
 	}
 
-	return c.Append(data, unsafe.Pointer(reflect.ValueOf(value).Pointer())), nil
+	return c.Append(data, ptr), nil
 }
 
 func Unmarshal(data []byte, value interface{}) error {
