@@ -16,7 +16,7 @@ func Marshal(data []byte, value interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	ptr := unsafe.Pointer(reflect.ValueOf(value).Pointer())
+	ptr := unpackEFace(value).data
 	if c.Omit(ptr) {
 		return nil, nil
 	}
@@ -40,4 +40,13 @@ func Unmarshal(data []byte, value interface{}) error {
 
 	_, err = c.Read(data, unsafe.Pointer(reflect.ValueOf(value).Pointer()), c.WireType())
 	return err
+}
+
+type eface struct {
+	rtype unsafe.Pointer
+	data  unsafe.Pointer
+}
+
+func unpackEFace(obj interface{}) *eface {
+	return (*eface)(unsafe.Pointer(&obj))
 }

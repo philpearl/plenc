@@ -15,6 +15,8 @@ type InnerThing struct {
 	C time.Time `plenc:"3"`
 }
 
+type SliceThing []InnerThing
+
 type TestThing struct {
 	A   float64     `plenc:"1"`
 	B   []float64   `plenc:"2"`
@@ -62,6 +64,7 @@ type TestThing struct {
 	Z1 InnerThing   `plenc:"28"`
 	Z2 []InnerThing `plenc:"35"`
 	Z3 *InnerThing  `plenc:"36"`
+	ZZ SliceThing   `plenc:"46"`
 }
 
 func TestMarshal(t *testing.T) {
@@ -96,6 +99,22 @@ func TestMarshal(t *testing.T) {
 
 			t.Fatalf("structs differ. %s", diff)
 		}
+	}
+}
+
+func TestMarshalSlice(t *testing.T) {
+	a := SliceThing{
+		{A: "a"},
+	}
+
+	data, err := Marshal(nil, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b SliceThing
+
+	if err := Unmarshal(data, &b); err != nil {
+		t.Fatal(err)
 	}
 }
 
