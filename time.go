@@ -21,7 +21,7 @@ func (e *ptime) Set(t time.Time) {
 }
 
 func (e *ptime) Standard() time.Time {
-	return time.Unix(e.Seconds, int64(e.Nanoseconds))
+	return time.Unix(e.Seconds, int64(e.Nanoseconds)).UTC()
 }
 
 func init() {
