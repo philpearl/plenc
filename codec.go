@@ -77,7 +77,7 @@ func codecForType(typ reflect.Type) (Codec, error) {
 		if err != nil {
 			return nil, err
 		}
-		bs := baseSliceWrapper{Underlying: subc, EltSize: subt.Size()}
+		bs := baseSliceWrapper{Underlying: subc, EltSize: subt.Size(), EltType: unpackEFace(subt).data}
 		switch subc.WireType() {
 		case WTVarInt:
 			c = WTVarIntSliceWrapper{baseSliceWrapper: bs}

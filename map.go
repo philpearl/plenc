@@ -106,3 +106,18 @@ func (c mapCodec) New() unsafe.Pointer {
 func (c mapCodec) WireType() WireType {
 	return WTLength
 }
+
+func moveForward(data []byte, from, dist int) []byte {
+	// Ensure we have enough space
+	l := len(data)
+	if cap(data)-l < dist {
+		data = append(data, make([]byte, dist)...)
+		data = data[:l]
+	}
+
+	data = data[:l+dist]
+	for i := len(data) - 1; i >= from+dist; i-- {
+		data[i] = data[i-dist]
+	}
+	return data
+}

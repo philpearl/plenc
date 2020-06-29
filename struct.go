@@ -124,21 +124,6 @@ func (c *structCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return data
 }
 
-func moveForward(data []byte, from, dist int) []byte {
-	// Ensure we have enough space
-	l := len(data)
-	if cap(data)-l < dist {
-		data = append(data, make([]byte, dist)...)
-		data = data[:l]
-	}
-
-	data = data[:l+dist]
-	for i := len(data) - 1; i >= from+dist; i-- {
-		data[i] = data[i-dist]
-	}
-	return data
-}
-
 func (c *structCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	l := len(data)
 

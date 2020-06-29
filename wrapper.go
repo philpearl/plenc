@@ -69,6 +69,7 @@ type sliceHeader struct {
 type baseSliceWrapper struct {
 	Underlying Codec
 	EltSize    uintptr
+	EltType    unsafe.Pointer
 }
 
 func (c baseSliceWrapper) Omit(ptr unsafe.Pointer) bool {
@@ -100,7 +101,7 @@ func (c WTLengthSliceWrapper) Size(ptr unsafe.Pointer) int {
 	return size
 }
 
-// Append encodes the slice
+// Append encodes the slice, and appends the encoded version to data
 func (c WTLengthSliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
 	h := *(*sliceHeader)(ptr)
 
@@ -131,10 +132,8 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt WireType)
 	// Now make sure we have enough capacity in the slice
 	h := (*sliceHeader)(ptr)
 	if h.Cap < int(count) {
-		// Do some crazy shit so this slice is treated as if it contains pointers.
-		// TODO: also try reflect.MakeSlice. Might be better if it isn't slower
-		slice := make([]unsafe.Pointer, 1+int(count)*int(c.EltSize)/int(unsafe.Sizeof(unsafe.Pointer(nil))))
-		*h = *(*sliceHeader)(unsafe.Pointer(&slice))
+		// Ensure the GC knows the type of this slice.
+		h.Data = unsafe_NewArray(c.EltType, int(count))
 		h.Cap = int(count)
 	}
 	h.Len = int(count)
@@ -165,24 +164,14 @@ func (c WTLengthSliceWrapper) readAsWTLength(data []byte, ptr unsafe.Pointer) (n
 		if cap == 0 {
 			cap = 8
 		}
-		// Do some crazy shit so this slice is treated as if it contains pointers.
-		// TODO: also try reflect.MakeSlice. Might be better if it isn't slower
-		slice := make([]unsafe.Pointer, 1+int(cap)*int(c.EltSize)/int(unsafe.Sizeof(unsafe.Pointer(nil))))
-		nh := *(*sliceHeader)(unsafe.Pointer(&slice))
+		nh := sliceHeader{
+			Data: unsafe_NewArray(c.EltType, int(cap)),
+			Len:  h.Len,
+			Cap:  cap,
+		}
 		if h.Len != 0 {
 			// copy over the old data
-			copy(
-				*(*[]byte)(unsafe.Pointer(&sliceHeader{
-					Data: nh.Data,
-					Cap:  nh.Cap * int(c.EltSize),
-					Len:  h.Len,
-				})),
-				*(*[]byte)(unsafe.Pointer(&sliceHeader{
-					Data: h.Data,
-					Cap:  h.Cap * int(c.EltSize),
-					Len:  h.Len,
-				})),
-			)
+			typedslicecopy(c.EltType, nh, *h)
 		}
 		nh.Len = h.Len
 		nh.Cap = cap
@@ -230,11 +219,9 @@ func (c WTFixedSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt WireType) 
 	// Now make sure we have enough data in the slice
 	h := (*sliceHeader)(ptr)
 	if h.Cap < count {
-		// Do some crazy shit so this slice is treated as if it contains pointers.
-		// TODO: also try reflect.MakeSlice. Might be better if it isn't slower
-		slice := make([]unsafe.Pointer, 1+count*int(c.EltSize)/int(unsafe.Sizeof(unsafe.Pointer(nil))))
-		*h = *(*sliceHeader)(unsafe.Pointer(&slice))
-		h.Cap = count
+		// Ensure the GC knows the type of this slice.
+		h.Data = unsafe_NewArray(c.EltType, int(count))
+		h.Cap = int(count)
 	}
 	h.Len = count
 
@@ -291,11 +278,9 @@ func (c WTVarIntSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt WireType)
 	// Now make sure we have enough data in the slice
 	h := (*sliceHeader)(ptr)
 	if h.Cap < count {
-		// Do some crazy shit so this slice is treated as if it contains pointers.
-		// TODO: also try reflect.MakeSlice. Might be better if it isn't slower
-		slice := make([]unsafe.Pointer, 1+count*int(c.EltSize)/int(unsafe.Sizeof(unsafe.Pointer(nil))))
-		*h = *(*sliceHeader)(unsafe.Pointer(&slice))
-		h.Cap = count
+		// Ensure the GC knows the type of this slice.
+		h.Data = unsafe_NewArray(c.EltType, int(count))
+		h.Cap = int(count)
 	}
 	h.Len = count
 
