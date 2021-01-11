@@ -223,7 +223,18 @@ func TestUnmarshalNoPtr(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error from unmarshal as is requires a pointer")
 	}
-	if err.Error() != "you must pass in a pointer" {
+	if err.Error() != "you must pass in a non-nil pointer" {
+		t.Errorf("error %q not as expected", err)
+	}
+}
+
+func TestUnmarshalNilPtr(t *testing.T) {
+	var a *int
+	err := Unmarshal([]byte{}, a)
+	if err == nil {
+		t.Fatal("expected an error from unmarshal as is requires a pointer")
+	}
+	if err.Error() != "you must pass in a non-nil pointer" {
 		t.Errorf("error %q not as expected", err)
 	}
 }
