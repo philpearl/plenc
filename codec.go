@@ -48,6 +48,12 @@ func codecForBasicType(typ reflect.Type) (Codec, error) {
 	return nil, fmt.Errorf("no codec available for %s", typ.Name())
 }
 
+// CodecForType returns a codec for the requested type. It should only be needed
+// when constructing a codec based on an existing plenc codec
+func CodecForType(typ reflect.Type) (Codec, error) {
+	return codecForType(typ)
+}
+
 // codecForType finds an existing codec for a type or constructs a codec
 func codecForType(typ reflect.Type) (Codec, error) {
 	c, ok := codecCache.Load(typ)
