@@ -11,6 +11,9 @@ func Marshal(data []byte, value interface{}) ([]byte, error) {
 	ptr := unpackEFace(value).data
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
+
+		// When marshalling we don't want a pointer to a map as a map is a
+		// pointer-ish type itself.
 		if typ.Kind() == reflect.Map {
 			ptr = *(*unsafe.Pointer)(ptr)
 		}
