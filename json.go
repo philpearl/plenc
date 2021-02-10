@@ -40,15 +40,14 @@ const (
 )
 
 func (JSONMapCodec) Omit(ptr unsafe.Pointer) bool {
-	m := *(*map[string]interface{})(ptr)
-	return m == nil
+	return ptr == nil
 }
 
 func (c JSONMapCodec) Size(ptr unsafe.Pointer) (size int) {
-	if ptr == nil {
-		return 0
-	}
-	m := *(*map[string]interface{})(ptr)
+	// this is just a map pointer here!
+	var m map[string]interface{}
+	*(*unsafe.Pointer)((unsafe.Pointer)(&m)) = ptr
+
 	// We'll use the WTSlice wire type, so first is the number of items
 	size = SizeVarUint(uint64(len(m)))
 	for k, v := range m {
@@ -67,7 +66,9 @@ func (c JSONMapCodec) sizeKV(k string, v interface{}) (size int) {
 }
 
 func (c JSONMapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
-	m := *(*map[string]interface{})(ptr)
+	// this is just a map pointer here!
+	var m map[string]interface{}
+	*(*unsafe.Pointer)((unsafe.Pointer)(&m)) = ptr
 
 	// First the number of items
 	data = AppendVarUint(data, uint64(len(m)))
@@ -218,7 +219,7 @@ func sizeJSONValue(v interface{}) (size int) {
 	case map[string]interface{}:
 		size += SizeVarUint(uint64(jsonTypeObject))
 		size += SizeTag(JSONMapCodec{}.WireType(), 3)
-		size += JSONMapCodec{}.Size(unsafe.Pointer(&v))
+		size += JSONMapCodec{}.Size(unsafe.Pointer(unpackEFace(v).data))
 	case json.Number:
 		// Save this as a string
 		size += SizeVarUint(uint64(jsonTypeNumber))
@@ -261,7 +262,7 @@ func appendJSONValue(data []byte, v interface{}) []byte {
 	case map[string]interface{}:
 		data = AppendVarUint(data, uint64(jsonTypeObject))
 		data = AppendTag(data, JSONMapCodec{}.WireType(), 3)
-		data = JSONMapCodec{}.Append(data, unsafe.Pointer(&v))
+		data = JSONMapCodec{}.Append(data, unsafe.Pointer(unpackEFace(v).data))
 	case json.Number:
 		// Save this as a string
 		data = AppendVarUint(data, uint64(jsonTypeNumber))

@@ -30,7 +30,7 @@ func (StringCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, er
 	return len(data), nil
 }
 
-// New creates a pointer to a new bool
+// New creates a pointer to a new string header
 func (c StringCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(new(string))
 }

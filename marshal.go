@@ -8,15 +8,19 @@ import (
 
 func Marshal(data []byte, value interface{}) ([]byte, error) {
 	typ := reflect.TypeOf(value)
+	ptr := unpackEFace(value).data
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
+		if typ.Kind() == reflect.Map {
+			ptr = *(*unsafe.Pointer)(ptr)
+		}
 	}
+
 	c, err := codecForType(typ)
 	if err != nil {
 		return nil, err
 	}
 
-	ptr := unpackEFace(value).data
 	if c.Omit(ptr) {
 		return nil, nil
 	}

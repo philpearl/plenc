@@ -51,6 +51,9 @@ func buildStructCodec(typ reflect.Type) (Codec, error) {
 		}
 		field.codec = fc
 		field.tag = AppendTag(nil, fc.WireType(), field.index)
+		if sf.Type.Kind() == reflect.Map {
+			field.deref = true
+		}
 	}
 	c.fields = c.fields[:count]
 
@@ -73,6 +76,7 @@ type description struct {
 	codec  Codec
 	index  int
 	tag    []byte
+	deref  bool
 }
 
 type shortDesc struct {
@@ -92,7 +96,16 @@ func (c *structCodec) Omit(ptr unsafe.Pointer) bool {
 
 func (c *structCodec) Size(ptr unsafe.Pointer) (size int) {
 	for _, field := range c.fields {
+		// For most fields we have a pointer to the type, and this is the same
+		// when we call these functions for types within structs or when we
+		// pass an interface to Marshal. But maps are kind of pointers and
+		// kind of not. When passed to Marshal via interfaces we get passed
+		// the underlying map pointer. But when the map is in a struct, we
+		// have a pointer to the underlying map pointer
 		fptr := unsafe.Pointer(uintptr(ptr) + field.offset)
+		if field.deref {
+			fptr = *(*unsafe.Pointer)(fptr)
+		}
 		if !field.codec.Omit(fptr) {
 			s := field.codec.Size(fptr)
 			if field.codec.WireType() == WTLength {
@@ -107,6 +120,9 @@ func (c *structCodec) Size(ptr unsafe.Pointer) (size int) {
 func (c *structCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	for _, field := range c.fields {
 		fptr := unsafe.Pointer(uintptr(ptr) + field.offset)
+		if field.deref {
+			fptr = *(*unsafe.Pointer)(fptr)
+		}
 		if field.codec.Omit(fptr) {
 			continue
 		}

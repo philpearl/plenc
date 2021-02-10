@@ -65,6 +65,8 @@ type TestThing struct {
 	Z2 []InnerThing `plenc:"35"`
 	Z3 *InnerThing  `plenc:"36"`
 	ZZ SliceThing   `plenc:"46"`
+
+	M1 map[string]string `plenc:"47"`
 }
 
 func TestMarshal(t *testing.T) {
