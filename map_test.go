@@ -5,12 +5,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	fuzz "github.com/google/gofuzz"
 )
 
 func TestMap(t *testing.T) {
 
 	one := 1
-	_ = one
+	two := 2
 
 	type mk struct {
 		A int `plenc:"1"`
@@ -57,6 +58,14 @@ func TestMap(t *testing.T) {
 			data: map[string]*int{
 				"hat": nil,
 				"it":  &one,
+			},
+		},
+		{
+			name: "string,*int",
+			data: map[string]*int{
+				"hat": nil,
+				"it":  &one,
+				"at":  &two,
 			},
 		},
 		{
@@ -115,6 +124,28 @@ func TestMap(t *testing.T) {
 				t.Fatalf("result differs: %s", diff)
 			}
 		})
+	}
+}
+
+func TestMapFuzz(t *testing.T) {
+	fz := fuzz.New()
+
+	for i := 0; i < 100; i++ {
+		var in, out map[string]string
+		fz.Fuzz(&in)
+
+		data, err := Marshal(nil, in)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := Unmarshal(data, &out); err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(in, out); diff != "" {
+			t.Fatalf("result differs (%d): %s", i, diff)
+		}
 	}
 }
 
