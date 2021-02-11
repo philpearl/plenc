@@ -133,12 +133,17 @@ func BenchmarkMap(b *testing.B) {
 
 	b.ResetTimer()
 	b.ReportAllocs()
+	var data []byte
+	var o map[string]string
 	for i := 0; i < b.N; i++ {
-		data, err := Marshal(nil, m)
+		var err error
+		data, err = Marshal(data[:0], m)
 		if err != nil {
 			b.Fatal(err)
 		}
-		var o map[string]string
+		for k := range o {
+			delete(o, k)
+		}
 		if err := Unmarshal(data, &o); err != nil {
 			b.Fatal(err)
 		}

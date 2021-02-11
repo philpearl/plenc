@@ -3,6 +3,7 @@ package plenc
 import (
 	"fmt"
 	"reflect"
+	"sync"
 	"unsafe"
 )
 
@@ -16,6 +17,8 @@ type mapCodec struct {
 	valueTag      []byte
 	keyIsWTLength bool
 	valIsWTLength bool
+	kPool         sync.Pool
+	vPool         sync.Pool
 }
 
 func buildMapCodec(typ reflect.Type) (Codec, error) {
@@ -28,7 +31,7 @@ func buildMapCodec(typ reflect.Type) (Codec, error) {
 		return nil, fmt.Errorf("failed to find codec for map value %s. %w", typ.Elem().Name(), err)
 	}
 
-	return mapCodec{
+	c := &mapCodec{
 		keyCodec:      kc,
 		valueCodec:    vc,
 		rtype:         typ,
@@ -36,20 +39,35 @@ func buildMapCodec(typ reflect.Type) (Codec, error) {
 		valueTag:      AppendTag(nil, vc.WireType(), 2),
 		keyIsWTLength: kc.WireType() == WTLength,
 		valIsWTLength: vc.WireType() == WTLength,
-	}, nil
+	}
+
+	c.kPool.New = c.newKey
+	c.vPool.New = c.newValue
+
+	return c, nil
+}
+
+func (c *mapCodec) newKey() interface{} {
+	return c.keyCodec.New()
+}
+
+func (c *mapCodec) newValue() interface{} {
+	return c.valueCodec.New()
 }
 
 // When we're writing ptr is a map pointer. When reading it is a pointer to a
 // map pointer
 
-func (c mapCodec) Omit(ptr unsafe.Pointer) bool {
+func (c *mapCodec) Omit(ptr unsafe.Pointer) bool {
 	return ptr == nil
 }
 
-func (c mapCodec) Size(ptr unsafe.Pointer) (size int) {
+func (c *mapCodec) Size(ptr unsafe.Pointer) (size int) {
 	size = SizeVarUint(uint64(maplen(ptr)))
 
-	iter := mapiterinit(unpackEFace(c.rtype).data, ptr)
+	var iterM mapiter
+	iter := (unsafe.Pointer)(&iterM)
+	mapiterinit(unpackEFace(c.rtype).data, ptr, iter)
 	for {
 		k := mapiterkey(iter)
 		if k == nil {
@@ -65,13 +83,13 @@ func (c mapCodec) Size(ptr unsafe.Pointer) (size int) {
 	return size
 }
 
-func (c mapCodec) sizeForEntry(k, v unsafe.Pointer) int {
+func (c *mapCodec) sizeForEntry(k, v unsafe.Pointer) int {
 	s := c.sizeFor(c.keyCodec, k, c.keyTag, c.keyIsWTLength)
 	s += c.sizeFor(c.valueCodec, v, c.valueTag, c.valIsWTLength)
 	return s
 }
 
-func (mapCodec) sizeFor(c Codec, ptr unsafe.Pointer, tag []byte, useLength bool) int {
+func (*mapCodec) sizeFor(c Codec, ptr unsafe.Pointer, tag []byte, useLength bool) int {
 	if c.Omit(ptr) {
 		return 0
 	}
@@ -82,7 +100,7 @@ func (mapCodec) sizeFor(c Codec, ptr unsafe.Pointer, tag []byte, useLength bool)
 	return s + len(tag)
 }
 
-func (c mapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+func (c *mapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	add := func(c Codec, ptr unsafe.Pointer, tag []byte, useLength bool) {
 		if !c.Omit(ptr) {
 			data = append(data, tag...)
@@ -96,7 +114,9 @@ func (c mapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	// First add the count of entries
 	data = AppendVarUint(data, uint64(maplen(ptr)))
 
-	iter := mapiterinit(unpackEFace(c.rtype).data, ptr)
+	var iterM mapiter
+	iter := (unsafe.Pointer)(&iterM)
+	mapiterinit(unpackEFace(c.rtype).data, ptr, iter)
 	for {
 		k := mapiterkey(iter)
 		if k == nil {
@@ -115,12 +135,9 @@ func (c mapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return data
 }
 
-// 02
-// 0a 0203686174 0a03687574 09 02026974 0a03736974
-
 var zero [1024]byte
 
-func (c mapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
+func (c *mapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
 	if len(data) == 0 {
 		return 0, nil
 	}
@@ -137,10 +154,13 @@ func (c mapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err
 	}
 	mp := *(*unsafe.Pointer)(ptr)
 
-	// We can re-use these keys and values as the contents is copied into the
-	// map, not the values themselves
-	k := c.keyCodec.New()
-	val := c.valueCodec.New()
+	// We need some space to hold keys and values as we read them out. We can
+	// re-use the space on each iteration as the data is copied into the map
+	// We also save some memory & time if we cache them in some pools
+	k := c.kPool.Get().(unsafe.Pointer)
+	defer c.kPool.Put(k)
+	val := c.vPool.Get().(unsafe.Pointer)
+	defer c.vPool.Put(val)
 
 	offset := int(n)
 	for count > 0 {
@@ -162,7 +182,7 @@ func (c mapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err
 }
 
 // readMapEntry reads out a single map entry
-func (c mapCodec) readMapEntry(mp, k, v unsafe.Pointer, data []byte) (int, error) {
+func (c *mapCodec) readMapEntry(mp, k, v unsafe.Pointer, data []byte) (int, error) {
 	var offset int
 	// If the key or value aren't present then we use zeros
 	var ku, vu unsafe.Pointer = unsafe.Pointer(&zero), unsafe.Pointer(&zero)
@@ -208,10 +228,10 @@ func (c mapCodec) readMapEntry(mp, k, v unsafe.Pointer, data []byte) (int, error
 	return offset, nil
 }
 
-func (c mapCodec) New() unsafe.Pointer {
+func (c *mapCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(reflect.MakeMap(c.rtype).Pointer())
 }
 
-func (c mapCodec) WireType() WireType {
+func (c *mapCodec) WireType() WireType {
 	return WTSlice
 }
