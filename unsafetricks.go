@@ -11,9 +11,13 @@ func unsafe_NewArray(rtype unsafe.Pointer, length int) unsafe.Pointer
 //go:noescape
 func typedslicecopy(elemType unsafe.Pointer, dst, src sliceHeader) int
 
-//go:linkname mapassign reflect.mapassign
+//go:linkname typedmemmove runtime.typedmemmove
 //go:noescape
-func mapassign(typ unsafe.Pointer, hmap unsafe.Pointer, key, val unsafe.Pointer)
+func typedmemmove(elemType unsafe.Pointer, dst, src unsafe.Pointer)
+
+//go:linkname mapassign runtime.mapassign
+//go:noescape
+func mapassign(typ unsafe.Pointer, hmap unsafe.Pointer, key unsafe.Pointer) (val unsafe.Pointer)
 
 // We could use the reflect version of mapiterinit, but that forces a heap
 // allocation per map iteration. Instead we can use the runtime version, but

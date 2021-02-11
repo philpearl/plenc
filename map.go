@@ -18,7 +18,8 @@ type mapCodec struct {
 	keyIsWTLength bool
 	valIsWTLength bool
 	kPool         sync.Pool
-	vPool         sync.Pool
+	kZero         unsafe.Pointer
+	vZero         unsafe.Pointer
 }
 
 func buildMapCodec(typ reflect.Type) (Codec, error) {
@@ -42,17 +43,25 @@ func buildMapCodec(typ reflect.Type) (Codec, error) {
 	}
 
 	c.kPool.New = c.newKey
-	c.vPool.New = c.newValue
+	if l := int(typ.Key().Size()); l <= len(zero) {
+		c.kZero = unsafe.Pointer(&zero)
+	} else {
+		z := make([]byte, l)
+		c.kZero = unsafe.Pointer(&z[0])
+	}
+
+	if l := int(typ.Elem().Size()); l <= len(zero) {
+		c.vZero = unsafe.Pointer(&zero)
+	} else {
+		z := make([]byte, l)
+		c.vZero = unsafe.Pointer(&z[0])
+	}
 
 	return c, nil
 }
 
 func (c *mapCodec) newKey() interface{} {
 	return c.keyCodec.New()
-}
-
-func (c *mapCodec) newValue() interface{} {
-	return c.valueCodec.New()
 }
 
 // When we're writing ptr is a map pointer. When reading it is a pointer to a
@@ -159,9 +168,6 @@ func (c *mapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, er
 	// We also save some memory & time if we cache them in some pools
 	k := c.kPool.Get().(unsafe.Pointer)
 	defer c.kPool.Put(k)
-	val := c.vPool.Get().(unsafe.Pointer)
-	defer c.vPool.Put(val)
-
 	offset := int(n)
 	for count > 0 {
 		// Each entry starts with a length
@@ -170,7 +176,7 @@ func (c *mapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, er
 			return 0, fmt.Errorf("failed to read map entry length")
 		}
 		offset += n
-		n, err := c.readMapEntry(mp, k, val, data[offset:offset+int(entryLength)])
+		n, err := c.readMapEntry(mp, k, data[offset:offset+int(entryLength)])
 		if err != nil {
 			return 0, err
 		}
@@ -181,51 +187,69 @@ func (c *mapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, er
 	return offset, nil
 }
 
-// readMapEntry reads out a single map entry
-func (c *mapCodec) readMapEntry(mp, k, v unsafe.Pointer, data []byte) (int, error) {
-	var offset int
-	// If the key or value aren't present then we use zeros
-	var ku, vu unsafe.Pointer = unsafe.Pointer(&zero), unsafe.Pointer(&zero)
-	for offset < len(data) {
-		wt, index, n := ReadTag(data[offset:])
+// readMapEntry reads out a single map entry. mp is the map pointer. k is an
+// area to read key values into. data is the raw data for this map entry
+func (c *mapCodec) readMapEntry(mp, k unsafe.Pointer, data []byte) (int, error) {
+	offset, fieldEnd, index, wt, err := c.readTagAndLength(data, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	if index == 1 {
+		// Key is present - read it
+		n, err := c.keyCodec.Read(data[offset:fieldEnd], k, wt)
+		if err != nil {
+			return 0, fmt.Errorf("failed reading key field of %s. %w", c.rtype.Name(), err)
+		}
 		offset += n
-		fieldEnd := len(data)
-		if wt == WTLength {
-			// For WTLength types we read out the length and ensure the data we
-			// read the field from is the right length
-			fieldLen, n := ReadVarUint(data[offset:])
-			if n <= 0 {
-				return 0, fmt.Errorf("varuint overflow reading %d of %s", index, c.rtype.Name())
-			}
-			offset += n
-			fieldEnd = int(fieldLen) + offset
-			if fieldEnd > len(data) {
-				return 0, fmt.Errorf("length %d of field %d of %s exceeds data length %d", fieldLen, index, c.rtype.Name(), len(data)-offset)
+	} else {
+		k = c.kZero
+	}
+
+	// Assign/find a place in the map for this key. Val is a pointer to where
+	// the value should be. We're going to unmarshal into this directly
+	val := mapassign(unpackEFace(c.rtype).data, mp, k)
+
+	if offset < len(data) {
+		if index == 1 {
+			offset, fieldEnd, index, wt, err = c.readTagAndLength(data, offset)
+			if err != nil {
+				return 0, err
 			}
 		}
 
-		switch index {
-		case 1:
-			n, err := c.keyCodec.Read(data[offset:fieldEnd], k, wt)
-			if err != nil {
-				return 0, fmt.Errorf("failed reading key field of %s. %w", c.rtype.Name(), err)
-			}
-			offset += n
-			ku = k
+		n, err := c.valueCodec.Read(data[offset:fieldEnd], val, wt)
+		if err != nil {
+			return 0, fmt.Errorf("failed reading value field of %s. %w", c.rtype.Name(), err)
+		}
+		offset += n
+	} else {
+		// No value - use the nil value.
+		typedmemmove(unpackEFace(c.rtype.Elem()).data, val, c.vZero)
+	}
 
-		case 2:
-			n, err := c.valueCodec.Read(data[offset:fieldEnd], v, wt)
-			if err != nil {
-				return 0, fmt.Errorf("failed reading value field of %s. %w", c.rtype.Name(), err)
-			}
-			offset += n
-			vu = v
+	return offset, nil
+}
+
+func (c *mapCodec) readTagAndLength(data []byte, offset int) (offset2, fieldEnd, index int, wt WireType, err error) {
+	wt, index, n := ReadTag(data[offset:])
+	offset += n
+	fieldEnd = len(data)
+	if wt == WTLength {
+		// For WTLength types we read out the length and ensure the data we
+		// read the field from is the right length
+		fieldLen, n := ReadVarUint(data[offset:])
+		if n <= 0 {
+			return 0, 0, 0, wt, fmt.Errorf("varuint overflow reading %d of %s", index, c.rtype.Name())
+		}
+		offset += n
+		fieldEnd = int(fieldLen) + offset
+		if fieldEnd > len(data) {
+			return 0, 0, 0, wt, fmt.Errorf("length %d of field %d of %s exceeds data length %d", fieldLen, index, c.rtype.Name(), len(data)-offset)
 		}
 	}
 
-	mapassign(unpackEFace(c.rtype).data, mp, ku, vu)
-
-	return offset, nil
+	return offset, fieldEnd, index, wt, nil
 }
 
 func (c *mapCodec) New() unsafe.Pointer {
