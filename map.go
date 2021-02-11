@@ -32,8 +32,8 @@ func buildMapCodec(typ reflect.Type) (Codec, error) {
 		keyCodec:      kc,
 		valueCodec:    vc,
 		rtype:         typ,
-		keyTag:        AppendTag(nil, kc.WireType(), 0),
-		valueTag:      AppendTag(nil, vc.WireType(), 1),
+		keyTag:        AppendTag(nil, kc.WireType(), 1),
+		valueTag:      AppendTag(nil, vc.WireType(), 2),
 		keyIsWTLength: kc.WireType() == WTLength,
 		valIsWTLength: vc.WireType() == WTLength,
 	}, nil
@@ -185,7 +185,7 @@ func (c mapCodec) readMapEntry(mp, k, v unsafe.Pointer, data []byte) (int, error
 		}
 
 		switch index {
-		case 0:
+		case 1:
 			n, err := c.keyCodec.Read(data[offset:fieldEnd], k, wt)
 			if err != nil {
 				return 0, fmt.Errorf("failed reading key field of %s. %w", c.rtype.Name(), err)
@@ -193,7 +193,7 @@ func (c mapCodec) readMapEntry(mp, k, v unsafe.Pointer, data []byte) (int, error
 			offset += n
 			ku = k
 
-		case 1:
+		case 2:
 			n, err := c.valueCodec.Read(data[offset:fieldEnd], v, wt)
 			if err != nil {
 				return 0, fmt.Errorf("failed reading value field of %s. %w", c.rtype.Name(), err)

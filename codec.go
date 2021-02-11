@@ -197,7 +197,7 @@ func codecForType(typ reflect.Type) (Codec, error) {
 	}
 
 	if c == nil {
-		return nil, fmt.Errorf("could not find or create a codec for %s", typ.Name())
+		return nil, fmt.Errorf("could not find or create a codec for %s", typ)
 	}
 
 	cv, _ := codecCache.LoadOrStore(typ, c)

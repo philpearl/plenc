@@ -88,6 +88,10 @@ func TestMap(t *testing.T) {
 			data: thing{},
 		},
 		{
+			name: "map in struct empty",
+			data: thing{M: map[string]string{}},
+		},
+		{
 			name: "map in struct",
 			data: thing{
 				M: map[string]string{"A": "B"},
