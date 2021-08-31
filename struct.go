@@ -9,7 +9,7 @@ import (
 	"unsafe"
 )
 
-func buildStructCodec(typ reflect.Type) (Codec, error) {
+func (p *Plenc) buildStructCodec(typ reflect.Type) (Codec, error) {
 	c := structCodec{
 		rtype:  typ,
 		fields: make([]description, typ.NumField()),
@@ -45,7 +45,7 @@ func buildStructCodec(typ reflect.Type) (Codec, error) {
 			maxIndex = field.index
 		}
 
-		fc, err := codecForType(sf.Type)
+		fc, err := p.codecForType(sf.Type)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find codec for field %d (%s) of %s. %w", i, sf.Name, typ.Name(), err)
 		}
@@ -183,9 +183,11 @@ func (c *structCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int,
 
 	return offset, nil
 }
+
 func (c *structCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(reflect.New(c.rtype).Pointer())
 }
+
 func (c *structCodec) WireType() WireType {
 	return WTLength
 }

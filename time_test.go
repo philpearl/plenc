@@ -18,7 +18,7 @@ func TestTime(t *testing.T) {
 		U int       `plenc:"2"`
 	}
 
-	c, err := codecForType(reflect.TypeOf(twrap{}))
+	c, err := CodecForType(reflect.TypeOf(twrap{}))
 	if err != nil {
 		t.Fatal(err)
 	}

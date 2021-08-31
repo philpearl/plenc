@@ -2,13 +2,8 @@ package plenc
 
 import (
 	"fmt"
-	"reflect"
 	"unsafe"
 )
-
-func init() {
-	registerCodec(reflect.TypeOf(false), BoolCodec{})
-}
 
 // BoolCodec is a codec for a bool
 type BoolCodec struct{}

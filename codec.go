@@ -3,7 +3,6 @@ package plenc
 import (
 	"fmt"
 	"reflect"
-	"sync"
 	"unsafe"
 )
 
@@ -23,25 +22,21 @@ type Codec interface {
 	WireType() WireType
 }
 
-var (
-	codecCache     sync.Map
-	codecCacheLock sync.RWMutex
-)
+var defaultPlenc Plenc
+
+func init() {
+	defaultPlenc.RegisterDefaultCodecs()
+}
 
 // RegisterCodec registers a codec with plenc so it can be used for marshaling
 // and unmarshaling. If you write a custom codec then you need to register it
 // before it can be used.
 func RegisterCodec(typ reflect.Type, c Codec) {
-	registerCodec(typ, c)
+	defaultPlenc.RegisterCodec(typ, c)
 }
 
-// registerCodec makes a codec available for a type
-func registerCodec(typ reflect.Type, c Codec) {
-	codecCache.Store(typ, c)
-}
-
-func codecForBasicType(typ reflect.Type) (Codec, error) {
-	c, ok := codecCache.Load(typ)
+func (p *Plenc) codecForBasicType(typ reflect.Type) (Codec, error) {
+	c, ok := p.codecRegistry.Load(typ)
 	if ok {
 		return c.(Codec), nil
 	}
@@ -51,12 +46,12 @@ func codecForBasicType(typ reflect.Type) (Codec, error) {
 // CodecForType returns a codec for the requested type. It should only be needed
 // when constructing a codec based on an existing plenc codec
 func CodecForType(typ reflect.Type) (Codec, error) {
-	return codecForType(typ)
+	return defaultPlenc.codecForType(typ)
 }
 
 // codecForType finds an existing codec for a type or constructs a codec
-func codecForType(typ reflect.Type) (Codec, error) {
-	c, ok := codecCache.Load(typ)
+func (p *Plenc) codecForType(typ reflect.Type) (Codec, error) {
+	c, ok := p.codecRegistry.Load(typ)
 	if ok {
 		return c.(Codec), nil
 	}
@@ -65,21 +60,21 @@ func codecForType(typ reflect.Type) (Codec, error) {
 
 	switch typ.Kind() {
 	case reflect.Ptr:
-		subc, err := codecForType(typ.Elem())
+		subc, err := p.codecForType(typ.Elem())
 		if err != nil {
 			return nil, err
 		}
 		c = PointerWrapper{Underlying: subc}
 
 	case reflect.Struct:
-		c, err = buildStructCodec(typ)
+		c, err = p.buildStructCodec(typ)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Slice:
 		subt := typ.Elem()
-		subc, err := codecForType(subt)
+		subc, err := p.codecForType(subt)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +95,7 @@ func codecForType(typ reflect.Type) (Codec, error) {
 		}
 
 	case reflect.Map:
-		c, err = buildMapCodec(typ)
+		c, err = p.buildMapCodec(typ)
 		if err != nil {
 			return nil, err
 		}
@@ -108,83 +103,83 @@ func codecForType(typ reflect.Type) (Codec, error) {
 	// Really expect codecs for basic types to be pre-registered, but named
 	// types will have a different type for the same kind
 	case reflect.Bool:
-		c, err = codecForBasicType(reflect.TypeOf(bool(false)))
+		c, err = p.codecForBasicType(reflect.TypeOf(bool(false)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int:
-		c, err = codecForBasicType(reflect.TypeOf(int(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(int(0)))
 		if err != nil {
 			return nil, err
 		}
 	case reflect.Int32:
-		c, err = codecForBasicType(reflect.TypeOf(int32(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(int32(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int64:
-		c, err = codecForBasicType(reflect.TypeOf(int64(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(int64(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint:
-		c, err = codecForBasicType(reflect.TypeOf(uint(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(uint(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Float32:
-		c, err = codecForBasicType(reflect.TypeOf(float32(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(float32(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Float64:
-		c, err = codecForBasicType(reflect.TypeOf(float64(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(float64(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.String:
-		c, err = codecForBasicType(reflect.TypeOf(""))
+		c, err = p.codecForBasicType(reflect.TypeOf(""))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int8:
-		c, err = codecForBasicType(reflect.TypeOf(int8(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(int8(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int16:
-		c, err = codecForBasicType(reflect.TypeOf(int16(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(int16(0)))
 		if err != nil {
 			return nil, err
 		}
 	case reflect.Uint8:
-		c, err = codecForBasicType(reflect.TypeOf(uint8(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(uint8(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint16:
-		c, err = codecForBasicType(reflect.TypeOf(uint16(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(uint16(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint32:
-		c, err = codecForBasicType(reflect.TypeOf(uint32(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(uint32(0)))
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint64:
-		c, err = codecForBasicType(reflect.TypeOf(uint64(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(uint64(0)))
 		if err != nil {
 			return nil, err
 		}
@@ -204,6 +199,6 @@ func codecForType(typ reflect.Type) (Codec, error) {
 		return nil, fmt.Errorf("could not find or create a codec for %s", typ)
 	}
 
-	cv, _ := codecCache.LoadOrStore(typ, c)
+	cv, _ := p.codecRegistry.LoadOrStore(typ, c)
 	return cv.(Codec), nil
 }

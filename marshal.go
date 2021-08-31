@@ -7,6 +7,14 @@ import (
 )
 
 func Marshal(data []byte, value interface{}) ([]byte, error) {
+	return defaultPlenc.Marshal(data, value)
+}
+
+func Unmarshal(data []byte, value interface{}) error {
+	return defaultPlenc.Unmarshal(data, value)
+}
+
+func (p *Plenc) Marshal(data []byte, value interface{}) ([]byte, error) {
 	typ := reflect.TypeOf(value)
 	ptr := unpackEFace(value).data
 	if typ.Kind() == reflect.Ptr {
@@ -19,7 +27,7 @@ func Marshal(data []byte, value interface{}) ([]byte, error) {
 		}
 	}
 
-	c, err := codecForType(typ)
+	c, err := p.codecForType(typ)
 	if err != nil {
 		return nil, err
 	}
@@ -34,13 +42,13 @@ func Marshal(data []byte, value interface{}) ([]byte, error) {
 	return c.Append(data, ptr), nil
 }
 
-func Unmarshal(data []byte, value interface{}) error {
+func (p *Plenc) Unmarshal(data []byte, value interface{}) error {
 	rv := reflect.ValueOf(value)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return fmt.Errorf("you must pass in a non-nil pointer")
 	}
 
-	c, err := codecForType(rv.Type().Elem())
+	c, err := p.codecForType(rv.Type().Elem())
 	if err != nil {
 		return err
 	}

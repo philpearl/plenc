@@ -1,14 +1,8 @@
 package plenc
 
 import (
-	"reflect"
 	"unsafe"
 )
-
-func init() {
-	registerCodec(reflect.TypeOf(""), StringCodec{})
-	registerCodec(reflect.TypeOf([]byte(nil)), BytesCodec{})
-}
 
 // StringCodec is a coddec for an string
 type StringCodec struct{}

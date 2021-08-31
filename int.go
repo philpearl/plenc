@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/bits"
-	"reflect"
 	"unsafe"
 )
 
@@ -56,19 +55,6 @@ func SizeVarInt(v int64) int {
 // AppendVarInt encodes v as a varint and appends the result to data
 func AppendVarInt(data []byte, v int64) []byte {
 	return AppendVarUint(data, ZigZag(v))
-}
-
-func init() {
-	registerCodec(reflect.TypeOf(int(0)), IntCodec{})
-	registerCodec(reflect.TypeOf(int8(0)), Int8Codec{})
-	registerCodec(reflect.TypeOf(int16(0)), Int16Codec{})
-	registerCodec(reflect.TypeOf(int32(0)), Int32Codec{})
-	registerCodec(reflect.TypeOf(int64(0)), Int64Codec{})
-	registerCodec(reflect.TypeOf(uint(0)), UintCodec{})
-	registerCodec(reflect.TypeOf(uint64(0)), Uint64Codec{})
-	registerCodec(reflect.TypeOf(uint32(0)), Uint32Codec{})
-	registerCodec(reflect.TypeOf(uint16(0)), Uint16Codec{})
-	registerCodec(reflect.TypeOf(uint8(0)), Uint8Codec{})
 }
 
 // IntCodec is a coddec for an int

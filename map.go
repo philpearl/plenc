@@ -22,12 +22,12 @@ type mapCodec struct {
 	vZero         unsafe.Pointer
 }
 
-func buildMapCodec(typ reflect.Type) (Codec, error) {
-	kc, err := codecForType(typ.Key())
+func (p *Plenc) buildMapCodec(typ reflect.Type) (Codec, error) {
+	kc, err := p.codecForType(typ.Key())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find codec for map key %s. %w", typ.Key().Name(), err)
 	}
-	vc, err := codecForType(typ.Elem())
+	vc, err := p.codecForType(typ.Elem())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find codec for map value %s. %w", typ.Elem().Name(), err)
 	}

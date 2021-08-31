@@ -4,14 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"reflect"
 	"unsafe"
 )
-
-func init() {
-	registerCodec(reflect.TypeOf(float64(0)), Float64Codec{})
-	registerCodec(reflect.TypeOf(float32(0)), Float32Codec{})
-}
 
 // Float64Codec is a coddec for a float64
 type Float64Codec struct{}

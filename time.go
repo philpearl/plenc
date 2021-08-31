@@ -2,7 +2,6 @@ package plenc
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 	"unsafe"
 )
@@ -22,10 +21,6 @@ func (e *ptime) Set(t time.Time) {
 
 func (e *ptime) Standard() time.Time {
 	return time.Unix(e.Seconds, int64(e.Nanoseconds)).UTC()
-}
-
-func init() {
-	registerCodec(reflect.TypeOf(time.Time{}), &TimeCodec{})
 }
 
 // TimeCodec is a codec for Time

@@ -22,7 +22,7 @@ func TestString(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
-			c, err := codecForType(reflect.TypeOf(test))
+			c, err := CodecForType(reflect.TypeOf(test))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -59,7 +59,7 @@ func TestStringSlice(t *testing.T) {
 		"?Ȗ曽Ȯɕ稌!r囮ǯWQ猒÷飹嫗MJ",
 	}
 
-	c, err := codecForType(reflect.TypeOf(v))
+	c, err := CodecForType(reflect.TypeOf(v))
 	if err != nil {
 		t.Fatal(err)
 	}
