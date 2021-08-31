@@ -1,7 +1,6 @@
 package plenc
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"unsafe"
@@ -66,30 +65,6 @@ func TestStringSlice(t *testing.T) {
 	}
 
 	data := c.Append(nil, unsafe.Pointer(&v))
-
-	fmt.Printf("%X\n", data)
-	/* 1B - 27
-	4DE78FA3 58E8A7BB 25C6BEC6 BD394A39
-	53E885B8 48E6BBA9 C39D6B
-	06
-	45C595E6 BCA0
-	13
-	E7BB87E7 9DB1C4A6 37C3B5E5 9296C38A
-	E9A884
-	18
-	74E6B28B E6999BE5 B28AC4B1 C6ADE5AE
-	8B59C8AF C2BF7126
-	24
-	C6B1C3A3 CA9923E8 A883E79D A9E684B4
-	C3A96DC4 9736C98C E9829435 E6B19AE9
-	9E97C687
-	04
-	E6A18F26
-	23
-	3FC896E6 9BBDC8AE C995E7A8 8C2172E5
-	9BAEC7AF 5751E78C 92C3B7E9 A3B9E5AB
-	974D4A
-	*/
 
 	var out []string
 	_, err = c.Read(data, unsafe.Pointer(&out), c.WireType())

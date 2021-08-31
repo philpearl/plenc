@@ -2,6 +2,7 @@ package plenc
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -61,17 +62,23 @@ type TestThing struct {
 	A15 []uint16    `plenc:"44"`
 	A16 *uint16     `plenc:"45"`
 
-	Z1 InnerThing   `plenc:"28"`
-	Z2 []InnerThing `plenc:"35"`
-	Z3 *InnerThing  `plenc:"36"`
-	ZZ SliceThing   `plenc:"46"`
+	Z1 InnerThing    `plenc:"28"`
+	Z2 []InnerThing  `plenc:"35"`
+	Z3 *InnerThing   `plenc:"36"`
+	ZZ SliceThing    `plenc:"46"`
+	Z4 []*InnerThing `plenc:"48"`
 
 	M1 map[string]string `plenc:"47"`
 }
 
 func TestMarshal(t *testing.T) {
 
-	f := fuzz.New()
+	f := fuzz.New().Funcs(func(out **InnerThing, cont fuzz.Continue) {
+		// We don't support having nil entries in slices of pointers
+		var v InnerThing
+		cont.Fuzz(&v)
+		*out = &v
+	})
 	for i := 0; i < 10000; i++ {
 		var in TestThing
 		f.Fuzz(&in)
@@ -105,19 +112,101 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestMarshalSlice(t *testing.T) {
-	a := SliceThing{
-		{A: "a"},
+	tests := []SliceThing{
+		{{A: "a"}},
+		nil,
+		// Non-nil empty slices will show up as nil slices
 	}
 
-	data, err := Marshal(nil, a)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var b SliceThing
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%#v", test), func(t *testing.T) {
+			data, err := Marshal(nil, test)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var b SliceThing
 
-	if err := Unmarshal(data, &b); err != nil {
-		t.Fatal(err)
+			if err := Unmarshal(data, &b); err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(test, b); diff != "" {
+				t.Fatalf("not as expected. %s\n data %x", diff, data)
+			}
+		})
 	}
+}
+
+func TestMarshalSliceFloat(t *testing.T) {
+	tests := [][]float32{
+		{1.0, 2.0},
+		nil,
+		// Non-nil empty slices will show up as nil slices
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%#v", test), func(t *testing.T) {
+			data, err := Marshal(nil, test)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var b []float32
+
+			if err := Unmarshal(data, &b); err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(test, b); diff != "" {
+				t.Fatalf("not as expected. %s\n data %x", diff, data)
+			}
+		})
+	}
+}
+
+func TestMarshalPtrSliceFloat(t *testing.T) {
+	one, two := 1.0, 2.0
+	in := []*float64{&one, &two}
+	_, err := Marshal(nil, in)
+	if err == nil {
+		t.Fatalf("expected an error marshaling an array of floats")
+	}
+	if err.Error() != "slices of pointers to float32 & float64 are not supported" {
+		t.Errorf("error %q not as expected", err)
+	}
+}
+
+func TestMarshalPtrSliceInt(t *testing.T) {
+
+	one, two := 1, 2
+	tests := []struct {
+		in  []*int
+		exp []*int
+	}{
+		{in: []*int{&one, &two}, exp: []*int{&one, &two}},
+		{in: nil, exp: nil},
+		// nils in arrays are problematic. This is basically not allowed
+		{in: []*int{&one, nil, &two}, exp: []*int{&one, &two}},
+		// empty arrays translate to nil arrays
+		{in: []*int{}, exp: nil},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%#v", test.in), func(t *testing.T) {
+			data, err := Marshal(nil, test.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var out []*int
+			if err := Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(test.exp, out); diff != "" {
+				t.Fatalf("not as expected. %s\n data %x", diff, data)
+			}
+		})
+	}
+
 }
 
 func TestSkip(t *testing.T) {

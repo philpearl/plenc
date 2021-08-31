@@ -145,6 +145,10 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt WireType)
 			return 0, fmt.Errorf("invalid varint for slice entry %d", i)
 		}
 		offset += n
+		if s == 0 {
+			continue
+		}
+
 		n, err := c.Underlying.Read(data[offset:offset+int(s)], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), WTLength)
 		if err != nil {
 			return 0, err

@@ -88,6 +88,10 @@ func codecForType(typ reflect.Type) (Codec, error) {
 		case WTVarInt:
 			c = WTVarIntSliceWrapper{baseSliceWrapper: bs}
 		case WT64, WT32:
+			if subt.Kind() == reflect.Ptr {
+				// Can probably support these if we don't allow missing entries
+				return nil, fmt.Errorf("slices of pointers to float32 & float64 are not supported")
+			}
 			c = WTFixedSliceWrapper{baseSliceWrapper: bs}
 		case WTLength:
 			c = WTLengthSliceWrapper{baseSliceWrapper: bs}
