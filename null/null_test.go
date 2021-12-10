@@ -91,18 +91,19 @@ func TestNull(t *testing.T) {
 }
 
 func BenchmarkNull(b *testing.B) {
-
 	v := benchThing{
 		I: null.IntFrom(42),
 		B: null.BoolFrom(true),
 		F: null.FloatFrom(3.14),
 		S: null.StringFrom("jhsdfkjahskfhkjhsdkf"),
+		U: null.StringFrom("hat"),
 	}
 
 	b.Run("plenc", func(b *testing.B) {
 		b.ReportAllocs()
 		b.RunParallel(func(pb *testing.PB) {
 			var data []byte
+			var w benchThing
 			for pb.Next() {
 				var err error
 				data, err = plenc.Marshal(data[:0], &v)
@@ -110,7 +111,7 @@ func BenchmarkNull(b *testing.B) {
 					b.Fatal(err)
 				}
 
-				var w benchThing
+				w = benchThing{}
 				if err := plenc.Unmarshal(data, &w); err != nil {
 					b.Fatal(err)
 				}
@@ -121,6 +122,7 @@ func BenchmarkNull(b *testing.B) {
 	b.Run("json", func(b *testing.B) {
 		b.ReportAllocs()
 		b.RunParallel(func(pb *testing.PB) {
+			var w benchThing
 			for pb.Next() {
 				var err error
 				data, err := json.Marshal(&v)
@@ -128,7 +130,7 @@ func BenchmarkNull(b *testing.B) {
 					b.Fatal(err)
 				}
 
-				var w benchThing
+				w = benchThing{}
 				if err := json.Unmarshal(data, &w); err != nil {
 					b.Fatal(err)
 				}
@@ -139,6 +141,7 @@ func BenchmarkNull(b *testing.B) {
 	b.Run("easyjson", func(b *testing.B) {
 		b.ReportAllocs()
 		b.RunParallel(func(pb *testing.PB) {
+			var w benchThing
 			for pb.Next() {
 				var err error
 				data, err := easyjson.Marshal(&v)
@@ -146,12 +149,11 @@ func BenchmarkNull(b *testing.B) {
 					b.Fatal(err)
 				}
 
-				var w benchThing
+				w = benchThing{}
 				if err := easyjson.Unmarshal(data, &w); err != nil {
 					b.Fatal(err)
 				}
 			}
 		})
 	})
-
 }

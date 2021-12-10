@@ -2,6 +2,7 @@ package plenc
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 	"unsafe"
 
@@ -45,6 +46,125 @@ func TestString(t *testing.T) {
 				t.Fatal(diff)
 			}
 		})
+	}
+}
+
+func TestInternedString(t *testing.T) {
+	var c InternedStringCodec
+
+	values := []string{
+		"hat", "cheese", "elephant", "hat", "hat", "cheese", "elephant",
+	}
+
+	var data []byte
+	allocs := testing.AllocsPerRun(1000, func() {
+		for _, test := range values {
+			l := c.Size(unsafe.Pointer(&test))
+			data = c.Append(data[:0], unsafe.Pointer(&test))
+
+			if len(data) != l {
+				t.Errorf("data not expected length. %d %d", l, len(data))
+			}
+
+			var out string
+			_, err := c.Read(data, unsafe.Pointer(&out), c.WireType())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if out != test {
+				t.Fatalf("mismatch %q, %q", test, out)
+			}
+
+		}
+	})
+
+	if allocs > 0.1 {
+		t.Fatal(allocs)
+	}
+	if c.len() != 3 {
+		t.Fatal("too many strings interned", c.len())
+	}
+}
+
+func TestInternedStringParallel(t *testing.T) {
+	type my struct {
+		V string `plenc:"1,intern"`
+	}
+
+	values := []string{
+		"hat", "cheese", "elephant", "hat", "hat", "cheese", "elephant",
+	}
+	var wg sync.WaitGroup
+	wg.Add(100)
+	for i := 0; i < 100; i++ {
+		go func() {
+			defer wg.Done()
+			var data []byte
+			var val, out my
+			for i := 0; i < 1000; i++ {
+				for _, test := range values {
+					val.V = test
+					data, err := Marshal(data[:0], &val)
+					if err != nil {
+						t.Error(err)
+						return
+					}
+
+					if err := Unmarshal(data, &out); err != nil {
+						t.Error(err)
+						return
+					}
+
+					if out.V != test {
+						t.Errorf("mismatch %q, %q", test, out)
+						return
+					}
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func BenchmarkInternedString(b *testing.B) {
+	type myb struct {
+		V string `plenc:"1,intern"`
+	}
+
+	values := []string{
+		"hat", "cheese", "elephant", "hat", "hat", "cheese", "elephant",
+	}
+	var data []byte
+	var val, out myb
+	for _, test := range values {
+		val.V = test
+		var err error
+		data, err = Marshal(data[:0], &val)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		if err := Unmarshal(data, &out); err != nil {
+			b.Fatal(err)
+		}
+
+		if out.V != test {
+			b.Fatalf("mismatch %q, %q", test, out)
+		}
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		out = myb{}
+		if err := Unmarshal(data, &out); err != nil {
+			b.Fatal(err)
+		}
+
+		if out.V != "elephant" {
+			b.Fatalf("mismatch %q, %q", "elephant", out)
+		}
 	}
 }
 

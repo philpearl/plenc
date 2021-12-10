@@ -58,6 +58,8 @@ func easyjson60751f33DecodeGithubComPhilpearlPlencNull(in *jlexer.Lexer, out *be
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.T).UnmarshalJSON(data))
 			}
+		case "U":
+			(out.U).UnmarshalEasyJSON(in)
 		default:
 			in.SkipRecursive()
 		}
@@ -106,6 +108,11 @@ func easyjson60751f33EncodeGithubComPhilpearlPlencNull(out *jwriter.Writer, in b
 		const prefix string = ",\"T\":"
 		out.RawString(prefix)
 		out.Raw((in.T).MarshalJSON())
+	}
+	{
+		const prefix string = ",\"U\":"
+		out.RawString(prefix)
+		out.Raw((in.U).MarshalJSON())
 	}
 	out.RawByte('}')
 }

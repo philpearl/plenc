@@ -15,6 +15,9 @@ type mystruct struct {
 	A  int     `plenc:"1"`
 	B  string  `plenc:"-"` // This field is not encoded
 	C  float64 `plenc:"2"`
+    // The values of this field are interned. This reduces allocations if
+    // there are a limited set of distinct values used.
+    D  string  `plenc:"3,intern"`
 }
 ```
 

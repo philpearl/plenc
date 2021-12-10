@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 	"unsafe"
@@ -32,6 +33,12 @@ func (p *Plenc) buildStructCodec(typ reflect.Type) (Codec, error) {
 		if tag == "-" {
 			continue
 		}
+		var postfix string
+		if comma := strings.IndexByte(tag, ','); comma != -1 {
+			postfix = tag[comma+1:]
+			tag = tag[:comma]
+		}
+
 		index, err := strconv.Atoi(tag)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse plenc tag on field %d %s of %s. %w", i, sf.Name, typ.Name(), err)
@@ -49,6 +56,14 @@ func (p *Plenc) buildStructCodec(typ reflect.Type) (Codec, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to find codec for field %d (%s) of %s. %w", i, sf.Name, typ.Name(), err)
 		}
+
+		if postfix == "intern" {
+			if in, ok := fc.(Interner); ok {
+				// Note we get an independent interner for each field
+				fc = in.WithInterning()
+			}
+		}
+
 		field.codec = fc
 		field.tag = AppendTag(nil, fc.WireType(), field.index)
 		if sf.Type.Kind() == reflect.Map {

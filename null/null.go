@@ -156,19 +156,39 @@ func (c nullStringCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 func (c nullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
-	var s string
-	n, err = c.StringCodec.Read(data, unsafe.Pointer(&s), wt)
+	ns := (*null.String)(ptr)
+	n, err = c.StringCodec.Read(data, unsafe.Pointer(&ns.String), wt)
 	if err != nil {
 		return n, err
 	}
-	ns := (*null.String)(ptr)
 	ns.Valid = true
-	ns.String = s
 	return n, err
 }
 
 func (c nullStringCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(&null.String{})
+}
+
+func (nullStringCodec) WithInterning() plenc.Codec {
+	c, _ := plenc.StringCodec{}.WithInterning().(*plenc.InternedStringCodec)
+	return &internedNullStringCodec{
+		stringCodec: c,
+	}
+}
+
+type internedNullStringCodec struct {
+	nullStringCodec
+	stringCodec *plenc.InternedStringCodec
+}
+
+func (c *internedNullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
+	ns := (*null.String)(ptr)
+	n, err = c.stringCodec.Read(data, unsafe.Pointer(&ns.String), wt)
+	if err != nil {
+		return n, err
+	}
+	ns.Valid = true
+	return n, err
 }
 
 type nullTimeCodec struct {

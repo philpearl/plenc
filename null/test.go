@@ -13,4 +13,5 @@ type benchThing struct {
 	F  null.Float  `plenc:"5"`
 	S  null.String `plenc:"6"`
 	T  null.Time   `plenc:"7"`
+	U  null.String `plenc:"8,intern"`
 }
