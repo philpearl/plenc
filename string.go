@@ -84,12 +84,14 @@ type Interner interface {
 
 type InternedStringCodec struct {
 	sync.Mutex
-	strings atomic.Value
+	strings unsafe.Pointer
 	StringCodec
 }
 
 func (c *InternedStringCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
-	m, _ := c.strings.Load().(map[string]string)
+	p := atomic.LoadPointer(&c.strings)
+	m := *(*map[string]string)((unsafe.Pointer)(&p))
+
 	s, ok := m[string(data)]
 	if !ok {
 		s = c.addString(data)
@@ -102,7 +104,9 @@ func (c *InternedStringCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType)
 func (c *InternedStringCodec) addString(data []byte) string {
 	c.Lock()
 	defer c.Unlock()
-	m, _ := c.strings.Load().(map[string]string)
+	p := atomic.LoadPointer(&c.strings)
+	m := *(*map[string]string)((unsafe.Pointer)(&p))
+
 	s, ok := m[string(data)]
 	if !ok {
 		// We completely replace the map with a new one, so the old one can
@@ -114,21 +118,21 @@ func (c *InternedStringCodec) addString(data []byte) string {
 		}
 		s = string(data)
 		m2[s] = s
-		c.strings.Store(m2)
+
+		atomic.StorePointer(&c.strings, *(*unsafe.Pointer)(unsafe.Pointer(&m2)))
 	}
 	return s
 }
 
 func (c *InternedStringCodec) len() int {
-	m, ok := c.strings.Load().(map[string]string)
-	if !ok {
-		return 0
-	}
+	p := atomic.LoadPointer(&c.strings)
+	m := *(*map[string]string)((unsafe.Pointer)(&p))
 	return len(m)
 }
 
 func (c StringCodec) WithInterning() Codec {
 	ic := &InternedStringCodec{}
-	ic.strings.Store(map[string]string{})
+	m := map[string]string{}
+	atomic.StorePointer(&ic.strings, *(*unsafe.Pointer)(unsafe.Pointer(&m)))
 	return ic
 }
