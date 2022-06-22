@@ -19,12 +19,10 @@ import (
 // JSONMapCodec is for serialising JSON maps encoded in Go as
 // map[string]interface{}. To use this codec you must register it for use with
 // map[string]interface{} or a named map[string]interface{} type
-type JSONMapCodec struct {
-}
+type JSONMapCodec struct{}
 
 // JSONArrayCodec is for serialising JSON arrays encoded as []interface{}
-type JSONArrayCodec struct {
-}
+type JSONArrayCodec struct{}
 
 type jsonType uint
 
@@ -106,7 +104,7 @@ func (c JSONMapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int,
 	for ; count > 0; count-- {
 		l, n := ReadVarUint(data[offset:])
 		if n < 0 {
-			return 0, fmt.Errorf("Bad length in map")
+			return 0, fmt.Errorf("bad length in map")
 		}
 		offset += n
 		var key string
@@ -133,6 +131,7 @@ func (c JSONMapCodec) WireType() WireType { return WTSlice }
 func (c JSONArrayCodec) Omit(ptr unsafe.Pointer) bool {
 	return (ptr == nil) || (len(*(*[]interface{})(ptr)) == 0)
 }
+
 func (c JSONArrayCodec) Size(ptr unsafe.Pointer) (size int) {
 	a := *(*[]interface{})(ptr)
 	size = SizeVarUint(uint64(len(a)))
@@ -169,7 +168,7 @@ func (c JSONArrayCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n in
 	for i := range a {
 		l, n := ReadVarUint(data[offset:])
 		if n < 0 {
-			return 0, fmt.Errorf("Bad length in map")
+			return 0, fmt.Errorf("bad length in map")
 		}
 		offset += n
 
@@ -203,7 +202,7 @@ func sizeJSONValue(v interface{}) (size int) {
 	case int:
 		size += SizeVarUint(uint64(jsonTypeInt))
 		size += SizeTag(WTVarInt, 3)
-		size += IntCodec{}.Size(unsafe.Pointer(&v))
+		size += IntCodec[int]{}.Size(unsafe.Pointer(&v))
 	case float64:
 		size += SizeVarUint(uint64(jsonTypeFloat))
 		size += SizeTag(WT64, 3)
@@ -246,7 +245,7 @@ func appendJSONValue(data []byte, v interface{}) []byte {
 	case int:
 		data = AppendVarUint(data, uint64(jsonTypeInt))
 		data = AppendTag(data, WTVarInt, 3)
-		data = IntCodec{}.Append(data, unsafe.Pointer(&v))
+		data = IntCodec[int]{}.Append(data, unsafe.Pointer(&v))
 	case float64:
 		data = AppendVarUint(data, uint64(jsonTypeFloat))
 		data = AppendTag(data, WT64, 3)
@@ -324,7 +323,7 @@ func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
 
 			case jsonTypeInt:
 				var v int
-				n, err := IntCodec{}.Read(data[offset:], unsafe.Pointer(&v), wt)
+				n, err := IntCodec[int]{}.Read(data[offset:], unsafe.Pointer(&v), wt)
 				if err != nil {
 					return 0, err
 				}
@@ -370,7 +369,7 @@ func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
 			case jsonTypeNumber:
 				l, n := ReadVarUint(data[offset:])
 				if n < 0 {
-					return 0, fmt.Errorf("Bad length on JSON number field")
+					return 0, fmt.Errorf("bad length on JSON number field")
 				}
 				offset += n
 				var v json.Number

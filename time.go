@@ -31,8 +31,8 @@ func (tc *TimeCodec) Size(ptr unsafe.Pointer) (size int) {
 	t := *(*time.Time)(ptr)
 	var e ptime
 	e.Set(t)
-	sl := Int64Codec{}.Size(unsafe.Pointer(&e.Seconds))
-	nl := Int32Codec{}.Size(unsafe.Pointer(&e.Nanoseconds))
+	sl := IntCodec[int64]{}.Size(unsafe.Pointer(&e.Seconds))
+	nl := IntCodec[int32]{}.Size(unsafe.Pointer(&e.Nanoseconds))
 	return SizeTag(WTVarInt, 1) + sl + SizeTag(WTVarInt, 2) + nl
 }
 
@@ -43,9 +43,9 @@ func (tc *TimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	e.Set(t)
 
 	data = AppendTag(data, WTVarInt, 1)
-	data = Int64Codec{}.Append(data, unsafe.Pointer(&e.Seconds))
+	data = IntCodec[int64]{}.Append(data, unsafe.Pointer(&e.Seconds))
 	data = AppendTag(data, WTVarInt, 2)
-	data = Int32Codec{}.Append(data, unsafe.Pointer(&e.Nanoseconds))
+	data = IntCodec[int32]{}.Append(data, unsafe.Pointer(&e.Nanoseconds))
 	return data
 }
 
@@ -61,14 +61,14 @@ func (tc *TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, 
 
 		switch index {
 		case 1:
-			n, err := Int64Codec{}.Read(data[offset:], unsafe.Pointer(&e.Seconds), wt)
+			n, err := IntCodec[int64]{}.Read(data[offset:], unsafe.Pointer(&e.Seconds), wt)
 			if err != nil {
 				return 0, fmt.Errorf("failed reading seconds field of time. %w", err)
 			}
 			offset += n
 
 		case 2:
-			n, err := Int32Codec{}.Read(data[offset:], unsafe.Pointer(&e.Nanoseconds), wt)
+			n, err := IntCodec[int32]{}.Read(data[offset:], unsafe.Pointer(&e.Nanoseconds), wt)
 			if err != nil {
 				return 0, fmt.Errorf("failed reading nanoseconds field of time. %w", err)
 			}

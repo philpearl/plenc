@@ -1,6 +1,6 @@
 module github.com/philpearl/plenc
 
-go 1.13
+go 1.18
 
 require (
 	github.com/fatih/structtag v1.2.0

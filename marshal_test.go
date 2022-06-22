@@ -72,7 +72,6 @@ type TestThing struct {
 }
 
 func TestMarshal(t *testing.T) {
-
 	f := fuzz.New().Funcs(func(out **InnerThing, cont fuzz.Continue) {
 		// We don't support having nil entries in slices of pointers
 		var v InnerThing
@@ -176,7 +175,6 @@ func TestMarshalPtrSliceFloat(t *testing.T) {
 }
 
 func TestMarshalPtrSliceInt(t *testing.T) {
-
 	one, two := 1, 2
 	tests := []struct {
 		in  []*int
@@ -206,7 +204,6 @@ func TestMarshalPtrSliceInt(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestSkip(t *testing.T) {
@@ -331,7 +328,7 @@ func TestUnmarshalNilPtr(t *testing.T) {
 }
 
 func BenchmarkCycle(b *testing.B) {
-	f := fuzz.New()
+	f := fuzz.NewWithSeed(1337)
 	var in TestThing
 	f.Fuzz(&in)
 

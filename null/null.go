@@ -32,7 +32,7 @@ func AddCodecs(p *plenc.Plenc) {
 }
 
 type nullIntCodec struct {
-	plenc.Int64Codec
+	plenc.IntCodec[int64]
 }
 
 func (c nullIntCodec) Omit(ptr unsafe.Pointer) bool {
@@ -42,23 +42,22 @@ func (c nullIntCodec) Omit(ptr unsafe.Pointer) bool {
 
 func (c nullIntCodec) Size(ptr unsafe.Pointer) (size int) {
 	ni := (*null.Int)(ptr)
-	return c.Int64Codec.Size(unsafe.Pointer(&ni.Int64))
+	return c.IntCodec.Size(unsafe.Pointer(&ni.Int64))
 }
 
 func (c nullIntCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	ni := (*null.Int)(ptr)
-	return c.Int64Codec.Append(data, unsafe.Pointer(&ni.Int64))
+	return c.IntCodec.Append(data, unsafe.Pointer(&ni.Int64))
 }
 
 func (c nullIntCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
 	var i int64
-	n, err = c.Int64Codec.Read(data, unsafe.Pointer(&i), wt)
+	n, err = c.IntCodec.Read(data, unsafe.Pointer(&i), wt)
 	if err != nil {
 		return n, err
 	}
 	ni := (*null.Int)(ptr)
-	ni.Valid = true
-	ni.Int64 = i
+	ni.SetValid(i)
 	return n, err
 }
 
@@ -92,8 +91,7 @@ func (c nullBoolCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) 
 		return n, err
 	}
 	nb := (*null.Bool)(ptr)
-	nb.Valid = true
-	nb.Bool = b
+	nb.SetValid(b)
 	return n, err
 }
 
