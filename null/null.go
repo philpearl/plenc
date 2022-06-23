@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/philpearl/plenc"
+	"github.com/philpearl/plenc/plenccore"
 	"github.com/unravelin/null"
 )
 
@@ -50,7 +51,7 @@ func (c nullIntCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return c.IntCodec.Append(data, unsafe.Pointer(&ni.Int64))
 }
 
-func (c nullIntCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
+func (c nullIntCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	var i int64
 	n, err = c.IntCodec.Read(data, unsafe.Pointer(&i), wt)
 	if err != nil {
@@ -84,7 +85,7 @@ func (c nullBoolCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return c.BoolCodec.Append(data, unsafe.Pointer(&ni.Bool))
 }
 
-func (c nullBoolCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
+func (c nullBoolCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	var b bool
 	n, err = c.BoolCodec.Read(data, unsafe.Pointer(&b), wt)
 	if err != nil {
@@ -118,7 +119,7 @@ func (c nullFloatCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return c.Float64Codec.Append(data, unsafe.Pointer(&nf.Float64))
 }
 
-func (c nullFloatCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
+func (c nullFloatCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	var f float64
 	n, err = c.Float64Codec.Read(data, unsafe.Pointer(&f), wt)
 	if err != nil {
@@ -153,7 +154,7 @@ func (c nullStringCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return c.StringCodec.Append(data, unsafe.Pointer(&ns.String))
 }
 
-func (c nullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
+func (c nullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	ns := (*null.String)(ptr)
 	n, err = c.StringCodec.Read(data, unsafe.Pointer(&ns.String), wt)
 	if err != nil {
@@ -179,7 +180,7 @@ type internedNullStringCodec struct {
 	stringCodec *plenc.InternedStringCodec
 }
 
-func (c *internedNullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
+func (c *internedNullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	ns := (*null.String)(ptr)
 	n, err = c.stringCodec.Read(data, unsafe.Pointer(&ns.String), wt)
 	if err != nil {
@@ -208,7 +209,7 @@ func (c *nullTimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return c.TimeCodec.Append(data, unsafe.Pointer(&nt.Time))
 }
 
-func (c *nullTimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc.WireType) (n int, err error) {
+func (c *nullTimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	var t time.Time
 	n, err = c.TimeCodec.Read(data, unsafe.Pointer(&t), wt)
 	if err != nil {

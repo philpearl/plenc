@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
+	"github.com/philpearl/plenc/plenccore"
 )
 
 type InnerThing struct {
@@ -69,6 +70,14 @@ type TestThing struct {
 	Z4 []*InnerThing `plenc:"48"`
 
 	M1 map[string]string `plenc:"47"`
+
+	// These two are not currently supported. And I may have made it difficult
+	// to efficiently support them!
+	// X1 [][]InnerThing `plenc:"49"`
+	// X2 [][]string     `plenc:"50"`
+
+	X3 [][]uint    `plenc:"51"`
+	X4 [][]float32 `plenc:"52"`
 }
 
 func TestMarshal(t *testing.T) {
@@ -227,12 +236,12 @@ func TestSkip(t *testing.T) {
 		// So lets do a lower level skip
 		i := 0
 		for i < len(data) {
-			wt, _, n := ReadTag(data[i:])
+			wt, _, n := plenccore.ReadTag(data[i:])
 			if n < 0 {
 				t.Fatalf("problem reading tag")
 			}
 			i += n
-			n, err := Skip(data[i:], wt)
+			n, err := plenccore.Skip(data[i:], wt)
 			if err != nil {
 				t.Fatal(err)
 			}

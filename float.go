@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math"
 	"unsafe"
+
+	"github.com/philpearl/plenc/plenccore"
 )
 
 // Float64Codec is a coddec for a float64
@@ -23,7 +25,7 @@ func (Float64Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a float64
-func (Float64Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
+func (Float64Codec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	if len(data) < 8 {
 		return 0, fmt.Errorf("not enough data to read a float64. Have %d bytes", len(data))
 	}
@@ -38,8 +40,8 @@ func (c Float64Codec) New() unsafe.Pointer {
 }
 
 // WireType returns the wire type used to encode this type
-func (c Float64Codec) WireType() WireType {
-	return WT64
+func (c Float64Codec) WireType() plenccore.WireType {
+	return plenccore.WT64
 }
 
 // Omit indicates whether this field should be omitted
@@ -63,7 +65,7 @@ func (Float32Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a float32
-func (Float32Codec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
+func (Float32Codec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	if len(data) < 4 {
 		return 0, fmt.Errorf("not enough data to read a float32. Have %d bytes", len(data))
 	}
@@ -78,8 +80,8 @@ func (c Float32Codec) New() unsafe.Pointer {
 }
 
 // WireType returns the wire type used to encode this type
-func (c Float32Codec) WireType() WireType {
-	return WT32
+func (c Float32Codec) WireType() plenccore.WireType {
+	return plenccore.WT32
 }
 
 // Omit indicates whether this field should be omitted

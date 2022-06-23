@@ -3,6 +3,8 @@ package plenc
 import (
 	"fmt"
 	"unsafe"
+
+	"github.com/philpearl/plenc/plenccore"
 )
 
 // BoolCodec is a codec for a bool
@@ -19,12 +21,12 @@ func (BoolCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	if *(*bool)(ptr) {
 		uv = 1
 	}
-	return AppendVarUint(data, uv)
+	return plenccore.AppendVarUint(data, uv)
 }
 
 // Read decodes a bool
-func (BoolCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
-	uv, n := ReadVarUint(data)
+func (BoolCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
+	uv, n := plenccore.ReadVarUint(data)
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt var int")
 	}
@@ -38,8 +40,8 @@ func (c BoolCodec) New() unsafe.Pointer {
 }
 
 // WireType returns the wire type used to encode this type
-func (c BoolCodec) WireType() WireType {
-	return WTVarInt
+func (c BoolCodec) WireType() plenccore.WireType {
+	return plenccore.WTVarInt
 }
 
 // Omit indicates whether this field should be omitted

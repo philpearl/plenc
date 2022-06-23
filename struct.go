@@ -8,6 +8,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 	"unsafe"
+
+	"github.com/philpearl/plenc/plenccore"
 )
 
 func (p *Plenc) buildStructCodec(typ reflect.Type) (Codec, error) {
@@ -65,7 +67,7 @@ func (p *Plenc) buildStructCodec(typ reflect.Type) (Codec, error) {
 		}
 
 		field.codec = fc
-		field.tag = AppendTag(nil, fc.WireType(), field.index)
+		field.tag = plenccore.AppendTag(nil, fc.WireType(), field.index)
 		if sf.Type.Kind() == reflect.Map {
 			field.deref = true
 		}
@@ -123,8 +125,8 @@ func (c *structCodec) Size(ptr unsafe.Pointer) (size int) {
 		}
 		if !field.codec.Omit(fptr) {
 			s := field.codec.Size(fptr)
-			if field.codec.WireType() == WTLength {
-				s += SizeVarUint(uint64(s))
+			if field.codec.WireType() == plenccore.WTLength {
+				s += plenccore.SizeVarUint(uint64(s))
 			}
 			size += len(field.tag) + s
 		}
@@ -146,8 +148,8 @@ func (c *structCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 		// for the protocol, but if we want to inter-operate... Well, we could
 		// just be able to read that without necessarily being able to write it.
 		data = append(data, field.tag...)
-		if field.codec.WireType() == WTLength {
-			data = AppendVarUint(data, uint64(field.codec.Size(fptr)))
+		if field.codec.WireType() == plenccore.WTLength {
+			data = plenccore.AppendVarUint(data, uint64(field.codec.Size(fptr)))
 		}
 		data = field.codec.Append(data, fptr)
 	}
@@ -155,17 +157,17 @@ func (c *structCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return data
 }
 
-func (c *structCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
+func (c *structCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	l := len(data)
 
 	var offset int
 	for offset < l {
-		wt, index, n := ReadTag(data[offset:])
+		wt, index, n := plenccore.ReadTag(data[offset:])
 		offset += n
 
 		if index >= len(c.fieldsByIndex) || c.fieldsByIndex[index].codec == nil {
 			// Field corresponding to index does not exist
-			n, err := Skip(data[offset:], wt)
+			n, err := plenccore.Skip(data[offset:], wt)
 			if err != nil {
 				return 0, fmt.Errorf("failed to skip field %d in %s. %w", index, c.rtype.Name(), err)
 			}
@@ -174,10 +176,10 @@ func (c *structCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int,
 		}
 
 		fl := l
-		if wt == WTLength {
+		if wt == plenccore.WTLength {
 			// For WTLength types we read out the length and ensure the data we
 			// read the field from is the right length
-			v, n := ReadVarUint(data[offset:])
+			v, n := plenccore.ReadVarUint(data[offset:])
 			if n <= 0 {
 				return 0, fmt.Errorf("varuint overflow reading field %d of %s", index, c.rtype.Name())
 			}
@@ -203,6 +205,6 @@ func (c *structCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(reflect.New(c.rtype).Pointer())
 }
 
-func (c *structCodec) WireType() WireType {
-	return WTLength
+func (c *structCodec) WireType() plenccore.WireType {
+	return plenccore.WTLength
 }

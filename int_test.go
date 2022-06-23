@@ -4,6 +4,8 @@ import (
 	"math"
 	"strconv"
 	"testing"
+
+	"github.com/philpearl/plenc/plenccore"
 )
 
 func TestVarUint(t *testing.T) {
@@ -13,10 +15,10 @@ func TestVarUint(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(strconv.FormatUint(uint64(test), 10), func(t *testing.T) {
-			s := SizeVarUint(test)
+			s := plenccore.SizeVarUint(test)
 			b := make([]byte, 0, s)
-			b = AppendVarUint(b, test)
-			actual, l := ReadVarUint(b)
+			b = plenccore.AppendVarUint(b, test)
+			actual, l := plenccore.ReadVarUint(b)
 
 			if l != s {
 				t.Errorf("read %d bytes, expected %d", l, s)
@@ -36,10 +38,10 @@ func TestVarInt(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(strconv.FormatInt(int64(test), 10), func(t *testing.T) {
-			s := SizeVarInt(test)
+			s := plenccore.SizeVarInt(test)
 			b := make([]byte, 0, s)
-			b = AppendVarInt(b, test)
-			actual, l := ReadVarInt(b)
+			b = plenccore.AppendVarInt(b, test)
+			actual, l := plenccore.ReadVarInt(b)
 
 			if l != s {
 				t.Errorf("read %d bytes, expected %d", l, s)
@@ -68,7 +70,7 @@ func TestZigZag(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(strconv.FormatInt(test.in, 10), func(t *testing.T) {
-			if z := ZigZag(test.in); z != test.exp {
+			if z := plenccore.ZigZag(test.in); z != test.exp {
 				t.Errorf("Expected %d got %d", test.exp, z)
 			}
 		})

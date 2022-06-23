@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"sync"
 	"unsafe"
+
+	"github.com/philpearl/plenc/plenccore"
 )
 
 // mapCodec is a codec for maps. We treat it as a slice of structs with the key
@@ -36,10 +38,10 @@ func (p *Plenc) buildMapCodec(typ reflect.Type) (Codec, error) {
 		keyCodec:      kc,
 		valueCodec:    vc,
 		rtype:         typ,
-		keyTag:        AppendTag(nil, kc.WireType(), 1),
-		valueTag:      AppendTag(nil, vc.WireType(), 2),
-		keyIsWTLength: kc.WireType() == WTLength,
-		valIsWTLength: vc.WireType() == WTLength,
+		keyTag:        plenccore.AppendTag(nil, kc.WireType(), 1),
+		valueTag:      plenccore.AppendTag(nil, vc.WireType(), 2),
+		keyIsWTLength: kc.WireType() == plenccore.WTLength,
+		valIsWTLength: vc.WireType() == plenccore.WTLength,
 	}
 
 	c.kPool.New = c.newKey
@@ -72,7 +74,7 @@ func (c *mapCodec) Omit(ptr unsafe.Pointer) bool {
 }
 
 func (c *mapCodec) Size(ptr unsafe.Pointer) (size int) {
-	size = SizeVarUint(uint64(maplen(ptr)))
+	size = plenccore.SizeVarUint(uint64(maplen(ptr)))
 
 	var iterM mapiter
 	iter := (unsafe.Pointer)(&iterM)
@@ -85,7 +87,7 @@ func (c *mapCodec) Size(ptr unsafe.Pointer) (size int) {
 		v := mapiterelem(iter)
 
 		s := c.sizeForEntry(k, v)
-		size += SizeVarUint(uint64(s)) + s
+		size += plenccore.SizeVarUint(uint64(s)) + s
 
 		mapiternext(iter)
 	}
@@ -104,7 +106,7 @@ func (*mapCodec) sizeFor(c Codec, ptr unsafe.Pointer, tag []byte, useLength bool
 	}
 	s := c.Size(ptr)
 	if useLength {
-		s += SizeVarUint(uint64(s))
+		s += plenccore.SizeVarUint(uint64(s))
 	}
 	return s + len(tag)
 }
@@ -114,14 +116,14 @@ func (c *mapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 		if !c.Omit(ptr) {
 			data = append(data, tag...)
 			if useLength {
-				data = AppendVarUint(data, uint64(c.Size(ptr)))
+				data = plenccore.AppendVarUint(data, uint64(c.Size(ptr)))
 			}
 			data = c.Append(data, ptr)
 		}
 	}
 
 	// First add the count of entries
-	data = AppendVarUint(data, uint64(maplen(ptr)))
+	data = plenccore.AppendVarUint(data, uint64(maplen(ptr)))
 
 	var iterM mapiter
 	iter := (unsafe.Pointer)(&iterM)
@@ -134,7 +136,7 @@ func (c *mapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 		v := mapiterelem(iter)
 
 		// Add the length of each entry, then the key and value
-		data = AppendVarUint(data, uint64(c.sizeForEntry(k, v)))
+		data = plenccore.AppendVarUint(data, uint64(c.sizeForEntry(k, v)))
 		add(c.keyCodec, k, c.keyTag, c.keyIsWTLength)
 		add(c.valueCodec, v, c.valueTag, c.valIsWTLength)
 
@@ -146,13 +148,13 @@ func (c *mapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 
 var zero [1024]byte
 
-func (c *mapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
+func (c *mapCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	if len(data) == 0 {
 		return 0, nil
 	}
 
 	// We start with a count of entries
-	count, n := ReadVarUint(data)
+	count, n := plenccore.ReadVarUint(data)
 	if n <= 0 {
 		return 0, fmt.Errorf("failed to read map size")
 	}
@@ -171,7 +173,7 @@ func (c *mapCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, er
 	offset := int(n)
 	for count > 0 {
 		// Each entry starts with a length
-		entryLength, n := ReadVarUint(data[offset:])
+		entryLength, n := plenccore.ReadVarUint(data[offset:])
 		if n <= 0 {
 			return 0, fmt.Errorf("failed to read map entry length")
 		}
@@ -231,14 +233,14 @@ func (c *mapCodec) readMapEntry(mp, k unsafe.Pointer, data []byte) (int, error) 
 	return offset, nil
 }
 
-func (c *mapCodec) readTagAndLength(data []byte, offset int) (offset2, fieldEnd, index int, wt WireType, err error) {
-	wt, index, n := ReadTag(data[offset:])
+func (c *mapCodec) readTagAndLength(data []byte, offset int) (offset2, fieldEnd, index int, wt plenccore.WireType, err error) {
+	wt, index, n := plenccore.ReadTag(data[offset:])
 	offset += n
 	fieldEnd = len(data)
-	if wt == WTLength {
+	if wt == plenccore.WTLength {
 		// For WTLength types we read out the length and ensure the data we
 		// read the field from is the right length
-		fieldLen, n := ReadVarUint(data[offset:])
+		fieldLen, n := plenccore.ReadVarUint(data[offset:])
 		if n <= 0 {
 			return 0, 0, 0, wt, fmt.Errorf("varuint overflow reading %d of %s", index, c.rtype.Name())
 		}
@@ -256,6 +258,6 @@ func (c *mapCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(reflect.MakeMap(c.rtype).Pointer())
 }
 
-func (c *mapCodec) WireType() WireType {
-	return WTSlice
+func (c *mapCodec) WireType() plenccore.WireType {
+	return plenccore.WTSlice
 }

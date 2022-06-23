@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 	"unsafe"
+
+	"github.com/philpearl/plenc/plenccore"
 )
 
 // ptime is a representation of time in UTC. It is used to encode time.Time
@@ -33,7 +35,7 @@ func (tc *TimeCodec) Size(ptr unsafe.Pointer) (size int) {
 	e.Set(t)
 	sl := IntCodec[int64]{}.Size(unsafe.Pointer(&e.Seconds))
 	nl := IntCodec[int32]{}.Size(unsafe.Pointer(&e.Nanoseconds))
-	return SizeTag(WTVarInt, 1) + sl + SizeTag(WTVarInt, 2) + nl
+	return plenccore.SizeTag(plenccore.WTVarInt, 1) + sl + plenccore.SizeTag(plenccore.WTVarInt, 2) + nl
 }
 
 // Append encodes a Time
@@ -42,21 +44,21 @@ func (tc *TimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	var e ptime
 	e.Set(t)
 
-	data = AppendTag(data, WTVarInt, 1)
+	data = plenccore.AppendTag(data, plenccore.WTVarInt, 1)
 	data = IntCodec[int64]{}.Append(data, unsafe.Pointer(&e.Seconds))
-	data = AppendTag(data, WTVarInt, 2)
+	data = plenccore.AppendTag(data, plenccore.WTVarInt, 2)
 	data = IntCodec[int32]{}.Append(data, unsafe.Pointer(&e.Nanoseconds))
 	return data
 }
 
 // Read decodes a Time
-func (tc *TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
+func (tc *TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	var e ptime
 	l := len(data)
 
 	var offset int
 	for offset < l {
-		wt, index, n := ReadTag(data[offset:])
+		wt, index, n := plenccore.ReadTag(data[offset:])
 		offset += n
 
 		switch index {
@@ -76,7 +78,7 @@ func (tc *TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, 
 
 		default:
 			// Field corresponding to index does not exist
-			n, err := Skip(data[offset:], wt)
+			n, err := plenccore.Skip(data[offset:], wt)
 			if err != nil {
 				return 0, fmt.Errorf("failed to skip field %d of time. %w", index, err)
 			}
@@ -97,6 +99,6 @@ func (*TimeCodec) Omit(ptr unsafe.Pointer) bool {
 	return (*time.Time)(ptr).IsZero()
 }
 
-func (tc *TimeCodec) WireType() WireType {
-	return WTLength
+func (tc *TimeCodec) WireType() plenccore.WireType {
+	return plenccore.WTLength
 }

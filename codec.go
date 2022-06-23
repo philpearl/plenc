@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"unsafe"
+
+	"github.com/philpearl/plenc/plenccore"
 )
 
 // Codec is what you implement to encode / decode a type. Note that codecs are
@@ -17,9 +19,9 @@ type Codec interface {
 	Omit(ptr unsafe.Pointer) bool
 	Size(ptr unsafe.Pointer) (size int)
 	Append(data []byte, ptr unsafe.Pointer) []byte
-	Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error)
+	Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error)
 	New() unsafe.Pointer
-	WireType() WireType
+	WireType() plenccore.WireType
 }
 
 var defaultPlenc Plenc
@@ -80,18 +82,20 @@ func (p *Plenc) codecForType(typ reflect.Type) (Codec, error) {
 		}
 		bs := baseSliceWrapper{Underlying: subc, EltSize: subt.Size(), EltType: unpackEFace(subt).data}
 		switch subc.WireType() {
-		case WTVarInt:
+		case plenccore.WTVarInt:
 			c = WTVarIntSliceWrapper{baseSliceWrapper: bs}
-		case WT64, WT32:
+		case plenccore.WT64, plenccore.WT32:
 			if subt.Kind() == reflect.Ptr {
 				// Can probably support these if we don't allow missing entries
 				return nil, fmt.Errorf("slices of pointers to float32 & float64 are not supported")
 			}
 			c = WTFixedSliceWrapper{baseSliceWrapper: bs}
-		case WTLength:
+		case plenccore.WTLength:
 			c = WTLengthSliceWrapper{baseSliceWrapper: bs}
+		case plenccore.WTSlice:
+			return nil, fmt.Errorf("slices of slices of structs or strings are not supported")
 		default:
-			return nil, fmt.Errorf("unexpected wire type %d for slice wrapper for type %s", subc.WireType(), typ.Name())
+			return nil, fmt.Errorf("unexpected wire type %d for slice wrapper for type %q", subc.WireType(), typ.Name())
 		}
 
 	case reflect.Map:

@@ -4,6 +4,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/philpearl/plenc/plenccore"
 )
 
 // StringCodec is a codec for an string
@@ -21,7 +23,7 @@ func (StringCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a string
-func (StringCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
+func (StringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	*(*string)(ptr) = string(data)
 	return len(data), nil
 }
@@ -32,8 +34,8 @@ func (StringCodec) New() unsafe.Pointer {
 }
 
 // WireType returns the wire type used to encode this type
-func (StringCodec) WireType() WireType {
-	return WTLength
+func (StringCodec) WireType() plenccore.WireType {
+	return plenccore.WTLength
 }
 
 // Omit indicates whether this field should be omitted
@@ -56,7 +58,7 @@ func (BytesCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a []byte
-func (BytesCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
+func (BytesCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	// really must copy this data to be safe from the underlying buffer changing
 	// later
 	*(*[]byte)(ptr) = append([]byte(nil), data...)
@@ -69,8 +71,8 @@ func (c BytesCodec) New() unsafe.Pointer {
 }
 
 // WireType returns the wire type used to encode this type
-func (c BytesCodec) WireType() WireType {
-	return WTLength
+func (c BytesCodec) WireType() plenccore.WireType {
+	return plenccore.WTLength
 }
 
 // Omit indicates whether this field should be omitted
@@ -88,7 +90,7 @@ type InternedStringCodec struct {
 	StringCodec
 }
 
-func (c *InternedStringCodec) Read(data []byte, ptr unsafe.Pointer, wt WireType) (n int, err error) {
+func (c *InternedStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	p := atomic.LoadPointer(&c.strings)
 	m := *(*map[string]string)((unsafe.Pointer)(&p))
 
