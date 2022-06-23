@@ -1,4 +1,4 @@
-package plenc
+package plenccodec_test
 
 import (
 	"reflect"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
+	"github.com/philpearl/plenc"
 	"github.com/philpearl/plenc/plenccore"
 )
 
@@ -19,7 +20,7 @@ func TestTime(t *testing.T) {
 		U int       `plenc:"2"`
 	}
 
-	c, err := CodecForType(reflect.TypeOf(twrap{}))
+	c, err := plenc.CodecForType(reflect.TypeOf(twrap{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,12 +54,12 @@ func BenchmarkTime(b *testing.B) {
 		var data []byte
 		for pb.Next() {
 			var err error
-			data, err = Marshal(data[:0], &in)
+			data, err = plenc.Marshal(data[:0], &in)
 			if err != nil {
 				b.Fatal(err)
 			}
 			var out time.Time
-			if err := Unmarshal(data, &out); err != nil {
+			if err := plenc.Unmarshal(data, &out); err != nil {
 				b.Fatal(err)
 			}
 		}

@@ -1,10 +1,11 @@
-package plenc
+package plenccodec_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/philpearl/plenc"
 )
 
 func TestFieldRemoval(t *testing.T) {
@@ -20,13 +21,13 @@ func TestFieldRemoval(t *testing.T) {
 	}
 
 	in := S1{A: 1, B: 2, C: "3", D: 4, E: 5}
-	data, err := Marshal(nil, &in)
+	data, err := plenc.Marshal(nil, &in)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var out S2
-	if err := Unmarshal(data, &out); err != nil {
+	if err := plenc.Unmarshal(data, &out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -65,13 +66,13 @@ func TestSliceStructPtr(t *testing.T) {
 	*/
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%#v", test), func(t *testing.T) {
-			data, err := Marshal(nil, &test)
+			data, err := plenc.Marshal(nil, &test)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			var out S1
-			if err := Unmarshal(data, &out); err != nil {
+			if err := plenc.Unmarshal(data, &out); err != nil {
 				t.Fatal(err)
 			}
 

@@ -1,4 +1,4 @@
-package plenc
+package plenccodec
 
 import (
 	"fmt"
@@ -9,9 +9,9 @@ import (
 	"github.com/philpearl/plenc/plenccore"
 )
 
-// mapCodec is a codec for maps. We treat it as a slice of structs with the key
+// MapCodec is a codec for maps. We treat it as a slice of structs with the key
 // and value as the fields in the structs.
-type mapCodec struct {
+type MapCodec struct {
 	keyCodec      Codec
 	valueCodec    Codec
 	rtype         reflect.Type
@@ -24,24 +24,24 @@ type mapCodec struct {
 	vZero         unsafe.Pointer
 }
 
-func (p *Plenc) buildMapCodec(typ reflect.Type) (Codec, error) {
-	kc, err := p.codecForType(typ.Key())
+func BuildMapCodec(p CodecFinder, typ reflect.Type) (*MapCodec, error) {
+	keyCodec, err := p.CodecForType(typ.Key())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find codec for map key %s. %w", typ.Key().Name(), err)
 	}
-	vc, err := p.codecForType(typ.Elem())
+	valueCodec, err := p.CodecForType(typ.Elem())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find codec for map value %s. %w", typ.Elem().Name(), err)
 	}
 
-	c := &mapCodec{
-		keyCodec:      kc,
-		valueCodec:    vc,
+	c := MapCodec{
+		keyCodec:      keyCodec,
+		valueCodec:    valueCodec,
 		rtype:         typ,
-		keyTag:        plenccore.AppendTag(nil, kc.WireType(), 1),
-		valueTag:      plenccore.AppendTag(nil, vc.WireType(), 2),
-		keyIsWTLength: kc.WireType() == plenccore.WTLength,
-		valIsWTLength: vc.WireType() == plenccore.WTLength,
+		keyTag:        plenccore.AppendTag(nil, keyCodec.WireType(), 1),
+		valueTag:      plenccore.AppendTag(nil, valueCodec.WireType(), 2),
+		keyIsWTLength: keyCodec.WireType() == plenccore.WTLength,
+		valIsWTLength: valueCodec.WireType() == plenccore.WTLength,
 	}
 
 	c.kPool.New = c.newKey
@@ -58,22 +58,21 @@ func (p *Plenc) buildMapCodec(typ reflect.Type) (Codec, error) {
 		z := make([]byte, l)
 		c.vZero = unsafe.Pointer(&z[0])
 	}
-
-	return c, nil
+	return &c, nil
 }
 
-func (c *mapCodec) newKey() interface{} {
+func (c *MapCodec) newKey() interface{} {
 	return c.keyCodec.New()
 }
 
 // When we're writing ptr is a map pointer. When reading it is a pointer to a
 // map pointer
 
-func (c *mapCodec) Omit(ptr unsafe.Pointer) bool {
+func (c *MapCodec) Omit(ptr unsafe.Pointer) bool {
 	return ptr == nil
 }
 
-func (c *mapCodec) Size(ptr unsafe.Pointer) (size int) {
+func (c *MapCodec) Size(ptr unsafe.Pointer) (size int) {
 	size = plenccore.SizeVarUint(uint64(maplen(ptr)))
 
 	var iterM mapiter
@@ -94,13 +93,13 @@ func (c *mapCodec) Size(ptr unsafe.Pointer) (size int) {
 	return size
 }
 
-func (c *mapCodec) sizeForEntry(k, v unsafe.Pointer) int {
+func (c *MapCodec) sizeForEntry(k, v unsafe.Pointer) int {
 	s := c.sizeFor(c.keyCodec, k, c.keyTag, c.keyIsWTLength)
 	s += c.sizeFor(c.valueCodec, v, c.valueTag, c.valIsWTLength)
 	return s
 }
 
-func (*mapCodec) sizeFor(c Codec, ptr unsafe.Pointer, tag []byte, useLength bool) int {
+func (*MapCodec) sizeFor(c Codec, ptr unsafe.Pointer, tag []byte, useLength bool) int {
 	if c.Omit(ptr) {
 		return 0
 	}
@@ -111,7 +110,7 @@ func (*mapCodec) sizeFor(c Codec, ptr unsafe.Pointer, tag []byte, useLength bool
 	return s + len(tag)
 }
 
-func (c *mapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+func (c *MapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	add := func(c Codec, ptr unsafe.Pointer, tag []byte, useLength bool) {
 		if !c.Omit(ptr) {
 			data = append(data, tag...)
@@ -148,7 +147,7 @@ func (c *mapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 
 var zero [1024]byte
 
-func (c *mapCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
+func (c *MapCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	if len(data) == 0 {
 		return 0, nil
 	}
@@ -191,7 +190,7 @@ func (c *mapCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) 
 
 // readMapEntry reads out a single map entry. mp is the map pointer. k is an
 // area to read key values into. data is the raw data for this map entry
-func (c *mapCodec) readMapEntry(mp, k unsafe.Pointer, data []byte) (int, error) {
+func (c *MapCodec) readMapEntry(mp, k unsafe.Pointer, data []byte) (int, error) {
 	offset, fieldEnd, index, wt, err := c.readTagAndLength(data, 0)
 	if err != nil {
 		return 0, err
@@ -233,7 +232,7 @@ func (c *mapCodec) readMapEntry(mp, k unsafe.Pointer, data []byte) (int, error) 
 	return offset, nil
 }
 
-func (c *mapCodec) readTagAndLength(data []byte, offset int) (offset2, fieldEnd, index int, wt plenccore.WireType, err error) {
+func (c *MapCodec) readTagAndLength(data []byte, offset int) (offset2, fieldEnd, index int, wt plenccore.WireType, err error) {
 	wt, index, n := plenccore.ReadTag(data[offset:])
 	offset += n
 	fieldEnd = len(data)
@@ -254,10 +253,10 @@ func (c *mapCodec) readTagAndLength(data []byte, offset int) (offset2, fieldEnd,
 	return offset, fieldEnd, index, wt, nil
 }
 
-func (c *mapCodec) New() unsafe.Pointer {
+func (c *MapCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(reflect.MakeMap(c.rtype).Pointer())
 }
 
-func (c *mapCodec) WireType() plenccore.WireType {
+func (c *MapCodec) WireType() plenccore.WireType {
 	return plenccore.WTSlice
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/philpearl/plenc"
+	"github.com/philpearl/plenc/plenccodec"
 	"github.com/philpearl/plenc/plenccore"
 )
 
@@ -19,6 +19,9 @@ const (
 	FieldTypeString
 	FieldTypeSlice
 	FieldTypeStruct
+	FieldTypeBool
+	FieldTypeTime
+	// TODO add bool / time ??
 )
 
 type Descriptor struct {
@@ -47,27 +50,37 @@ func (d *Descriptor) read(data []byte) (output interface{}, n int, err error) {
 	switch d.Type {
 	case FieldTypeInt:
 		var v int64
-		n, err = plenc.IntCodec[int64]{}.Read(data, unsafe.Pointer(&v), plenccore.WTVarInt)
+		n, err = plenccodec.IntCodec[int64]{}.Read(data, unsafe.Pointer(&v), plenccore.WTVarInt)
 		return v, n, err
 
 	case FieldTypeUint:
 		var v uint64
-		n, err = plenc.UintCodec[uint64]{}.Read(data, unsafe.Pointer(&v), plenccore.WTVarInt)
+		n, err = plenccodec.UintCodec[uint64]{}.Read(data, unsafe.Pointer(&v), plenccore.WTVarInt)
 		return v, n, err
 
 	case FieldTypeFloat32:
 		var v float32
-		n, err = plenc.Float32Codec{}.Read(data, unsafe.Pointer(&v), plenccore.WT32)
+		n, err = plenccodec.Float32Codec{}.Read(data, unsafe.Pointer(&v), plenccore.WT32)
 		return v, n, err
 
 	case FieldTypeFloat64:
 		var v float64
-		n, err = plenc.Float64Codec{}.Read(data, unsafe.Pointer(&v), plenccore.WT64)
+		n, err = plenccodec.Float64Codec{}.Read(data, unsafe.Pointer(&v), plenccore.WT64)
 		return v, n, err
 
 	case FieldTypeString:
 		var v string
-		n, err = plenc.StringCodec{}.Read(data, unsafe.Pointer(&v), plenccore.WTLength)
+		n, err = plenccodec.StringCodec{}.Read(data, unsafe.Pointer(&v), plenccore.WTLength)
+		return v, n, err
+
+	case FieldTypeBool:
+		var v bool
+		n, err = plenccodec.BoolCodec{}.Read(data, unsafe.Pointer(&v), plenccore.WTLength)
+		return v, n, err
+
+	case FieldTypeTime:
+		var v bool
+		n, err = plenccodec.TimeCodec{}.Read(data, unsafe.Pointer(&v), plenccore.WTLength)
 		return v, n, err
 
 	case FieldTypeSlice:

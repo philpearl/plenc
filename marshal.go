@@ -27,7 +27,7 @@ func (p *Plenc) Marshal(data []byte, value interface{}) ([]byte, error) {
 		}
 	}
 
-	c, err := p.codecForType(typ)
+	c, err := p.CodecForType(typ)
 	if err != nil {
 		return nil, err
 	}
@@ -48,28 +48,11 @@ func (p *Plenc) Unmarshal(data []byte, value interface{}) error {
 		return fmt.Errorf("you must pass in a non-nil pointer")
 	}
 
-	c, err := p.codecForType(rv.Type().Elem())
+	c, err := p.CodecForType(rv.Type().Elem())
 	if err != nil {
 		return err
 	}
 
 	_, err = c.Read(data, unsafe.Pointer(rv.Pointer()), c.WireType())
 	return err
-}
-
-type eface struct {
-	rtype unsafe.Pointer
-	data  unsafe.Pointer
-}
-
-func unpackEFace(obj interface{}) *eface {
-	return (*eface)(unsafe.Pointer(&obj))
-}
-
-func packEFace(ptr unsafe.Pointer, typ reflect.Type) interface{} {
-	e := eface{
-		rtype: unpackEFace(typ).data,
-		data:  ptr,
-	}
-	return *(*interface{})(unsafe.Pointer(&e))
 }

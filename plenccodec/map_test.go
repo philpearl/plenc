@@ -1,4 +1,4 @@
-package plenc
+package plenccodec_test
 
 import (
 	"reflect"
@@ -6,10 +6,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
+	"github.com/philpearl/plenc"
 )
 
 func TestMap(t *testing.T) {
-
 	one := 1
 	two := 2
 
@@ -110,13 +110,13 @@ func TestMap(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			data, err := Marshal(nil, test.data)
+			data, err := plenc.Marshal(nil, test.data)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			mv := reflect.New(reflect.TypeOf(test.data))
-			if err := Unmarshal(data, mv.Interface()); err != nil {
+			if err := plenc.Unmarshal(data, mv.Interface()); err != nil {
 				t.Fatal(err)
 			}
 
@@ -134,12 +134,12 @@ func TestMapFuzz(t *testing.T) {
 		var in, out map[string]string
 		fz.Fuzz(&in)
 
-		data, err := Marshal(nil, in)
+		data, err := plenc.Marshal(nil, in)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if err := Unmarshal(data, &out); err != nil {
+		if err := plenc.Unmarshal(data, &out); err != nil {
 			t.Fatal(err)
 		}
 
@@ -150,7 +150,6 @@ func TestMapFuzz(t *testing.T) {
 }
 
 func BenchmarkMap(b *testing.B) {
-
 	m := map[string]string{
 		"AAA":  "AAA",
 		"AAA1": "AAA",
@@ -168,14 +167,14 @@ func BenchmarkMap(b *testing.B) {
 	var o map[string]string
 	for i := 0; i < b.N; i++ {
 		var err error
-		data, err = Marshal(data[:0], m)
+		data, err = plenc.Marshal(data[:0], m)
 		if err != nil {
 			b.Fatal(err)
 		}
 		for k := range o {
 			delete(o, k)
 		}
-		if err := Unmarshal(data, &o); err != nil {
+		if err := plenc.Unmarshal(data, &o); err != nil {
 			b.Fatal(err)
 		}
 	}

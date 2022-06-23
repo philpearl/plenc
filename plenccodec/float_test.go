@@ -1,4 +1,4 @@
-package plenc
+package plenccodec
 
 import (
 	"math"

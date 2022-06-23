@@ -1,4 +1,4 @@
-package plenc
+package plenccodec
 
 import (
 	"fmt"
@@ -61,36 +61,29 @@ type SliceWrapper struct {
 	EltSize    uintptr
 }
 
-// sliceheader is a safer version of reflect.SliceHeader. The Data field here is a pointer that GC will track.
-type sliceHeader struct {
-	Data unsafe.Pointer
-	Len  int
-	Cap  int
-}
-
-type baseSliceWrapper struct {
+type BaseSliceWrapper struct {
 	Underlying Codec
 	EltSize    uintptr
 	EltType    unsafe.Pointer
 }
 
-func (c baseSliceWrapper) Omit(ptr unsafe.Pointer) bool {
+func (c BaseSliceWrapper) Omit(ptr unsafe.Pointer) bool {
 	h := *(*sliceHeader)(ptr)
 	return h.Len == 0
 }
 
-func (c baseSliceWrapper) New() unsafe.Pointer {
+func (c BaseSliceWrapper) New() unsafe.Pointer {
 	return unsafe.Pointer(&sliceHeader{})
 }
 
-func (c baseSliceWrapper) WireType() plenccore.WireType {
+func (c BaseSliceWrapper) WireType() plenccore.WireType {
 	return plenccore.WTLength
 }
 
 // WTLengthSliceWrapper is a codec for a slice of a type that's encoded using
 // the WTSlice wire type.
 type WTLengthSliceWrapper struct {
-	baseSliceWrapper
+	BaseSliceWrapper
 }
 
 func (c WTLengthSliceWrapper) Size(ptr unsafe.Pointer) int {
@@ -200,7 +193,7 @@ func (c WTLengthSliceWrapper) WireType() plenccore.WireType {
 // WTFixedSliceWrapper is a codec for a type that's encoded as a fixed 32 or 64
 // byte value (i.e. float32 or float64)
 type WTFixedSliceWrapper struct {
-	baseSliceWrapper
+	BaseSliceWrapper
 }
 
 func (c WTFixedSliceWrapper) Size(ptr unsafe.Pointer) int {
@@ -246,7 +239,7 @@ func (c WTFixedSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore.
 // WTVarIntSliceWrapper is a codec for a type encoded using the WTVarInt wire
 // type
 type WTVarIntSliceWrapper struct {
-	baseSliceWrapper
+	BaseSliceWrapper
 }
 
 func (c WTVarIntSliceWrapper) Size(ptr unsafe.Pointer) int {

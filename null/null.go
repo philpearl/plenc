@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/philpearl/plenc"
+	"github.com/philpearl/plenc/plenccodec"
 	"github.com/philpearl/plenc/plenccore"
 	"github.com/unravelin/null"
 )
@@ -33,7 +34,7 @@ func AddCodecs(p *plenc.Plenc) {
 }
 
 type nullIntCodec struct {
-	plenc.IntCodec[int64]
+	plenccodec.IntCodec[int64]
 }
 
 func (c nullIntCodec) Omit(ptr unsafe.Pointer) bool {
@@ -67,7 +68,7 @@ func (c nullIntCodec) New() unsafe.Pointer {
 }
 
 type nullBoolCodec struct {
-	plenc.BoolCodec
+	plenccodec.BoolCodec
 }
 
 func (c nullBoolCodec) Omit(ptr unsafe.Pointer) bool {
@@ -101,7 +102,7 @@ func (c nullBoolCodec) New() unsafe.Pointer {
 }
 
 type nullFloatCodec struct {
-	plenc.Float64Codec
+	plenccodec.Float64Codec
 }
 
 func (c nullFloatCodec) Omit(ptr unsafe.Pointer) bool {
@@ -136,7 +137,7 @@ func (c nullFloatCodec) New() unsafe.Pointer {
 }
 
 type nullStringCodec struct {
-	plenc.StringCodec
+	plenccodec.StringCodec
 }
 
 func (c nullStringCodec) Omit(ptr unsafe.Pointer) bool {
@@ -168,8 +169,8 @@ func (c nullStringCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(&null.String{})
 }
 
-func (nullStringCodec) WithInterning() plenc.Codec {
-	c, _ := plenc.StringCodec{}.WithInterning().(*plenc.InternedStringCodec)
+func (nullStringCodec) WithInterning() plenccodec.Codec {
+	c, _ := plenccodec.StringCodec{}.WithInterning().(*plenccodec.InternedStringCodec)
 	return &internedNullStringCodec{
 		stringCodec: c,
 	}
@@ -177,7 +178,7 @@ func (nullStringCodec) WithInterning() plenc.Codec {
 
 type internedNullStringCodec struct {
 	nullStringCodec
-	stringCodec *plenc.InternedStringCodec
+	stringCodec *plenccodec.InternedStringCodec
 }
 
 func (c *internedNullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
@@ -191,7 +192,7 @@ func (c *internedNullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenc
 }
 
 type nullTimeCodec struct {
-	plenc.TimeCodec
+	plenccodec.TimeCodec
 }
 
 func (c *nullTimeCodec) Omit(ptr unsafe.Pointer) bool {

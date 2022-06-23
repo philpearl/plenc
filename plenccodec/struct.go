@@ -1,4 +1,4 @@
-package plenc
+package plenccodec
 
 import (
 	"fmt"
@@ -12,8 +12,12 @@ import (
 	"github.com/philpearl/plenc/plenccore"
 )
 
-func (p *Plenc) buildStructCodec(typ reflect.Type) (Codec, error) {
-	c := structCodec{
+type CodecFinder interface {
+	CodecForType(typ reflect.Type) (Codec, error)
+}
+
+func BuildStructCodec(p CodecFinder, typ reflect.Type) (Codec, error) {
+	c := StructCodec{
 		rtype:  typ,
 		fields: make([]description, typ.NumField()),
 	}
@@ -54,7 +58,7 @@ func (p *Plenc) buildStructCodec(typ reflect.Type) (Codec, error) {
 			maxIndex = field.index
 		}
 
-		fc, err := p.codecForType(sf.Type)
+		fc, err := p.CodecForType(sf.Type)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find codec for field %d (%s) of %s. %w", i, sf.Name, typ.Name(), err)
 		}
@@ -101,17 +105,17 @@ type shortDesc struct {
 	offset uintptr
 }
 
-type structCodec struct {
+type StructCodec struct {
 	rtype         reflect.Type
 	fields        []description
 	fieldsByIndex []shortDesc
 }
 
-func (c *structCodec) Omit(ptr unsafe.Pointer) bool {
+func (c *StructCodec) Omit(ptr unsafe.Pointer) bool {
 	return false
 }
 
-func (c *structCodec) Size(ptr unsafe.Pointer) (size int) {
+func (c *StructCodec) Size(ptr unsafe.Pointer) (size int) {
 	for _, field := range c.fields {
 		// For most fields we have a pointer to the type, and this is the same
 		// when we call these functions for types within structs or when we
@@ -134,7 +138,7 @@ func (c *structCodec) Size(ptr unsafe.Pointer) (size int) {
 	return size
 }
 
-func (c *structCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+func (c *StructCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	for _, field := range c.fields {
 		fptr := unsafe.Pointer(uintptr(ptr) + field.offset)
 		if field.deref {
@@ -157,7 +161,7 @@ func (c *structCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return data
 }
 
-func (c *structCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
+func (c *StructCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	l := len(data)
 
 	var offset int
@@ -201,10 +205,10 @@ func (c *structCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireTyp
 	return offset, nil
 }
 
-func (c *structCodec) New() unsafe.Pointer {
+func (c *StructCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(reflect.New(c.rtype).Pointer())
 }
 
-func (c *structCodec) WireType() plenccore.WireType {
+func (c *StructCodec) WireType() plenccore.WireType {
 	return plenccore.WTLength
 }

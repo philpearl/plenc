@@ -1,4 +1,4 @@
-package plenc
+package plencjson_test
 
 import (
 	"encoding/json"
@@ -6,11 +6,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/philpearl/plenc"
+	"github.com/philpearl/plenc/plencjson"
 )
 
 func TestJSONMap(t *testing.T) {
 	type customMap map[string]interface{}
-	RegisterCodec(reflect.TypeOf(customMap{}), JSONMapCodec{})
+	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plencjson.JSONMapCodec{})
 
 	tests := []customMap{
 		{
@@ -36,13 +38,13 @@ func TestJSONMap(t *testing.T) {
 				d   []byte
 				err error
 			)
-			d, err = Marshal(d, &test)
+			d, err = plenc.Marshal(d, &test)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			var out customMap
-			if err := Unmarshal(d, &out); err != nil {
+			if err := plenc.Unmarshal(d, &out); err != nil {
 				t.Fatal(err)
 			}
 
@@ -55,7 +57,7 @@ func TestJSONMap(t *testing.T) {
 
 func TestJSONMapStruct(t *testing.T) {
 	type customMap map[string]interface{}
-	RegisterCodec(reflect.TypeOf(customMap{}), JSONMapCodec{})
+	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plencjson.JSONMapCodec{})
 
 	type my struct {
 		A customMap `plenc:"1"`
@@ -67,13 +69,13 @@ func TestJSONMapStruct(t *testing.T) {
 		B: nil,
 	}
 
-	d, err := Marshal(nil, &in)
+	d, err := plenc.Marshal(nil, &in)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var out my
-	if err := Unmarshal(d, &out); err != nil {
+	if err := plenc.Unmarshal(d, &out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -84,7 +86,7 @@ func TestJSONMapStruct(t *testing.T) {
 
 func TestJSONMapSkip(t *testing.T) {
 	type customMap map[string]interface{}
-	RegisterCodec(reflect.TypeOf(customMap{}), JSONMapCodec{})
+	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plencjson.JSONMapCodec{})
 
 	type my struct {
 		A int       `plenc:"1"`
@@ -114,7 +116,7 @@ func TestJSONMapSkip(t *testing.T) {
 		d   []byte
 		err error
 	)
-	d, err = Marshal(d, &in)
+	d, err = plenc.Marshal(d, &in)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +125,7 @@ func TestJSONMapSkip(t *testing.T) {
 		A int    `plenc:"1"`
 		C string `plenc:"3"`
 	}
-	if err := Unmarshal(d, &out); err != nil {
+	if err := plenc.Unmarshal(d, &out); err != nil {
 		t.Fatal(err)
 	}
 

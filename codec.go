@@ -3,26 +3,10 @@ package plenc
 import (
 	"fmt"
 	"reflect"
-	"unsafe"
 
+	"github.com/philpearl/plenc/plenccodec"
 	"github.com/philpearl/plenc/plenccore"
 )
-
-// Codec is what you implement to encode / decode a type. Note that codecs are
-// separate from the types they encode, and that they are registered with the
-// system via RegisterCodec.
-//
-// It isn't normally necessary to build a codec for a struct. Codecs for structs
-// are generated automatically when plenc first sees them and then are re-used
-// for the life of the program.
-type Codec interface {
-	Omit(ptr unsafe.Pointer) bool
-	Size(ptr unsafe.Pointer) (size int)
-	Append(data []byte, ptr unsafe.Pointer) []byte
-	Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error)
-	New() unsafe.Pointer
-	WireType() plenccore.WireType
-}
 
 var defaultPlenc Plenc
 
@@ -33,65 +17,65 @@ func init() {
 // RegisterCodec registers a codec with plenc so it can be used for marshaling
 // and unmarshaling. If you write a custom codec then you need to register it
 // before it can be used.
-func RegisterCodec(typ reflect.Type, c Codec) {
+func RegisterCodec(typ reflect.Type, c plenccodec.Codec) {
 	defaultPlenc.RegisterCodec(typ, c)
 }
 
-func (p *Plenc) codecForBasicType(typ reflect.Type) (Codec, error) {
+func (p *Plenc) codecForBasicType(typ reflect.Type) (plenccodec.Codec, error) {
 	c, ok := p.codecRegistry.Load(typ)
 	if ok {
-		return c.(Codec), nil
+		return c.(plenccodec.Codec), nil
 	}
 	return nil, fmt.Errorf("no codec available for %s", typ.Name())
 }
 
 // CodecForType returns a codec for the requested type. It should only be needed
 // when constructing a codec based on an existing plenc codec
-func CodecForType(typ reflect.Type) (Codec, error) {
-	return defaultPlenc.codecForType(typ)
+func CodecForType(typ reflect.Type) (plenccodec.Codec, error) {
+	return defaultPlenc.CodecForType(typ)
 }
 
-// codecForType finds an existing codec for a type or constructs a codec
-func (p *Plenc) codecForType(typ reflect.Type) (Codec, error) {
+// CodecForType finds an existing codec for a type or constructs a codec
+func (p *Plenc) CodecForType(typ reflect.Type) (plenccodec.Codec, error) {
 	c, ok := p.codecRegistry.Load(typ)
 	if ok {
-		return c.(Codec), nil
+		return c.(plenccodec.Codec), nil
 	}
 
 	var err error
 
 	switch typ.Kind() {
 	case reflect.Ptr:
-		subc, err := p.codecForType(typ.Elem())
+		subc, err := p.CodecForType(typ.Elem())
 		if err != nil {
 			return nil, err
 		}
-		c = PointerWrapper{Underlying: subc}
+		c = plenccodec.PointerWrapper{Underlying: subc}
 
 	case reflect.Struct:
-		c, err = p.buildStructCodec(typ)
+		c, err = plenccodec.BuildStructCodec(p, typ)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Slice:
 		subt := typ.Elem()
-		subc, err := p.codecForType(subt)
+		subc, err := p.CodecForType(subt)
 		if err != nil {
 			return nil, err
 		}
-		bs := baseSliceWrapper{Underlying: subc, EltSize: subt.Size(), EltType: unpackEFace(subt).data}
+		bs := plenccodec.BaseSliceWrapper{Underlying: subc, EltSize: subt.Size(), EltType: unpackEFace(subt).data}
 		switch subc.WireType() {
 		case plenccore.WTVarInt:
-			c = WTVarIntSliceWrapper{baseSliceWrapper: bs}
+			c = plenccodec.WTVarIntSliceWrapper{BaseSliceWrapper: bs}
 		case plenccore.WT64, plenccore.WT32:
 			if subt.Kind() == reflect.Ptr {
 				// Can probably support these if we don't allow missing entries
 				return nil, fmt.Errorf("slices of pointers to float32 & float64 are not supported")
 			}
-			c = WTFixedSliceWrapper{baseSliceWrapper: bs}
+			c = plenccodec.WTFixedSliceWrapper{BaseSliceWrapper: bs}
 		case plenccore.WTLength:
-			c = WTLengthSliceWrapper{baseSliceWrapper: bs}
+			c = plenccodec.WTLengthSliceWrapper{BaseSliceWrapper: bs}
 		case plenccore.WTSlice:
 			return nil, fmt.Errorf("slices of slices of structs or strings are not supported")
 		default:
@@ -99,7 +83,7 @@ func (p *Plenc) codecForType(typ reflect.Type) (Codec, error) {
 		}
 
 	case reflect.Map:
-		c, err = p.buildMapCodec(typ)
+		c, err = plenccodec.BuildMapCodec(p, typ)
 		if err != nil {
 			return nil, err
 		}
@@ -204,5 +188,5 @@ func (p *Plenc) codecForType(typ reflect.Type) (Codec, error) {
 	}
 
 	cv, _ := p.codecRegistry.LoadOrStore(typ, c)
-	return cv.(Codec), nil
+	return cv.(plenccodec.Codec), nil
 }

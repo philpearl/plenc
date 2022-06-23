@@ -1,4 +1,4 @@
-package plenc
+package plenccodec
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ func (e *ptime) Standard() time.Time {
 type TimeCodec struct{}
 
 // Size returns the number of bytes needed to encode a Time
-func (tc *TimeCodec) Size(ptr unsafe.Pointer) (size int) {
+func (tc TimeCodec) Size(ptr unsafe.Pointer) (size int) {
 	t := *(*time.Time)(ptr)
 	var e ptime
 	e.Set(t)
@@ -39,7 +39,7 @@ func (tc *TimeCodec) Size(ptr unsafe.Pointer) (size int) {
 }
 
 // Append encodes a Time
-func (tc *TimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+func (tc TimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	t := *(*time.Time)(ptr)
 	var e ptime
 	e.Set(t)
@@ -52,7 +52,7 @@ func (tc *TimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a Time
-func (tc *TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
+func (tc TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	var e ptime
 	l := len(data)
 
@@ -91,14 +91,14 @@ func (tc *TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType
 	return offset, nil
 }
 
-func (*TimeCodec) New() unsafe.Pointer {
+func (TimeCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(&time.Time{})
 }
 
-func (*TimeCodec) Omit(ptr unsafe.Pointer) bool {
+func (TimeCodec) Omit(ptr unsafe.Pointer) bool {
 	return (*time.Time)(ptr).IsZero()
 }
 
-func (tc *TimeCodec) WireType() plenccore.WireType {
+func (tc TimeCodec) WireType() plenccore.WireType {
 	return plenccore.WTLength
 }

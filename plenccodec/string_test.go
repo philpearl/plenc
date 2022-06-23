@@ -1,4 +1,4 @@
-package plenc
+package plenccodec_test
 
 import (
 	"reflect"
@@ -7,6 +7,8 @@ import (
 	"unsafe"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/philpearl/plenc"
+	"github.com/philpearl/plenc/plenccodec"
 )
 
 func TestString(t *testing.T) {
@@ -23,7 +25,7 @@ func TestString(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
-			c, err := CodecForType(reflect.TypeOf(test))
+			c, err := plenc.CodecForType(reflect.TypeOf(test))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -50,7 +52,7 @@ func TestString(t *testing.T) {
 }
 
 func TestInternedString(t *testing.T) {
-	var c InternedStringCodec
+	var c plenccodec.InternedStringCodec
 
 	values := []string{
 		"hat", "cheese", "elephant", "hat", "hat", "cheese", "elephant",
@@ -82,9 +84,6 @@ func TestInternedString(t *testing.T) {
 	if allocs > 0.1 {
 		t.Fatal(allocs)
 	}
-	if c.len() != 3 {
-		t.Fatal("too many strings interned", c.len())
-	}
 }
 
 func TestInternedStringParallel(t *testing.T) {
@@ -105,13 +104,13 @@ func TestInternedStringParallel(t *testing.T) {
 			for i := 0; i < 1000; i++ {
 				for _, test := range values {
 					val.V = test
-					data, err := Marshal(data[:0], &val)
+					data, err := plenc.Marshal(data[:0], &val)
 					if err != nil {
 						t.Error(err)
 						return
 					}
 
-					if err := Unmarshal(data, &out); err != nil {
+					if err := plenc.Unmarshal(data, &out); err != nil {
 						t.Error(err)
 						return
 					}
@@ -140,12 +139,12 @@ func BenchmarkInternedString(b *testing.B) {
 	for _, test := range values {
 		val.V = test
 		var err error
-		data, err = Marshal(data[:0], &val)
+		data, err = plenc.Marshal(data[:0], &val)
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		if err := Unmarshal(data, &out); err != nil {
+		if err := plenc.Unmarshal(data, &out); err != nil {
 			b.Fatal(err)
 		}
 
@@ -158,7 +157,7 @@ func BenchmarkInternedString(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		out = myb{}
-		if err := Unmarshal(data, &out); err != nil {
+		if err := plenc.Unmarshal(data, &out); err != nil {
 			b.Fatal(err)
 		}
 
@@ -179,7 +178,7 @@ func TestStringSlice(t *testing.T) {
 		"?Ȗ曽Ȯɕ稌!r囮ǯWQ猒÷飹嫗MJ",
 	}
 
-	c, err := CodecForType(reflect.TypeOf(v))
+	c, err := plenc.CodecForType(reflect.TypeOf(v))
 	if err != nil {
 		t.Fatal(err)
 	}
