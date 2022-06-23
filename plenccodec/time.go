@@ -102,3 +102,7 @@ func (TimeCodec) Omit(ptr unsafe.Pointer) bool {
 func (tc TimeCodec) WireType() plenccore.WireType {
 	return plenccore.WTLength
 }
+
+func (tc TimeCodec) Descriptor() Descriptor {
+	return Descriptor{Type: FieldTypeTime}
+}

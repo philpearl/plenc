@@ -17,6 +17,10 @@ type CodecFinder interface {
 }
 
 func BuildStructCodec(p CodecFinder, typ reflect.Type) (Codec, error) {
+	if typ.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("type must be a struct to build a struct codec")
+	}
+
 	c := StructCodec{
 		rtype:  typ,
 		fields: make([]description, typ.NumField()),
@@ -56,6 +60,11 @@ func BuildStructCodec(p CodecFinder, typ reflect.Type) (Codec, error) {
 		field.index = index
 		if field.index > maxIndex {
 			maxIndex = field.index
+		}
+
+		field.name = sf.Name
+		if jsonName, _, _ := strings.Cut(sf.Tag.Get("json"), ","); jsonName != "" {
+			field.name = jsonName
 		}
 
 		fc, err := p.CodecForType(sf.Type)
@@ -98,6 +107,7 @@ type description struct {
 	index  int
 	tag    []byte
 	deref  bool
+	name   string
 }
 
 type shortDesc struct {
@@ -211,4 +221,16 @@ func (c *StructCodec) New() unsafe.Pointer {
 
 func (c *StructCodec) WireType() plenccore.WireType {
 	return plenccore.WTLength
+}
+
+func (c *StructCodec) Descriptor() Descriptor {
+	var d Descriptor
+	d.Type = FieldTypeStruct
+	d.Elements = make([]Descriptor, len(c.fields))
+	for i, f := range c.fields {
+		d.Elements[i] = f.codec.Descriptor()
+		d.Elements[i].Index = f.index
+		d.Elements[i].Name = f.name
+	}
+	return d
 }

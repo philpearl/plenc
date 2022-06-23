@@ -45,6 +45,10 @@ func (c IntCodec[T]) Omit(ptr unsafe.Pointer) bool {
 	return false
 }
 
+func (c IntCodec[T]) Descriptor() Descriptor {
+	return Descriptor{Type: FieldTypeInt}
+}
+
 // UintCodec is a coddec for a uint
 type UintCodec[T uint | uint8 | uint16 | uint32 | uint64] struct{}
 
@@ -81,4 +85,8 @@ func (c UintCodec[T]) WireType() plenccore.WireType {
 // Omit indicates whether this field should be omitted
 func (c UintCodec[T]) Omit(ptr unsafe.Pointer) bool {
 	return false
+}
+
+func (c UintCodec[T]) Descriptor() Descriptor {
+	return Descriptor{Type: FieldTypeUint}
 }

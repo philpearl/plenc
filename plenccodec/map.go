@@ -25,6 +25,10 @@ type MapCodec struct {
 }
 
 func BuildMapCodec(p CodecFinder, typ reflect.Type) (*MapCodec, error) {
+	if typ.Kind() != reflect.Map {
+		return nil, fmt.Errorf("type must be a map to build a map codec")
+	}
+
 	keyCodec, err := p.CodecForType(typ.Key())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find codec for map key %s. %w", typ.Key().Name(), err)
@@ -259,4 +263,28 @@ func (c *MapCodec) New() unsafe.Pointer {
 
 func (c *MapCodec) WireType() plenccore.WireType {
 	return plenccore.WTSlice
+}
+
+func (c *MapCodec) Descriptor() Descriptor {
+	// We treat this as a slice of structs? Perhaps need to define a map descriptor!
+	kDesc := c.keyCodec.Descriptor()
+	vDesc := c.valueCodec.Descriptor()
+
+	kDesc.Index = 1
+	kDesc.Name = "key"
+	vDesc.Index = 2
+	vDesc.Name = "value"
+
+	return Descriptor{
+		Type: FieldTypeSlice,
+		Elements: []Descriptor{
+			{
+				Type: FieldTypeStruct,
+				Elements: []Descriptor{
+					kDesc,
+					vDesc,
+				},
+			},
+		},
+	}
 }

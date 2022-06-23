@@ -48,3 +48,7 @@ func (c BoolCodec) WireType() plenccore.WireType {
 func (c BoolCodec) Omit(ptr unsafe.Pointer) bool {
 	return false
 }
+
+func (c BoolCodec) Descriptor() Descriptor {
+	return Descriptor{Type: FieldTypeBool}
+}

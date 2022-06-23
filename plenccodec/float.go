@@ -49,6 +49,10 @@ func (c Float64Codec) Omit(ptr unsafe.Pointer) bool {
 	return false
 }
 
+func (c Float64Codec) Descriptor() Descriptor {
+	return Descriptor{Type: FieldTypeFloat64}
+}
+
 // Float32Codec is a coddec for a float32
 type Float32Codec struct{}
 
@@ -87,4 +91,8 @@ func (c Float32Codec) WireType() plenccore.WireType {
 // Omit indicates whether this field should be omitted
 func (c Float32Codec) Omit(ptr unsafe.Pointer) bool {
 	return false
+}
+
+func (c Float32Codec) Descriptor() Descriptor {
+	return Descriptor{Type: FieldTypeFloat32}
 }

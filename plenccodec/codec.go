@@ -1,6 +1,11 @@
-// Package plenccodec provides the core CODECs for plenc. You shouldn't need to
-// interact with this package directly unless you're building your own custom
-// codecs
+// Package plenccodec provides the core Codecs for plenc.
+//
+// You shouldn't need to interact with this package directly unless you're
+// building your own custom codecs.
+//
+// The exception to this is the Descriptor endpoint on a Codec. This is a
+// serialisable description that allows you to decode plenc data without the
+// type that the data was encoded from.
 package plenccodec
 
 import (
@@ -23,4 +28,10 @@ type Codec interface {
 	Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error)
 	New() unsafe.Pointer
 	WireType() plenccore.WireType
+
+	// Descriptor returns a descriptor for the type correspondng to the Codec.
+	// The descriptor can be used to interpret plenc data without access to the
+	// original type. The descriptor can also be serialised (either as JSON or
+	// plenc), so can be stored or communicated with another system
+	Descriptor() Descriptor
 }

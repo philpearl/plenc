@@ -55,6 +55,10 @@ func (p PointerWrapper) WireType() plenccore.WireType {
 	return p.Underlying.WireType()
 }
 
+func (p PointerWrapper) Descriptor() Descriptor {
+	return p.Underlying.Descriptor()
+}
+
 // SliceWrapper is a codec for a slice of a type.
 type SliceWrapper struct {
 	Underlying Codec
@@ -78,6 +82,15 @@ func (c BaseSliceWrapper) New() unsafe.Pointer {
 
 func (c BaseSliceWrapper) WireType() plenccore.WireType {
 	return plenccore.WTLength
+}
+
+func (c BaseSliceWrapper) Descriptor() Descriptor {
+	return Descriptor{
+		Type: FieldTypeSlice,
+		Elements: []Descriptor{
+			c.Underlying.Descriptor(),
+		},
+	}
 }
 
 // WTLengthSliceWrapper is a codec for a slice of a type that's encoded using

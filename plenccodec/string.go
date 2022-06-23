@@ -43,6 +43,10 @@ func (StringCodec) Omit(ptr unsafe.Pointer) bool {
 	return false
 }
 
+func (StringCodec) Descriptor() Descriptor {
+	return Descriptor{Type: FieldTypeString}
+}
+
 // BytesCodec is a codec for a byte slice
 type BytesCodec struct{}
 
@@ -78,6 +82,10 @@ func (c BytesCodec) WireType() plenccore.WireType {
 // Omit indicates whether this field should be omitted
 func (c BytesCodec) Omit(ptr unsafe.Pointer) bool {
 	return false
+}
+
+func (BytesCodec) Descriptor() Descriptor {
+	return Descriptor{Type: FieldTypeString}
 }
 
 type Interner interface {
