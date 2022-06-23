@@ -1,6 +1,7 @@
 package plenccodec
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 	"unsafe"
@@ -21,6 +22,8 @@ const (
 	FieldTypeStruct
 	FieldTypeBool
 	FieldTypeTime
+	FieldTypeJSONObject
+	FieldTypeJSONArray
 )
 
 // Descriptor describes how a type is plenc-encoded. It contains enough
@@ -98,6 +101,16 @@ func (d *Descriptor) read(out Outputter, data []byte) (n int, err error) {
 		out.StartObject()
 		defer out.EndObject()
 		return d.readAsStruct(out, data)
+
+	case FieldTypeJSONObject:
+		out.StartObject()
+		defer out.EndObject()
+		return d.readAsJSON(out, data)
+
+	case FieldTypeJSONArray:
+		out.StartArray()
+		defer out.EndArray()
+		return d.readAsJSON(out, data)
 	}
 
 	return 0, fmt.Errorf("unrecognised field type %s", d.Type)
@@ -197,6 +210,152 @@ func (d *Descriptor) readAsStruct(out Outputter, data []byte) (n int, err error)
 			return 0, fmt.Errorf("failed reading field %d(%s) of %s. %w", index, elt.Name, d.Name, err)
 		}
 		offset += n
+	}
+
+	return offset, nil
+}
+
+// readAsJSON reads data from JSON objects and arrays. Both are implemented as
+// slices of structs. The structs are name, value type and value. In the array
+// case the name is omitted from each entry
+func (d *Descriptor) readAsJSON(out Outputter, data []byte) (n int, err error) {
+	count, n := plenccore.ReadVarUint(data)
+	if n < 0 {
+		return 0, fmt.Errorf("corrupt data looking for WTSlice count")
+	}
+	offset := n
+	for i := 0; i < int(count); i++ {
+		// For each entry we have a string key, a value type and a value
+		s, n := plenccore.ReadVarUint(data[offset:])
+		if n <= 0 {
+			return 0, fmt.Errorf("invalid varint for slice entry %d", i)
+		}
+		offset += n
+		if s == 0 {
+			continue
+		}
+
+		n, err := d.readJSONObjectKV(out, data[offset:offset+int(s)])
+		if err != nil {
+			return 0, err
+		}
+		offset += n
+	}
+
+	return offset, nil
+}
+
+func (d *Descriptor) readJSONObjectKV(out Outputter, data []byte) (n int, err error) {
+	var (
+		jType  jsonType
+		offset int
+	)
+
+	for offset < len(data) {
+		wt, index, n := plenccore.ReadTag(data[offset:])
+		offset += n
+		switch index {
+		case 1:
+			// When using this for reading arrays we simply don't see this index
+			l, n := plenccore.ReadVarUint(data[offset:])
+			if n < 0 {
+				return 0, fmt.Errorf("bad length on string field")
+			}
+			offset += n
+			var key string
+
+			n, err := StringCodec{}.Read(data[offset:offset+int(l)], unsafe.Pointer(&key), wt)
+			if err != nil {
+				return 0, err
+			}
+			out.NameField(key)
+			offset += n
+		case 2:
+			v, n := plenccore.ReadVarUint(data[offset:])
+			if n < 0 {
+				return 0, fmt.Errorf("invalid map type field")
+			}
+			jType = jsonType(v)
+			offset += n
+		case 3:
+			switch jType {
+			case jsonTypeString:
+				l, n := plenccore.ReadVarUint(data[offset:])
+				if n < 0 {
+					return 0, fmt.Errorf("bad length on string field")
+				}
+				offset += n
+				var v string
+				n, err := StringCodec{}.Read(data[offset:offset+int(l)], unsafe.Pointer(&v), wt)
+				if err != nil {
+					return 0, err
+				}
+				out.String(v)
+				offset += n
+
+			case jsonTypeInt:
+				var v int64
+				n, err := IntCodec[int64]{}.Read(data[offset:], unsafe.Pointer(&v), wt)
+				if err != nil {
+					return 0, err
+				}
+				offset += n
+				out.Int64(v)
+
+			case jsonTypeFloat:
+				var v float64
+				n, err := Float64Codec{}.Read(data[offset:], unsafe.Pointer(&v), wt)
+				if err != nil {
+					return 0, err
+				}
+				offset += n
+				out.Float64(v)
+
+			case jsonTypeBool:
+				var v bool
+				n, err := BoolCodec{}.Read(data[offset:], unsafe.Pointer(&v), wt)
+				if err != nil {
+					return 0, err
+				}
+				offset += n
+				out.Bool(v)
+
+			case jsonTypeArray:
+				d := Descriptor{Type: FieldTypeJSONArray}
+				n, err := d.read(out, data[offset:])
+				if err != nil {
+					return 0, err
+				}
+				offset += n
+
+			case jsonTypeObject:
+				d := Descriptor{Type: FieldTypeJSONObject}
+				n, err := d.read(out, data[offset:])
+				if err != nil {
+					return 0, err
+				}
+				offset += n
+
+			case jsonTypeNumber:
+				l, n := plenccore.ReadVarUint(data[offset:])
+				if n < 0 {
+					return 0, fmt.Errorf("bad length on JSON number field")
+				}
+				offset += n
+				var v json.Number
+				n, err := StringCodec{}.Read(data[offset:offset+int(l)], unsafe.Pointer(&v), wt)
+				if err != nil {
+					return 0, err
+				}
+				out.Raw(v.String())
+				offset += n
+
+			default:
+				return 0, fmt.Errorf("unexpected json type %d", jType)
+			}
+		default:
+			return 0, fmt.Errorf("unexpected json field index %d", index)
+		}
 	}
 
 	return offset, nil

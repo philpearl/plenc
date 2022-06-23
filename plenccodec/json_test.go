@@ -1,4 +1,4 @@
-package plencjson_test
+package plenccodec_test
 
 import (
 	"encoding/json"
@@ -7,12 +7,12 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/philpearl/plenc"
-	"github.com/philpearl/plenc/plencjson"
+	"github.com/philpearl/plenc/plenccodec"
 )
 
 func TestJSONMap(t *testing.T) {
 	type customMap map[string]interface{}
-	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plencjson.JSONMapCodec{})
+	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plenccodec.JSONMapCodec{})
 
 	tests := []customMap{
 		{
@@ -23,6 +23,7 @@ func TestJSONMap(t *testing.T) {
 			"e": map[string]interface{}{
 				"f": 1,
 				"a": []interface{}{1, 2, 3},
+				"b": []interface{}{1, 1.3, "haddock"},
 			},
 			"f": nil,
 			"g": true,
@@ -57,7 +58,7 @@ func TestJSONMap(t *testing.T) {
 
 func TestJSONMapStruct(t *testing.T) {
 	type customMap map[string]interface{}
-	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plencjson.JSONMapCodec{})
+	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plenccodec.JSONMapCodec{})
 
 	type my struct {
 		A customMap `plenc:"1"`
@@ -86,7 +87,7 @@ func TestJSONMapStruct(t *testing.T) {
 
 func TestJSONMapSkip(t *testing.T) {
 	type customMap map[string]interface{}
-	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plencjson.JSONMapCodec{})
+	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plenccodec.JSONMapCodec{})
 
 	type my struct {
 		A int       `plenc:"1"`

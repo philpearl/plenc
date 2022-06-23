@@ -2,12 +2,14 @@ package null
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
 	"github.com/mailru/easyjson"
 	"github.com/philpearl/plenc"
+	"github.com/philpearl/plenc/plenccodec"
 	"github.com/unravelin/null"
 )
 
@@ -87,6 +89,41 @@ func TestNull(t *testing.T) {
 
 			t.Fatalf("structs differ. %s", diff)
 		}
+	}
+}
+
+func TestNullDescription(t *testing.T) {
+	type TestThing struct {
+		I null.Int    `plenc:"1"`
+		B null.Bool   `plenc:"2"`
+		F null.Float  `plenc:"3"`
+		S null.String `plenc:"4"`
+		T null.Time   `plenc:"5"`
+	}
+
+	v := TestThing{
+		I: null.IntFrom(77),
+		S: null.StringFrom("cheese"),
+	}
+
+	data, err := plenc.Marshal(nil, v)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c, err := plenc.CodecForType(reflect.TypeOf(v))
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := c.Descriptor()
+	var j plenccodec.JSONOutput
+	if err := d.Read(&j, data); err != nil {
+		t.Fatal(err)
+	}
+
+	out := string(j.Done())
+	if out != "{\n  \"I\": 77,\n  \"S\": \"cheese\"\n}\n" {
+		t.Fatal(out)
 	}
 }
 

@@ -21,6 +21,7 @@ type Outputter interface {
 	String(v string)
 	Bool(v bool)
 	Time(t time.Time)
+	Raw(v string)
 }
 
 // JSONOutput converts Descriptor output to JSON.
@@ -121,6 +122,12 @@ func (j *JSONOutput) Float32(v float32) {
 func (j *JSONOutput) String(v string) {
 	j.prefix()
 	j.data = j.appendString(j.data, v)
+	j.data = append(j.data, ",\n"...)
+}
+
+func (j *JSONOutput) Raw(v string) {
+	j.prefix()
+	j.data = append(j.data, v...)
 	j.data = append(j.data, ",\n"...)
 }
 

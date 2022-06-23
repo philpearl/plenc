@@ -1,13 +1,10 @@
-// Package plencjson implements a CODEC for JSON-style map[string]interface{}
-// and []interface{} types
-package plencjson
+package plenccodec
 
 import (
 	"encoding/json"
 	"fmt"
 	"unsafe"
 
-	"github.com/philpearl/plenc/plenccodec"
 	"github.com/philpearl/plenc/plenccore"
 )
 
@@ -62,7 +59,7 @@ func (c JSONMapCodec) Size(ptr unsafe.Pointer) (size int) {
 }
 
 func (c JSONMapCodec) sizeKV(k string, v interface{}) (size int) {
-	size += plenccore.SizeTag(plenccodec.StringCodec{}.WireType(), 1)
+	size += plenccore.SizeTag(StringCodec{}.WireType(), 1)
 	size += plenccore.SizeVarUint(uint64(len(k)))
 	size += len(k)
 	return size + sizeJSONValue(v)
@@ -87,9 +84,9 @@ func (c JSONMapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 func (c JSONMapCodec) appendKV(data []byte, k string, v interface{}) []byte {
-	data = plenccore.AppendTag(data, plenccodec.StringCodec{}.WireType(), 1)
+	data = plenccore.AppendTag(data, StringCodec{}.WireType(), 1)
 	data = plenccore.AppendVarUint(data, uint64(len(k)))
-	data = plenccodec.StringCodec{}.Append(data, unsafe.Pointer(&k))
+	data = StringCodec{}.Append(data, unsafe.Pointer(&k))
 	return appendJSONValue(data, v)
 }
 
@@ -132,6 +129,11 @@ func (c JSONMapCodec) New() unsafe.Pointer {
 }
 
 func (c JSONMapCodec) WireType() plenccore.WireType { return plenccore.WTSlice }
+
+func (c JSONMapCodec) Descriptor() Descriptor {
+	// This needs to be a special descriptor!
+	return Descriptor{Type: FieldTypeJSONObject}
+}
 
 func (c JSONArrayCodec) Omit(ptr unsafe.Pointer) bool {
 	return (ptr == nil) || (len(*(*[]interface{})(ptr)) == 0)
@@ -193,6 +195,11 @@ func (c JSONArrayCodec) New() unsafe.Pointer {
 
 func (c JSONArrayCodec) WireType() plenccore.WireType { return plenccore.WTSlice }
 
+func (c JSONArrayCodec) Descriptor() Descriptor {
+	// This needs to be a special descriptor!
+	return Descriptor{Type: FieldTypeJSONArray}
+}
+
 func sizeJSONValue(v interface{}) (size int) {
 	size += plenccore.SizeTag(plenccore.WTVarInt, 2)
 	switch v := v.(type) {
@@ -203,19 +210,19 @@ func sizeJSONValue(v interface{}) (size int) {
 
 		size += plenccore.SizeTag(plenccore.WTLength, 3)
 		size += plenccore.SizeVarUint(uint64(len(v)))
-		size += plenccodec.StringCodec{}.Size(unsafe.Pointer(&v))
+		size += StringCodec{}.Size(unsafe.Pointer(&v))
 	case int:
 		size += plenccore.SizeVarUint(uint64(jsonTypeInt))
 		size += plenccore.SizeTag(plenccore.WTVarInt, 3)
-		size += plenccodec.IntCodec[int]{}.Size(unsafe.Pointer(&v))
+		size += IntCodec[int]{}.Size(unsafe.Pointer(&v))
 	case float64:
 		size += plenccore.SizeVarUint(uint64(jsonTypeFloat))
 		size += plenccore.SizeTag(plenccore.WT64, 3)
-		size += plenccodec.Float64Codec{}.Size(unsafe.Pointer(&v))
+		size += Float64Codec{}.Size(unsafe.Pointer(&v))
 	case bool:
 		size += plenccore.SizeVarUint(uint64(jsonTypeBool))
 		size += plenccore.SizeTag(plenccore.WTVarInt, 3)
-		size += plenccodec.BoolCodec{}.Size(unsafe.Pointer(&v))
+		size += BoolCodec{}.Size(unsafe.Pointer(&v))
 	case []interface{}:
 		size += plenccore.SizeVarUint(uint64(jsonTypeArray))
 		size += plenccore.SizeTag(JSONArrayCodec{}.WireType(), 3)
@@ -229,7 +236,7 @@ func sizeJSONValue(v interface{}) (size int) {
 		size += plenccore.SizeVarUint(uint64(jsonTypeNumber))
 		size += plenccore.SizeTag(plenccore.WTLength, 3)
 		size += plenccore.SizeVarUint(uint64(len(v)))
-		size += plenccodec.StringCodec{}.Size(unsafe.Pointer(&v))
+		size += StringCodec{}.Size(unsafe.Pointer(&v))
 	default:
 		panic(fmt.Sprintf("unexpected json type %T", v))
 	}
@@ -246,19 +253,19 @@ func appendJSONValue(data []byte, v interface{}) []byte {
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeString))
 		data = plenccore.AppendTag(data, plenccore.WTLength, 3)
 		data = plenccore.AppendVarUint(data, uint64(len(v)))
-		data = plenccodec.StringCodec{}.Append(data, unsafe.Pointer(&v))
+		data = StringCodec{}.Append(data, unsafe.Pointer(&v))
 	case int:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeInt))
 		data = plenccore.AppendTag(data, plenccore.WTVarInt, 3)
-		data = plenccodec.IntCodec[int]{}.Append(data, unsafe.Pointer(&v))
+		data = IntCodec[int]{}.Append(data, unsafe.Pointer(&v))
 	case float64:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeFloat))
 		data = plenccore.AppendTag(data, plenccore.WT64, 3)
-		data = plenccodec.Float64Codec{}.Append(data, unsafe.Pointer(&v))
+		data = Float64Codec{}.Append(data, unsafe.Pointer(&v))
 	case bool:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeBool))
 		data = plenccore.AppendTag(data, plenccore.WTVarInt, 3)
-		data = plenccodec.BoolCodec{}.Append(data, unsafe.Pointer(&v))
+		data = BoolCodec{}.Append(data, unsafe.Pointer(&v))
 	case []interface{}:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeArray))
 		data = plenccore.AppendTag(data, JSONArrayCodec{}.WireType(), 3)
@@ -272,7 +279,7 @@ func appendJSONValue(data []byte, v interface{}) []byte {
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeNumber))
 		data = plenccore.AppendTag(data, plenccore.WTLength, 3)
 		data = plenccore.AppendVarUint(data, uint64(len(v)))
-		data = plenccodec.StringCodec{}.Append(data, unsafe.Pointer(&v))
+		data = StringCodec{}.Append(data, unsafe.Pointer(&v))
 	default:
 		panic(fmt.Sprintf("unexpected json type %T", v))
 	}
@@ -294,11 +301,11 @@ func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
 			// When using this for reading arrays we simply don't see this index
 			l, n := plenccore.ReadVarUint(data[offset:])
 			if n < 0 {
-				return 0, fmt.Errorf("Bad length on string field")
+				return 0, fmt.Errorf("bad length on string field")
 			}
 			offset += n
 
-			n, err := plenccodec.StringCodec{}.Read(data[offset:offset+int(l)], unsafe.Pointer(key), wt)
+			n, err := StringCodec{}.Read(data[offset:offset+int(l)], unsafe.Pointer(key), wt)
 			if err != nil {
 				return 0, err
 			}
@@ -315,11 +322,11 @@ func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
 			case jsonTypeString:
 				l, n := plenccore.ReadVarUint(data[offset:])
 				if n < 0 {
-					return 0, fmt.Errorf("Bad length on string field")
+					return 0, fmt.Errorf("bad length on string field")
 				}
 				offset += n
 				var v string
-				n, err := plenccodec.StringCodec{}.Read(data[offset:offset+int(l)], unsafe.Pointer(&v), wt)
+				n, err := StringCodec{}.Read(data[offset:offset+int(l)], unsafe.Pointer(&v), wt)
 				if err != nil {
 					return 0, err
 				}
@@ -328,7 +335,7 @@ func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
 
 			case jsonTypeInt:
 				var v int
-				n, err := plenccodec.IntCodec[int]{}.Read(data[offset:], unsafe.Pointer(&v), wt)
+				n, err := IntCodec[int]{}.Read(data[offset:], unsafe.Pointer(&v), wt)
 				if err != nil {
 					return 0, err
 				}
@@ -337,7 +344,7 @@ func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
 
 			case jsonTypeFloat:
 				var v float64
-				n, err := plenccodec.Float64Codec{}.Read(data[offset:], unsafe.Pointer(&v), wt)
+				n, err := Float64Codec{}.Read(data[offset:], unsafe.Pointer(&v), wt)
 				if err != nil {
 					return 0, err
 				}
@@ -346,7 +353,7 @@ func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
 
 			case jsonTypeBool:
 				var v bool
-				n, err := plenccodec.BoolCodec{}.Read(data[offset:], unsafe.Pointer(&v), wt)
+				n, err := BoolCodec{}.Read(data[offset:], unsafe.Pointer(&v), wt)
 				if err != nil {
 					return 0, err
 				}
@@ -378,7 +385,7 @@ func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
 				}
 				offset += n
 				var v json.Number
-				n, err := plenccodec.StringCodec{}.Read(data[offset:offset+int(l)], unsafe.Pointer(&v), wt)
+				n, err := StringCodec{}.Read(data[offset:offset+int(l)], unsafe.Pointer(&v), wt)
 				if err != nil {
 					return 0, err
 				}
@@ -392,13 +399,4 @@ func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
 	}
 
 	return offset, nil
-}
-
-type eface struct {
-	rtype unsafe.Pointer
-	data  unsafe.Pointer
-}
-
-func unpackEFace(obj interface{}) *eface {
-	return (*eface)(unsafe.Pointer(&obj))
 }
