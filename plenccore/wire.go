@@ -1,3 +1,5 @@
+// Package plenccore describes the wire protocol used by plenc. You don't need to
+// look at this unless you're implementing your own plenc CODEC
 package plenccore
 
 import "fmt"

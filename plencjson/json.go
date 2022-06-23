@@ -1,3 +1,5 @@
+// Package plencjson implements a CODEC for JSON-style map[string]interface{}
+// and []interface{} types
 package plencjson
 
 import (

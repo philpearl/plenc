@@ -1,3 +1,6 @@
+// Package plenccodec provides the core CODECs for plenc. You shouldn't need to
+// interact with this package directly unless you're building your own custom
+// codecs
 package plenccodec
 
 import (

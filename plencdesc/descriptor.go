@@ -1,3 +1,6 @@
+// package plencdesc implements serialisable descriptors for plenc-encodable
+// types. The idea is that you can use the descriptor to decode plenc data in
+// place of the original struct.
 package plencdesc
 
 import (
@@ -21,9 +24,10 @@ const (
 	FieldTypeStruct
 	FieldTypeBool
 	FieldTypeTime
-	// TODO add bool / time ??
 )
 
+// Descriptor describes how a type is plenc-encoded. It contains enough
+// information to decode plenc data marshalled from the described type.
 type Descriptor struct {
 	// Index is the plenc index of this field
 	Index int `plenc:"1"`
