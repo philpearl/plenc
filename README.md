@@ -2,7 +2,6 @@
 # plenc
 
 [![GoDoc](https://godoc.org/github.com/philpearl/plenc?status.svg)](https://godoc.org/github.com/philpearl/plenc) 
-[![Build Status](https://travis-ci.org/philpearl/plenc.svg)](https://travis-ci.org/philpearl/plenc)
 
 plenc is a serialisation library based around protobuf. It uses a very similar encoding to protobuf, but it does not use .proto files or the protobuf data definition language. Instead Go structs are used to define how messages are encoded.
 
