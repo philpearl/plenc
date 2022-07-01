@@ -12,11 +12,20 @@ import (
 	"github.com/philpearl/plenc/plenccore"
 )
 
-type CodecFinder interface {
-	CodecForType(typ reflect.Type) (Codec, error)
+type wrappedCodecRegistry struct {
+	CodecRegistry
+	typ   reflect.Type
+	codec Codec
 }
 
-func BuildStructCodec(p CodecFinder, typ reflect.Type) (Codec, error) {
+func (w wrappedCodecRegistry) Load(typ reflect.Type) Codec {
+	if typ == w.typ {
+		return w.codec
+	}
+	return w.CodecRegistry.Load(typ)
+}
+
+func BuildStructCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type) (Codec, error) {
 	if typ.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("type must be a struct to build a struct codec")
 	}
@@ -25,6 +34,8 @@ func BuildStructCodec(p CodecFinder, typ reflect.Type) (Codec, error) {
 		rtype:  typ,
 		fields: make([]description, typ.NumField()),
 	}
+
+	registry = wrappedCodecRegistry{CodecRegistry: registry, typ: typ, codec: &c}
 
 	var maxIndex int
 	var count int
@@ -67,7 +78,7 @@ func BuildStructCodec(p CodecFinder, typ reflect.Type) (Codec, error) {
 			field.name = jsonName
 		}
 
-		fc, err := p.CodecForType(sf.Type)
+		fc, err := p.CodecForTypeRegistry(registry, sf.Type)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find codec for field %d (%s) of %s. %w", i, sf.Name, typ.Name(), err)
 		}

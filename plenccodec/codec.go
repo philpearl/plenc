@@ -9,6 +9,7 @@
 package plenccodec
 
 import (
+	"reflect"
 	"unsafe"
 
 	"github.com/philpearl/plenc/plenccore"
@@ -34,4 +35,20 @@ type Codec interface {
 	// original type. The descriptor can also be serialised (either as JSON or
 	// plenc), so can be stored or communicated with another system
 	Descriptor() Descriptor
+}
+
+// CodecRegistry is a repository of pre-existing Codecs
+type CodecRegistry interface {
+	// Load loads the codec from the registry. It returns nil if no codec exists
+	Load(typ reflect.Type) Codec
+	// StoreOrSwap adds the codec to the registry. It may return a different
+	// codec if the codec has been built on another goroutine
+	StoreOrSwap(typ reflect.Type, c Codec) Codec
+}
+
+// CodecBuilder either builds a new codec for a type, or finds an existing codec
+type CodecBuilder interface {
+	// CodecForTypeRegistry builds a new codec for the requested type,
+	// consulting registry for any existing codecs needed
+	CodecForTypeRegistry(registry CodecRegistry, typ reflect.Type) (Codec, error)
 }

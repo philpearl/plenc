@@ -3,6 +3,7 @@ package plenc
 import (
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/philpearl/plenc/plenccodec"
 	"github.com/philpearl/plenc/plenccore"
@@ -22,11 +23,11 @@ func RegisterCodec(typ reflect.Type, c plenccodec.Codec) {
 }
 
 func (p *Plenc) codecForBasicType(typ reflect.Type) (plenccodec.Codec, error) {
-	c, ok := p.codecRegistry.Load(typ)
-	if ok {
-		return c.(plenccodec.Codec), nil
+	c := p.codecRegistry.Load(typ)
+	if c == nil {
+		return nil, fmt.Errorf("no codec available for %s", typ.Name())
 	}
-	return nil, fmt.Errorf("no codec available for %s", typ.Name())
+	return c, nil
 }
 
 // CodecForType returns a codec for the requested type. It should only be needed
@@ -35,32 +36,60 @@ func CodecForType(typ reflect.Type) (plenccodec.Codec, error) {
 	return defaultPlenc.CodecForType(typ)
 }
 
-// CodecForType finds an existing codec for a type or constructs a codec
+type baseRegistry struct {
+	codecRegistry sync.Map
+}
+
+func (br *baseRegistry) Load(typ reflect.Type) plenccodec.Codec {
+	c, ok := br.codecRegistry.Load(typ)
+	if !ok {
+		return nil
+	}
+	return c.(plenccodec.Codec)
+}
+
+func (br *baseRegistry) Store(typ reflect.Type, c plenccodec.Codec) {
+	br.codecRegistry.Store(typ, c)
+}
+
+func (br *baseRegistry) StoreOrSwap(typ reflect.Type, c plenccodec.Codec) plenccodec.Codec {
+	cv, _ := br.codecRegistry.LoadOrStore(typ, c)
+	return cv.(plenccodec.Codec)
+}
+
+// CodecForType finds an existing codec for a type or constructs a codec. It
+// calls CodecForTypeRegistry using the internal registry on p
 func (p *Plenc) CodecForType(typ reflect.Type) (plenccodec.Codec, error) {
-	c, ok := p.codecRegistry.Load(typ)
-	if ok {
-		return c.(plenccodec.Codec), nil
+	return p.CodecForTypeRegistry(&p.codecRegistry, typ)
+}
+
+// CodecForTypeRegistry builds a new codec for the requested type, consulting
+// registry for any existing codecs needed
+func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ reflect.Type) (plenccodec.Codec, error) {
+	c := registry.Load(typ)
+	if c != nil {
+		return c, nil
 	}
 
 	var err error
 
 	switch typ.Kind() {
 	case reflect.Ptr:
-		subc, err := p.CodecForType(typ.Elem())
+		subc, err := p.CodecForTypeRegistry(registry, typ.Elem())
 		if err != nil {
 			return nil, err
 		}
 		c = plenccodec.PointerWrapper{Underlying: subc}
 
 	case reflect.Struct:
-		c, err = plenccodec.BuildStructCodec(p, typ)
+		c, err = plenccodec.BuildStructCodec(p, registry, typ)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Slice:
 		subt := typ.Elem()
-		subc, err := p.CodecForType(subt)
+		subc, err := p.CodecForTypeRegistry(registry, subt)
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +112,7 @@ func (p *Plenc) CodecForType(typ reflect.Type) (plenccodec.Codec, error) {
 		}
 
 	case reflect.Map:
-		c, err = plenccodec.BuildMapCodec(p, typ)
+		c, err = plenccodec.BuildMapCodec(p, registry, typ)
 		if err != nil {
 			return nil, err
 		}
@@ -187,6 +216,5 @@ func (p *Plenc) CodecForType(typ reflect.Type) (plenccodec.Codec, error) {
 		return nil, fmt.Errorf("could not find or create a codec for %s", typ)
 	}
 
-	cv, _ := p.codecRegistry.LoadOrStore(typ, c)
-	return cv.(plenccodec.Codec), nil
+	return registry.StoreOrSwap(typ, c), nil
 }

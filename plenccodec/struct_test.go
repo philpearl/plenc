@@ -36,6 +36,31 @@ func TestFieldRemoval(t *testing.T) {
 	}
 }
 
+func TestRecursiveStruct(t *testing.T) {
+	type s0 struct {
+		A []s0 `plenc:"1"`
+		B int  `plenc:"2"`
+	}
+
+	a := s0{
+		A: []s0{{A: []s0{{B: 1}}}, {A: []s0{{B: 1}}, B: 3}},
+	}
+
+	data, err := plenc.Marshal(nil, &a)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out s0
+	if err := plenc.Unmarshal(data, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(a, out); diff != "" {
+		t.Fatalf("Not as expected. %s\n%x", diff, data)
+	}
+}
+
 func TestSliceStructPtr(t *testing.T) {
 	type S2 struct {
 		A int `plenc:"1"`

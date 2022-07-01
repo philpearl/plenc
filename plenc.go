@@ -2,14 +2,13 @@ package plenc
 
 import (
 	"reflect"
-	"sync"
 	"time"
 
 	"github.com/philpearl/plenc/plenccodec"
 )
 
 type Plenc struct {
-	codecRegistry sync.Map
+	codecRegistry baseRegistry
 }
 
 func (p *Plenc) RegisterCodec(typ reflect.Type, c plenccodec.Codec) {

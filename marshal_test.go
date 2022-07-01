@@ -19,6 +19,11 @@ type InnerThing struct {
 
 type SliceThing []InnerThing
 
+type RecursiveThing struct {
+	A []RecursiveThing `plenc:"1"`
+	B int              `plenc:"2"`
+}
+
 type TestThing struct {
 	A   float64     `plenc:"1"`
 	B   []float64   `plenc:"2"`
@@ -78,6 +83,8 @@ type TestThing struct {
 
 	X3 [][]uint    `plenc:"51"`
 	X4 [][]float32 `plenc:"52"`
+
+	R1 RecursiveThing `plenc:"53"`
 }
 
 func TestMarshal(t *testing.T) {
@@ -86,7 +93,7 @@ func TestMarshal(t *testing.T) {
 		var v InnerThing
 		cont.Fuzz(&v)
 		*out = &v
-	})
+	}).MaxDepth(4)
 	for i := 0; i < 10000; i++ {
 		var in TestThing
 		f.Fuzz(&in)
@@ -216,7 +223,7 @@ func TestMarshalPtrSliceInt(t *testing.T) {
 }
 
 func TestSkip(t *testing.T) {
-	f := fuzz.New()
+	f := fuzz.New().MaxDepth(4)
 	for i := 0; i < 100; i++ {
 		var in TestThing
 		f.Fuzz(&in)
@@ -337,7 +344,7 @@ func TestUnmarshalNilPtr(t *testing.T) {
 }
 
 func BenchmarkCycle(b *testing.B) {
-	f := fuzz.NewWithSeed(1337)
+	f := fuzz.NewWithSeed(1337).MaxDepth(4)
 	var in TestThing
 	f.Fuzz(&in)
 

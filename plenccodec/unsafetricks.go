@@ -1,7 +1,6 @@
 package plenccodec
 
 import (
-	"reflect"
 	"unsafe"
 )
 
@@ -86,12 +85,4 @@ type eface struct {
 
 func unpackEFace(obj interface{}) *eface {
 	return (*eface)(unsafe.Pointer(&obj))
-}
-
-func packEFace(ptr unsafe.Pointer, typ reflect.Type) interface{} {
-	e := eface{
-		rtype: unpackEFace(typ).data,
-		data:  ptr,
-	}
-	return *(*interface{})(unsafe.Pointer(&e))
 }

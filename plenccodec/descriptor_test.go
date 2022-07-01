@@ -57,6 +57,20 @@ func TestDescriptor(t *testing.T) {
 	}
 	d := c.Descriptor()
 
+	// Check we can encode and decode a Descriptor!
+	descData, err := plenc.Marshal(nil, &d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var dd plenccodec.Descriptor
+	if err := plenc.Unmarshal(descData, &dd); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(d, dd); diff != "" {
+		t.Fatal(diff)
+	}
+
+	// Now test we can use the descriptor
 	var seven uint = 7
 	data, err := plenc.Marshal(nil, my{
 		A: 1,
