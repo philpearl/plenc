@@ -150,12 +150,6 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 			return 0, fmt.Errorf("invalid varint for slice entry %d", i)
 		}
 		offset += n
-		// TODO: If we skip when there's no data, then a pointer to an empty struct will look nil.
-		// If we don't skip (i.e. we remove this check), then a nil pointer will show as a
-		// pointer to an empty struct.
-		if s == 0 {
-			continue
-		}
 
 		n, err := c.Underlying.Read(data[offset:offset+int(s)], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), plenccore.WTLength)
 		if err != nil {

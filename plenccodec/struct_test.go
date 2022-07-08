@@ -77,7 +77,7 @@ func TestSliceStructPtr(t *testing.T) {
 		}},
 		{A: []*S2{
 			{A: 1},
-			nil,
+			{},
 			{A: 2},
 		}},
 	}
@@ -105,5 +105,40 @@ func TestSliceStructPtr(t *testing.T) {
 				t.Fatalf("Not as expected. %s\n%x", diff, data)
 			}
 		})
+	}
+}
+
+func TestSliceStructPtrNil(t *testing.T) {
+	type S2 struct {
+		A int `plenc:"1"`
+	}
+	type S1 struct {
+		A []*S2 `plenc:"1"`
+	}
+
+	in := S1{A: []*S2{
+		{A: 1},
+		nil,
+		{A: 2},
+	}}
+
+	exp := S1{A: []*S2{
+		{A: 1},
+		{},
+		{A: 2},
+	}}
+
+	data, err := plenc.Marshal(nil, &in)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out S1
+	if err := plenc.Unmarshal(data, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(exp, out); diff != "" {
+		t.Fatalf("Not as expected. %s\n%x", diff, data)
 	}
 }
