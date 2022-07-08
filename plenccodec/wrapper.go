@@ -14,10 +14,7 @@ type PointerWrapper struct {
 
 func (p PointerWrapper) Omit(ptr unsafe.Pointer) bool {
 	t := *(*unsafe.Pointer)(ptr)
-	if t == nil {
-		return true
-	}
-	return p.Underlying.Omit(t)
+	return t == nil
 }
 
 func (p PointerWrapper) Size(ptr unsafe.Pointer) (size int) {
@@ -153,6 +150,9 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 			return 0, fmt.Errorf("invalid varint for slice entry %d", i)
 		}
 		offset += n
+		// TODO: If we skip when there's no data, then a pointer to an empty struct will look nil.
+		// If we don't skip (i.e. we remove this check), then a nil pointer will show as a
+		// pointer to an empty struct.
 		if s == 0 {
 			continue
 		}

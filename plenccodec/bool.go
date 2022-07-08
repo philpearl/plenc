@@ -46,7 +46,7 @@ func (c BoolCodec) WireType() plenccore.WireType {
 
 // Omit indicates whether this field should be omitted
 func (c BoolCodec) Omit(ptr unsafe.Pointer) bool {
-	return false
+	return !*(*bool)(ptr)
 }
 
 func (c BoolCodec) Descriptor() Descriptor {
