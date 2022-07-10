@@ -53,9 +53,13 @@ func (tc TimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 
 // Read decodes a Time
 func (tc TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
-	var e ptime
 	l := len(data)
+	if l == 0 {
+		*(*time.Time)(ptr) = time.Time{}
+		return 0, nil
+	}
 
+	var e ptime
 	var offset int
 	for offset < l {
 		wt, index, n := plenccore.ReadTag(data[offset:])
