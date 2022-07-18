@@ -51,6 +51,37 @@ func TestString(t *testing.T) {
 	}
 }
 
+func TestStringMarshal(t *testing.T) {
+	tests := []string{
+		"",
+		"a",
+		"¬πø∆˙©¥å∫˜",
+		"this is a string",
+		"ɚ&d珿ȨDT葚µ噘",
+		"\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00",
+		`¶娋搱ĚoÞB@\贞敠ơƸŜ`,
+		"\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00",
+	}
+
+	for _, test := range tests {
+		t.Run(test, func(t *testing.T) {
+			data, err := plenc.Marshal(nil, &test)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var out string
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(test, out); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}
+
 func TestInternedString(t *testing.T) {
 	var c plenccodec.InternedStringCodec
 
@@ -176,6 +207,7 @@ func TestStringSlice(t *testing.T) {
 		"Ʊãʙ#訃睩愴émė6Ɍ邔5汚鞗Ƈ",
 		"桏&",
 		"?Ȗ曽Ȯɕ稌!r囮ǯWQ猒÷飹嫗MJ",
+		"",
 	}
 
 	c, err := plenc.CodecForType(reflect.TypeOf(v))

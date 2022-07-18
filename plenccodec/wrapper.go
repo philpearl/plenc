@@ -14,10 +14,7 @@ type PointerWrapper struct {
 
 func (p PointerWrapper) Omit(ptr unsafe.Pointer) bool {
 	t := *(*unsafe.Pointer)(ptr)
-	if t == nil {
-		return true
-	}
-	return p.Underlying.Omit(t)
+	return t == nil
 }
 
 func (p PointerWrapper) Size(ptr unsafe.Pointer) (size int) {
@@ -153,9 +150,6 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 			return 0, fmt.Errorf("invalid varint for slice entry %d", i)
 		}
 		offset += n
-		if s == 0 {
-			continue
-		}
 
 		n, err := c.Underlying.Read(data[offset:offset+int(s)], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), plenccore.WTLength)
 		if err != nil {

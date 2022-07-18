@@ -1,9 +1,11 @@
 package null
 
 import (
+	"database/sql"
 	"encoding/json"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
@@ -48,6 +50,125 @@ var fuzzFuncs = []interface{}{
 			c.Fuzz(&a.Time)
 		}
 	},
+}
+
+func TestNullEmpty(t *testing.T) {
+	type TestThing struct {
+		I null.Int    `plenc:"1"`
+		B null.Bool   `plenc:"2"`
+		F null.Float  `plenc:"3"`
+		S null.String `plenc:"4"`
+		T null.Time   `plenc:"5"`
+	}
+	var v TestThing
+
+	data, err := plenc.Marshal(nil, &v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data) != 0 {
+		t.Fatalf("expected no data, got %x", data)
+	}
+}
+
+func TestNullExplicit(t *testing.T) {
+	tests := []struct {
+		name string
+		in   interface{}
+		out  interface{}
+		exp  interface{}
+	}{
+		{
+			name: "empty valid string",
+			in:   &null.String{sql.NullString{Valid: true}},
+			out:  &null.String{},
+			exp:  &null.String{sql.NullString{Valid: true}},
+		},
+		{
+			name: "non-empty valid string",
+			in:   &null.String{sql.NullString{Valid: true, String: "a"}},
+			out:  &null.String{},
+			exp:  &null.String{sql.NullString{Valid: true, String: "a"}},
+		},
+		{
+			name: "zero valid int",
+			in:   &null.Int{sql.NullInt64{Valid: true, Int64: 0}},
+			out:  &null.Int{},
+			exp:  &null.Int{sql.NullInt64{Valid: true, Int64: 0}},
+		},
+		{
+			name: "positive valid int",
+			in:   &null.Int{sql.NullInt64{Valid: true, Int64: 1}},
+			out:  &null.Int{},
+			exp:  &null.Int{sql.NullInt64{Valid: true, Int64: 1}},
+		},
+		{
+			name: "negative valid int",
+			in:   &null.Int{sql.NullInt64{Valid: true, Int64: -1}},
+			out:  &null.Int{},
+			exp:  &null.Int{sql.NullInt64{Valid: true, Int64: -1}},
+		},
+		{
+			name: "zero valid float",
+			in:   &null.Float{sql.NullFloat64{Valid: true, Float64: 0}},
+			out:  &null.Float{},
+			exp:  &null.Float{sql.NullFloat64{Valid: true, Float64: 0}},
+		},
+		{
+			name: "positive valid float",
+			in:   &null.Float{sql.NullFloat64{Valid: true, Float64: 1}},
+			out:  &null.Float{},
+			exp:  &null.Float{sql.NullFloat64{Valid: true, Float64: 1}},
+		},
+		{
+			name: "negative valid float",
+			in:   &null.Float{sql.NullFloat64{Valid: true, Float64: -1}},
+			out:  &null.Float{},
+			exp:  &null.Float{sql.NullFloat64{Valid: true, Float64: -1}},
+		},
+		// Can't test NAN because NAN != NAN!
+		{
+			name: "false valid bool",
+			in:   &null.Bool{sql.NullBool{Valid: true, Bool: false}},
+			out:  &null.Bool{},
+			exp:  &null.Bool{sql.NullBool{Valid: true, Bool: false}},
+		},
+		{
+			name: "true valid bool",
+			in:   &null.Bool{sql.NullBool{Valid: true, Bool: true}},
+			out:  &null.Bool{},
+			exp:  &null.Bool{sql.NullBool{Valid: true, Bool: true}},
+		},
+		{
+			name: "zero valid time",
+			in:   &null.Time{Valid: true},
+			out:  &null.Time{},
+			exp:  &null.Time{Valid: true},
+		},
+		{
+			name: "non-zero valid time",
+			in:   &null.Time{Valid: true, Time: time.Date(1970, 3, 15, 0, 0, 0, 0, time.UTC)},
+			out:  &null.Time{},
+			exp:  &null.Time{Valid: true, Time: time.Date(1970, 3, 15, 0, 0, 0, 0, time.UTC)},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			data, err := plenc.Marshal(nil, test.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := plenc.Unmarshal(data, test.out); err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(test.exp, test.out); diff != "" {
+				t.Logf("%x", data)
+				t.Fatalf("structs differ. %s", diff)
+			}
+		})
+	}
 }
 
 func TestNull(t *testing.T) {

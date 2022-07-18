@@ -26,7 +26,11 @@ func (Float64Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 
 // Read decodes a float64
 func (Float64Codec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
-	if len(data) < 8 {
+	if l := len(data); l < 8 {
+		if l == 0 {
+			*(*float64)(ptr) = 0
+			return 0, nil
+		}
 		return 0, fmt.Errorf("not enough data to read a float64. Have %d bytes", len(data))
 	}
 	bits := binary.LittleEndian.Uint64(data)
@@ -46,7 +50,7 @@ func (c Float64Codec) WireType() plenccore.WireType {
 
 // Omit indicates whether this field should be omitted
 func (c Float64Codec) Omit(ptr unsafe.Pointer) bool {
-	return false
+	return *(*float64)(ptr) == 0
 }
 
 func (c Float64Codec) Descriptor() Descriptor {
@@ -70,8 +74,12 @@ func (Float32Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
 
 // Read decodes a float32
 func (Float32Codec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
-	if len(data) < 4 {
-		return 0, fmt.Errorf("not enough data to read a float32. Have %d bytes", len(data))
+	if l := len(data); l < 4 {
+		if l == 0 {
+			*(*float32)(ptr) = 0
+			return 0, nil
+		}
+		return 0, fmt.Errorf("not enough data to read a float32. Have %d bytes", l)
 	}
 	bits := binary.LittleEndian.Uint32(data)
 	*(*float32)(ptr) = math.Float32frombits(bits)
@@ -90,7 +98,7 @@ func (c Float32Codec) WireType() plenccore.WireType {
 
 // Omit indicates whether this field should be omitted
 func (c Float32Codec) Omit(ptr unsafe.Pointer) bool {
-	return false
+	return *(*float32)(ptr) == 0
 }
 
 func (c Float32Codec) Descriptor() Descriptor {

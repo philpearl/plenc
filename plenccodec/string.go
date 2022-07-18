@@ -40,7 +40,7 @@ func (StringCodec) WireType() plenccore.WireType {
 
 // Omit indicates whether this field should be omitted
 func (StringCodec) Omit(ptr unsafe.Pointer) bool {
-	return false
+	return len(*(*string)(ptr)) == 0
 }
 
 func (StringCodec) Descriptor() Descriptor {
@@ -81,7 +81,7 @@ func (c BytesCodec) WireType() plenccore.WireType {
 
 // Omit indicates whether this field should be omitted
 func (c BytesCodec) Omit(ptr unsafe.Pointer) bool {
-	return false
+	return len(*(*[]byte)(ptr)) == 0
 }
 
 func (BytesCodec) Descriptor() Descriptor {

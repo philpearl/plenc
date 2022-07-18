@@ -42,7 +42,7 @@ func (c IntCodec[T]) WireType() plenccore.WireType {
 
 // Omit indicates whether this field should be omitted
 func (c IntCodec[T]) Omit(ptr unsafe.Pointer) bool {
-	return false
+	return *(*T)(ptr) == 0
 }
 
 func (c IntCodec[T]) Descriptor() Descriptor {
@@ -84,7 +84,7 @@ func (c UintCodec[T]) WireType() plenccore.WireType {
 
 // Omit indicates whether this field should be omitted
 func (c UintCodec[T]) Omit(ptr unsafe.Pointer) bool {
-	return false
+	return *(*T)(ptr) == 0
 }
 
 func (c UintCodec[T]) Descriptor() Descriptor {

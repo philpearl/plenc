@@ -1,10 +1,11 @@
-package plenccodec
+package plenccodec_test
 
 import (
 	"math"
 	"strconv"
 	"testing"
 
+	"github.com/philpearl/plenc"
 	"github.com/philpearl/plenc/plenccore"
 )
 
@@ -28,6 +29,19 @@ func TestVarUint(t *testing.T) {
 				t.Errorf("actual %d does not match expected %d. %v", actual, test, b)
 			}
 		})
+		t.Run(strconv.FormatUint(uint64(test), 10)+"_marshal", func(t *testing.T) {
+			data, err := plenc.Marshal(nil, &test)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out uint64
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+			if test != out {
+				t.Errorf("Result incorrect for %d- got %d", test, out)
+			}
+		})
 	}
 }
 
@@ -49,6 +63,19 @@ func TestVarInt(t *testing.T) {
 
 			if actual != test {
 				t.Errorf("actual %d does not match expected %d. %v", actual, test, b)
+			}
+		})
+		t.Run(strconv.FormatInt(int64(test), 10)+"_marshal", func(t *testing.T) {
+			data, err := plenc.Marshal(nil, &test)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out int64
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+			if test != out {
+				t.Errorf("Result incorrect for %d- got %d", test, out)
 			}
 		})
 	}

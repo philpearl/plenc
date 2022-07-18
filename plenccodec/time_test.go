@@ -47,6 +47,60 @@ func TestTime(t *testing.T) {
 	}
 }
 
+func TestTimeMarshal(t *testing.T) {
+	tests := []time.Time{
+		{},
+		time.Date(1970, 3, 15, 0, 0, 0, 0, time.UTC),
+		time.Now(),
+	}
+
+	for _, test := range tests {
+		t.Run(test.String(), func(t *testing.T) {
+			data, err := plenc.Marshal(nil, &test)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out time.Time
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+			if !out.Equal(test) {
+				t.Fatalf("times %s and %s differ", out, test)
+			}
+		})
+	}
+}
+
+func TestTimeInStructMarshal(t *testing.T) {
+	type twrap struct {
+		T time.Time `plenc:"1"`
+		U int       `plenc:"2"`
+	}
+
+	tests := []twrap{
+		{},
+		{U: 1},
+		{T: time.Date(1970, 3, 15, 0, 0, 0, 0, time.UTC)},
+		{T: time.Now()},
+	}
+
+	for _, test := range tests {
+		t.Run("", func(t *testing.T) {
+			data, err := plenc.Marshal(nil, &test)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out twrap
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(test, out); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}
+
 func BenchmarkTime(b *testing.B) {
 	b.ReportAllocs()
 	in := time.Now()

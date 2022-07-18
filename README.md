@@ -62,3 +62,9 @@ In particular using fixed32 and fixed64 encodings for integer types is not curre
 ## Slices
 Neither plenc nor protobuf distinuguish between empty and nil slices. 
 If you write an empty slice it will read back as a nil slice.
+
+Slices of pointers to floats are not allowed.
+
+Nils within slices of pointers are not supported. 
+Nils in slices of pointer to integers will be omitted. 
+Nils in slices of pointers to structs will be converted to empty structs.
