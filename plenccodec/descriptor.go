@@ -139,6 +139,9 @@ func (d *Descriptor) readAsSlice(out Outputter, data []byte) (n int, err error) 
 		}
 		offset := n
 		for i := 0; i < int(count); i++ {
+			if offset >= len(data) {
+				return 0, fmt.Errorf("corrupt data looking for length of slice entry %d", i)
+			}
 			s, n := plenccore.ReadVarUint(data[offset:])
 			if n <= 0 {
 				return 0, fmt.Errorf("invalid varint for slice entry %d", i)
@@ -146,6 +149,10 @@ func (d *Descriptor) readAsSlice(out Outputter, data []byte) (n int, err error) 
 			offset += n
 			if s == 0 {
 				continue
+			}
+			end := offset + int(s)
+			if end > len(data) {
+				return 0, fmt.Errorf("corrupt data reading slice entry %d", i)
 			}
 
 			n, err := elt.read(out, data[offset:offset+int(s)])
