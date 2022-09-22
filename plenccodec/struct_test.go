@@ -172,16 +172,19 @@ func TestZeroReuse(t *testing.T) {
 	}
 	v := s1{A: 37, B: 42}
 
-	w := s1{B: 3}
+	w := s1{A: 0, B: 3}
 	data, err := plenc.Marshal(nil, w)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// We expect this to update v and not zero fields that aren't in the output.
+	// Note that plenc is implicitly omitempty for some field types, so zero
+	// ints in the data we're unmarshalling won't overwrite anything.
 	if err := plenc.Unmarshal(data, &v); err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(w, v); diff != "" {
+	if diff := cmp.Diff(s1{A: 37, B: 3}, v); diff != "" {
 		t.Fatal(diff)
 	}
 }

@@ -140,6 +140,15 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 		// Ensure the GC knows the type of this slice.
 		h.Data = unsafe_NewArray(c.EltType, int(count))
 		h.Cap = int(count)
+	} else {
+		// We're going to re-use the backing array. It's going to be surprising
+		// if we don't start from zeros so we zero everything.
+		for i := 0; i < int(count); i++ {
+			// We'll only write to fields if the data is present, so start by zeroing
+			// the target
+			ptr := unsafe.Add(h.Data, i*int(c.EltSize))
+			typedmemclr(unpackEFace(c.EltType).data, ptr)
+		}
 	}
 	h.Len = int(count)
 
@@ -151,7 +160,8 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 		}
 		offset += n
 
-		n, err := c.Underlying.Read(data[offset:offset+int(s)], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), plenccore.WTLength)
+		ptr := unsafe.Add(h.Data, i*int(c.EltSize))
+		n, err := c.Underlying.Read(data[offset:offset+int(s)], ptr, plenccore.WTLength)
 		if err != nil {
 			return 0, err
 		}
@@ -161,7 +171,9 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 	return offset, nil
 }
 
-// readAsWTLength is here for protobuf compatibility. protobuf writes certain array types by simply repeating the encoding for an individual field. So here we just read one underlying value and append it to the slice
+// readAsWTLength is here for protobuf compatibility. protobuf writes certain
+// array types by simply repeating the encoding for an individual field. So here
+// we just read one underlying value and append it to the slice
 func (c WTLengthSliceWrapper) readAsWTLength(data []byte, ptr unsafe.Pointer) (n int, err error) {
 	h := (*sliceHeader)(ptr)
 	if h.Cap == h.Len {
@@ -185,7 +197,9 @@ func (c WTLengthSliceWrapper) readAsWTLength(data []byte, ptr unsafe.Pointer) (n
 		*h = nh
 	}
 
-	n, err = c.Underlying.Read(data, unsafe.Pointer(uintptr(h.Data)+uintptr(h.Len)*c.EltSize), plenccore.WTLength)
+	dptr := unsafe.Add(h.Data, h.Len*int(c.EltSize))
+	typedmemclr(unpackEFace(c.EltType).data, dptr)
+	n, err = c.Underlying.Read(data, dptr, plenccore.WTLength)
 	if err != nil {
 		return 0, err
 	}
