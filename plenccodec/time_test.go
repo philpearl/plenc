@@ -106,13 +106,13 @@ func BenchmarkTime(b *testing.B) {
 	in := time.Now()
 	b.RunParallel(func(pb *testing.PB) {
 		var data []byte
+		var out time.Time
 		for pb.Next() {
 			var err error
 			data, err = plenc.Marshal(data[:0], &in)
 			if err != nil {
 				b.Fatal(err)
 			}
-			var out time.Time
 			if err := plenc.Unmarshal(data, &out); err != nil {
 				b.Fatal(err)
 			}

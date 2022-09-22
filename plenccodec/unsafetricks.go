@@ -16,6 +16,7 @@ type sliceHeader struct {
 
 // typedslicecopy copies a slice of elemType values from src to dst,
 // returning the number of elements copied.
+//
 //go:linkname typedslicecopy reflect.typedslicecopy
 //go:noescape
 func typedslicecopy(elemType unsafe.Pointer, dst, src sliceHeader) int
@@ -23,6 +24,10 @@ func typedslicecopy(elemType unsafe.Pointer, dst, src sliceHeader) int
 //go:linkname typedmemmove runtime.typedmemmove
 //go:noescape
 func typedmemmove(elemType unsafe.Pointer, dst, src unsafe.Pointer)
+
+//go:linkname typedmemclr runtime.typedmemclr
+//go:noescape
+func typedmemclr(elemType unsafe.Pointer, v unsafe.Pointer)
 
 //go:linkname mapassign runtime.mapassign
 //go:noescape

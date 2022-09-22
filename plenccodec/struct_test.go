@@ -142,3 +142,46 @@ func TestSliceStructPtrNil(t *testing.T) {
 		t.Fatalf("Not as expected. %s\n%x", diff, data)
 	}
 }
+
+func TestZeroReuseSlice(t *testing.T) {
+	type s1 struct {
+		A int `plenc:"1"`
+		B int `plenc:"2"`
+	}
+	v := []s1{{A: 1}, {A: 2}}
+	v = v[:0]
+
+	w := []s1{{B: 3}, {B: 4}}
+	data, err := plenc.Marshal(nil, w)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := plenc.Unmarshal(data, &v); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(w, v); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestZeroReuse(t *testing.T) {
+	type s1 struct {
+		A int `plenc:"1"`
+		B int `plenc:"2"`
+	}
+	v := s1{A: 37, B: 42}
+
+	w := s1{B: 3}
+	data, err := plenc.Marshal(nil, w)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := plenc.Unmarshal(data, &v); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(w, v); diff != "" {
+		t.Fatal(diff)
+	}
+}

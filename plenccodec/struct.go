@@ -185,6 +185,10 @@ func (c *StructCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 func (c *StructCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	l := len(data)
 
+	// We'll only write to fields if the data is present, so start by zeroing
+	// the target
+	typedmemclr(unpackEFace(c.rtype).data, ptr)
+
 	var offset int
 	for offset < l {
 		wt, index, n := plenccore.ReadTag(data[offset:])

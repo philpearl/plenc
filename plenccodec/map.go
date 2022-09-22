@@ -217,7 +217,7 @@ func (c *MapCodec) readMapEntry(mp, k unsafe.Pointer, data []byte) (int, error) 
 
 	if offset < len(data) {
 		if index == 1 {
-			offset, fieldEnd, index, wt, err = c.readTagAndLength(data, offset)
+			offset, fieldEnd, _, wt, err = c.readTagAndLength(data, offset)
 			if err != nil {
 				return 0, err
 			}

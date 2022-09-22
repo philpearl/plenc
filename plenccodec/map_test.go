@@ -127,6 +127,26 @@ func TestMap(t *testing.T) {
 	}
 }
 
+func TestMapZero(t *testing.T) {
+	// This matches the behaviour of the standard json package, but is different
+	// to unmarshalling into a struct where the struct is always zeroed first
+	m := map[string]string{"hat": "pineapple"}
+	n := map[string]string{"cheese": "monkey"}
+	data, err := plenc.Marshal(nil, n)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := plenc.Unmarshal(data, &m); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(map[string]string{
+		"hat":    "pineapple",
+		"cheese": "monkey",
+	}, m); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
 func TestMapFuzz(t *testing.T) {
 	fz := fuzz.New()
 

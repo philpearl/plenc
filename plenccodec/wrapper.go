@@ -268,7 +268,7 @@ func (c WTVarIntSliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
 }
 
 // Read decodes a slice. It assumes the WTLength tag has already been decoded
-// and that the data slice is the corect size for the slice
+// and that the data slice is the correct size for the slice
 func (c WTVarIntSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	// We step forward through out data to count how many things are in the slice
 	var offset, count int

@@ -134,12 +134,6 @@ func (c *InternedStringCodec) addString(data []byte) string {
 	return s
 }
 
-func (c *InternedStringCodec) len() int {
-	p := atomic.LoadPointer(&c.strings)
-	m := *(*map[string]string)((unsafe.Pointer)(&p))
-	return len(m)
-}
-
 func (c StringCodec) WithInterning() Codec {
 	ic := &InternedStringCodec{}
 	m := map[string]string{}
