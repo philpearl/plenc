@@ -3,16 +3,19 @@ package prototest
 import (
 	fmt "fmt"
 	"testing"
+	"time"
 
-	proto "github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/philpearl/plenc"
+	"google.golang.org/protobuf/proto"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type pMsg1 struct {
-	V1 int64  `plenc:"1"`
-	V2 string `plenc:"2"`
-	V3 string `plenc:"3"`
+	V1        int64     `plenc:"1"`
+	V2        string    `plenc:"2"`
+	V3        string    `plenc:"3"`
+	Timestamp time.Time `plenc:"4"`
 }
 type pMsg2 struct {
 	V1 []pMsg1   `plenc:"1"`
@@ -26,14 +29,18 @@ type pMsg2 struct {
 }
 
 func TestProto(t *testing.T) {
+	t0 := time.Date(1970, 3, 15, 13, 17, 0, 0, time.UTC)
+	ts := timestamppb.New(t0)
+
 	// Here we're testing that we can decode proto-encoded data.
 	// Note that going the other way is not an aim.
 	m := Msg2{
 		V1: []*Msg1{
 			{
-				V1: 1,
-				V2: "2",
-				V3: "3",
+				V1:        1,
+				V2:        "2",
+				V3:        "3",
+				Timestamp: ts,
 			},
 			{
 				V1: 5,
@@ -85,16 +92,21 @@ func TestProto(t *testing.T) {
 	*/
 
 	var out pMsg2
-	if err := plenc.Unmarshal(data, &out); err != nil {
+	var p plenc.Plenc
+	p.ProtoCompatibleTime = true
+	p.RegisterDefaultCodecs()
+
+	if err := p.Unmarshal(data, &out); err != nil {
 		t.Fatal(err)
 	}
 
 	exp := pMsg2{
 		V1: []pMsg1{
 			{
-				V1: 1,
-				V2: "2",
-				V3: "3",
+				V1:        1,
+				V2:        "2",
+				V3:        "3",
+				Timestamp: t0,
 			},
 			{
 				V1: 5,

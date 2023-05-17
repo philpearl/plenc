@@ -26,6 +26,9 @@ func (e *ptime) Standard() time.Time {
 }
 
 // TimeCodec is a codec for Time
+// Note that this is not compatible with google.protobuf.Timestamp. The structure
+// is the same, but they don't use zigzag encoding for the fields. They still do
+// allow negative values though
 type TimeCodec struct{}
 
 // Size returns the number of bytes needed to encode a Time
@@ -109,4 +112,75 @@ func (tc TimeCodec) WireType() plenccore.WireType {
 
 func (tc TimeCodec) Descriptor() Descriptor {
 	return Descriptor{Type: FieldTypeTime}
+}
+
+type TimeCompatCodec struct {
+	TimeCodec
+}
+
+// Size returns the number of bytes needed to encode a Time
+func (tc TimeCompatCodec) Size(ptr unsafe.Pointer) (size int) {
+	t := *(*time.Time)(ptr)
+	var e ptime
+	e.Set(t)
+	sl := UintCodec[uint64]{}.Size(unsafe.Pointer(&e.Seconds))
+	nl := UintCodec[uint32]{}.Size(unsafe.Pointer(&e.Nanoseconds))
+	return plenccore.SizeTag(plenccore.WTVarInt, 1) + sl + plenccore.SizeTag(plenccore.WTVarInt, 2) + nl
+}
+
+// Append encodes a Time
+func (tc TimeCompatCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+	t := *(*time.Time)(ptr)
+	var e ptime
+	e.Set(t)
+
+	data = plenccore.AppendTag(data, plenccore.WTVarInt, 1)
+	data = UintCodec[uint64]{}.Append(data, unsafe.Pointer(&e.Seconds))
+	data = plenccore.AppendTag(data, plenccore.WTVarInt, 2)
+	data = UintCodec[uint32]{}.Append(data, unsafe.Pointer(&e.Nanoseconds))
+	return data
+}
+
+// Read decodes a Time
+func (tc TimeCompatCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
+	l := len(data)
+	if l == 0 {
+		*(*time.Time)(ptr) = time.Time{}
+		return 0, nil
+	}
+
+	var e ptime
+	var offset int
+	for offset < l {
+		wt, index, n := plenccore.ReadTag(data[offset:])
+		offset += n
+
+		switch index {
+		case 1:
+			n, err := UintCodec[uint64]{}.Read(data[offset:], unsafe.Pointer(&e.Seconds), wt)
+			if err != nil {
+				return 0, fmt.Errorf("failed reading seconds field of time. %w", err)
+			}
+			offset += n
+
+		case 2:
+			n, err := UintCodec[uint32]{}.Read(data[offset:], unsafe.Pointer(&e.Nanoseconds), wt)
+			if err != nil {
+				return 0, fmt.Errorf("failed reading nanoseconds field of time. %w", err)
+			}
+			offset += n
+
+		default:
+			// Field corresponding to index does not exist
+			n, err := plenccore.Skip(data[offset:], wt)
+			if err != nil {
+				return 0, fmt.Errorf("failed to skip field %d of time. %w", index, err)
+			}
+			offset += n
+		}
+	}
+
+	*(*time.Time)(ptr) = e.Standard()
+
+	return offset, nil
 }

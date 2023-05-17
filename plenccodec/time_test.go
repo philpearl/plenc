@@ -13,6 +13,9 @@ import (
 )
 
 func TestTime(t *testing.T) {
+	var p1, p2 plenc.Plenc
+	p1.ProtoCompatibleTime = true
+
 	f := fuzz.New()
 
 	type twrap struct {
@@ -20,29 +23,32 @@ func TestTime(t *testing.T) {
 		U int       `plenc:"2"`
 	}
 
-	c, err := plenc.CodecForType(reflect.TypeOf(twrap{}))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for i := 0; i < 100000; i++ {
-		var t0 twrap
-		f.Fuzz(&t0)
-
-		data := c.Append(nil, unsafe.Pointer(&t0))
-
-		var t1 twrap
-		n, err := c.Read(data, unsafe.Pointer(&t1), plenccore.WTLength)
-		if n != len(data) {
-			t.Errorf("not all data read. %d", n)
-		}
+	for _, p := range []*plenc.Plenc{&p1, &p2} {
+		p.RegisterDefaultCodecs()
+		c, err := p.CodecForType(reflect.TypeOf(twrap{}))
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if diff := cmp.Diff(t0, t1); diff != "" {
-			t.Logf("unix %d %d", t0.T.Unix(), t0.T.Nanosecond())
-			t.Fatalf("differs. %s", diff)
+		for i := 0; i < 100000; i++ {
+			var t0 twrap
+			f.Fuzz(&t0)
+
+			data := c.Append(nil, unsafe.Pointer(&t0))
+
+			var t1 twrap
+			n, err := c.Read(data, unsafe.Pointer(&t1), plenccore.WTLength)
+			if n != len(data) {
+				t.Errorf("not all data read. %d", n)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(t0, t1); diff != "" {
+				t.Logf("unix %d %d", t0.T.Unix(), t0.T.Nanosecond())
+				t.Fatalf("differs. %s", diff)
+			}
 		}
 	}
 }

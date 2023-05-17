@@ -65,7 +65,7 @@ func TestStringMarshal(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
-			data, err := plenc.Marshal(nil, &test)
+			data, err := plenc.Marshal(nil, test)
 			if err != nil {
 				t.Fatal(err)
 			}

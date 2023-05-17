@@ -4,10 +4,13 @@ package plenc.prototest;
 option go_package = "github.com/philpearl/plenc/prototest";
 option java_package = "prototest";
 
+import "google/protobuf/timestamp.proto";
+
 message Msg1 {
 	sint64 v1 = 1;
 	string v2 = 2;
     string v3 = 3;
+    google.protobuf.Timestamp timestamp = 4;
 }
 
 message Msg2 {
