@@ -29,7 +29,11 @@ type Plenc struct {
 }
 
 func (p *Plenc) RegisterCodec(typ reflect.Type, c plenccodec.Codec) {
-	p.codecRegistry.Store(typ, c)
+	p.codecRegistry.Store(typ, "", c)
+}
+
+func (p *Plenc) RegisterCodecWithTag(typ reflect.Type, tag string, c plenccodec.Codec) {
+	p.codecRegistry.Store(typ, tag, c)
 }
 
 // RegisterDefaultCodecs sets up the default codecs for plenc. It is called
@@ -37,19 +41,29 @@ func (p *Plenc) RegisterCodec(typ reflect.Type, c plenccodec.Codec) {
 // instance of Plenc you should call this before using it.
 func (p *Plenc) RegisterDefaultCodecs() {
 	p.RegisterCodec(reflect.TypeOf(false), plenccodec.BoolCodec{})
+
 	p.RegisterCodec(reflect.TypeOf(float64(0)), plenccodec.Float64Codec{})
 	p.RegisterCodec(reflect.TypeOf(float32(0)), plenccodec.Float32Codec{})
+
 	p.RegisterCodec(reflect.TypeOf(int(0)), plenccodec.IntCodec[int]{})
 	p.RegisterCodec(reflect.TypeOf(int8(0)), plenccodec.IntCodec[int8]{})
 	p.RegisterCodec(reflect.TypeOf(int16(0)), plenccodec.IntCodec[int16]{})
 	p.RegisterCodec(reflect.TypeOf(int32(0)), plenccodec.IntCodec[int32]{})
 	p.RegisterCodec(reflect.TypeOf(int64(0)), plenccodec.IntCodec[int64]{})
+
+	p.RegisterCodecWithTag(reflect.TypeOf(int(0)), "flat", plenccodec.UintCodec[uint]{})
+	p.RegisterCodecWithTag(reflect.TypeOf(int8(0)), "flat", plenccodec.UintCodec[uint8]{})
+	p.RegisterCodecWithTag(reflect.TypeOf(int16(0)), "flat", plenccodec.UintCodec[uint16]{})
+	p.RegisterCodecWithTag(reflect.TypeOf(int32(0)), "flat", plenccodec.UintCodec[uint32]{})
+	p.RegisterCodecWithTag(reflect.TypeOf(int64(0)), "flat", plenccodec.UintCodec[uint64]{})
+
 	p.RegisterCodec(reflect.TypeOf(uint(0)), plenccodec.UintCodec[uint]{})
 	p.RegisterCodec(reflect.TypeOf(uint64(0)), plenccodec.UintCodec[uint64]{})
 	p.RegisterCodec(reflect.TypeOf(uint32(0)), plenccodec.UintCodec[uint32]{})
 	p.RegisterCodec(reflect.TypeOf(uint16(0)), plenccodec.UintCodec[uint16]{})
 	p.RegisterCodec(reflect.TypeOf(uint8(0)), plenccodec.UintCodec[uint8]{})
 	p.RegisterCodec(reflect.TypeOf(""), plenccodec.StringCodec{})
+	p.RegisterCodecWithTag(reflect.TypeOf(""), "intern", &plenccodec.InternedStringCodec{})
 	p.RegisterCodec(reflect.TypeOf([]byte(nil)), plenccodec.BytesCodec{})
 	if p.ProtoCompatibleTime {
 		p.RegisterCodec(reflect.TypeOf(time.Time{}), plenccodec.TimeCompatCodec{})

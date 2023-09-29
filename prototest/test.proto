@@ -11,6 +11,8 @@ message Msg1 {
 	string v2 = 2;
     string v3 = 3;
     google.protobuf.Timestamp timestamp = 4;
+    int64 v5 = 5;
+    map<string, string> v6 = 6;
 }
 
 message Msg2 {

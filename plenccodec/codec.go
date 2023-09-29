@@ -49,15 +49,15 @@ type Codec interface {
 // CodecRegistry is a repository of pre-existing Codecs
 type CodecRegistry interface {
 	// Load loads the codec from the registry. It returns nil if no codec exists
-	Load(typ reflect.Type) Codec
+	Load(typ reflect.Type, tag string) Codec
 	// StoreOrSwap adds the codec to the registry. It may return a different
 	// codec if the codec has been built on another goroutine
-	StoreOrSwap(typ reflect.Type, c Codec) Codec
+	StoreOrSwap(typ reflect.Type, tag string, c Codec) Codec
 }
 
 // CodecBuilder either builds a new codec for a type, or finds an existing codec
 type CodecBuilder interface {
 	// CodecForTypeRegistry builds a new codec for the requested type,
 	// consulting registry for any existing codecs needed
-	CodecForTypeRegistry(registry CodecRegistry, typ reflect.Type) (Codec, error)
+	CodecForTypeRegistry(registry CodecRegistry, typ reflect.Type, tag string) (Codec, error)
 }

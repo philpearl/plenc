@@ -22,8 +22,24 @@ func RegisterCodec(typ reflect.Type, c plenccodec.Codec) {
 	defaultPlenc.RegisterCodec(typ, c)
 }
 
-func (p *Plenc) codecForBasicType(typ reflect.Type) (plenccodec.Codec, error) {
-	c := p.codecRegistry.Load(typ)
+// RegisterCodecWithTag is like RegisterCodec, but it registers the codec to be
+// used only when the given tag is specified in the plenc struct tag
+//
+// For example:
+//
+//	type MyStruct struct {
+//		A int `plenc:"1"`
+//		B int `plenc:"2,flat"`
+//	}
+//
+// The default codecs include a flat codec for ints. This does not use the ZigZag
+// encoding as is more efficient when you know the values are positive.
+func RegisterCodecWithTag(typ reflect.Type, tag string, c plenccodec.Codec) {
+	defaultPlenc.RegisterCodecWithTag(typ, tag, c)
+}
+
+func (p *Plenc) codecForBasicType(typ reflect.Type, tag string) (plenccodec.Codec, error) {
+	c := p.codecRegistry.Load(typ, tag)
 	if c == nil {
 		return nil, fmt.Errorf("no codec available for %s", typ.Name())
 	}
@@ -36,37 +52,52 @@ func CodecForType(typ reflect.Type) (plenccodec.Codec, error) {
 	return defaultPlenc.CodecForType(typ)
 }
 
+// CodecForTypeWithTag returns a codec for the requested type and tag. See
+// RegisterCodecWithTag.
+func CodecForTypeWithTag(typ reflect.Type, tag string) (plenccodec.Codec, error) {
+	return defaultPlenc.CodecForTypeWithTag(typ, tag)
+}
+
 type baseRegistry struct {
 	codecRegistry sync.Map
 }
 
-func (br *baseRegistry) Load(typ reflect.Type) plenccodec.Codec {
-	c, ok := br.codecRegistry.Load(typ)
+type registryKey struct {
+	typ reflect.Type
+	tag string
+}
+
+func (br *baseRegistry) Load(typ reflect.Type, tag string) plenccodec.Codec {
+	c, ok := br.codecRegistry.Load(registryKey{typ: typ, tag: tag})
 	if !ok {
 		return nil
 	}
 	return c.(plenccodec.Codec)
 }
 
-func (br *baseRegistry) Store(typ reflect.Type, c plenccodec.Codec) {
-	br.codecRegistry.Store(typ, c)
+func (br *baseRegistry) Store(typ reflect.Type, tag string, c plenccodec.Codec) {
+	br.codecRegistry.Store(registryKey{typ: typ, tag: tag}, c)
 }
 
-func (br *baseRegistry) StoreOrSwap(typ reflect.Type, c plenccodec.Codec) plenccodec.Codec {
-	cv, _ := br.codecRegistry.LoadOrStore(typ, c)
+func (br *baseRegistry) StoreOrSwap(typ reflect.Type, tag string, c plenccodec.Codec) plenccodec.Codec {
+	cv, _ := br.codecRegistry.LoadOrStore(registryKey{typ: typ, tag: tag}, c)
 	return cv.(plenccodec.Codec)
 }
 
 // CodecForType finds an existing codec for a type or constructs a codec. It
 // calls CodecForTypeRegistry using the internal registry on p
 func (p *Plenc) CodecForType(typ reflect.Type) (plenccodec.Codec, error) {
-	return p.CodecForTypeRegistry(&p.codecRegistry, typ)
+	return p.CodecForTypeRegistry(&p.codecRegistry, typ, "")
+}
+
+func (p *Plenc) CodecForTypeWithTag(typ reflect.Type, tag string) (plenccodec.Codec, error) {
+	return p.CodecForTypeRegistry(&p.codecRegistry, typ, tag)
 }
 
 // CodecForTypeRegistry builds a new codec for the requested type, consulting
 // registry for any existing codecs needed
-func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ reflect.Type) (plenccodec.Codec, error) {
-	c := registry.Load(typ)
+func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ reflect.Type, tag string) (plenccodec.Codec, error) {
+	c := registry.Load(typ, tag)
 	if c != nil {
 		return c, nil
 	}
@@ -75,21 +106,23 @@ func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ refl
 
 	switch typ.Kind() {
 	case reflect.Ptr:
-		subc, err := p.CodecForTypeRegistry(registry, typ.Elem())
+		subc, err := p.CodecForTypeRegistry(registry, typ.Elem(), tag)
 		if err != nil {
 			return nil, err
 		}
 		c = plenccodec.PointerWrapper{Underlying: subc}
 
 	case reflect.Struct:
-		c, err = plenccodec.BuildStructCodec(p, registry, typ)
+		c, err = plenccodec.BuildStructCodec(p, registry, typ, tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Slice:
 		subt := typ.Elem()
-		subc, err := p.CodecForTypeRegistry(registry, subt)
+		// We assume for now that any tag here will be selecting the array
+		// treatment, not the registry for the underlying type.
+		subc, err := p.CodecForTypeRegistry(registry, subt, "")
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +137,7 @@ func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ refl
 			}
 			c = plenccodec.WTFixedSliceWrapper{BaseSliceWrapper: bs}
 		case plenccore.WTLength:
-			if p.ProtoCompatibleArrays {
+			if p.ProtoCompatibleArrays || tag == "proto" {
 				// When writing we just want to repeat the encoding of an
 				// individual element within the slice as if it was a separate
 				// element.
@@ -120,7 +153,7 @@ func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ refl
 		}
 
 	case reflect.Map:
-		c, err = plenccodec.BuildMapCodec(p, registry, typ)
+		c, err = plenccodec.BuildMapCodec(p, registry, typ, tag)
 		if err != nil {
 			return nil, err
 		}
@@ -128,83 +161,83 @@ func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ refl
 	// Really expect codecs for basic types to be pre-registered, but named
 	// types will have a different type for the same kind
 	case reflect.Bool:
-		c, err = p.codecForBasicType(reflect.TypeOf(bool(false)))
+		c, err = p.codecForBasicType(reflect.TypeOf(bool(false)), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int:
-		c, err = p.codecForBasicType(reflect.TypeOf(int(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(int(0)), tag)
 		if err != nil {
 			return nil, err
 		}
 	case reflect.Int32:
-		c, err = p.codecForBasicType(reflect.TypeOf(int32(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(int32(0)), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int64:
-		c, err = p.codecForBasicType(reflect.TypeOf(int64(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(int64(0)), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint:
-		c, err = p.codecForBasicType(reflect.TypeOf(uint(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(uint(0)), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Float32:
-		c, err = p.codecForBasicType(reflect.TypeOf(float32(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(float32(0)), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Float64:
-		c, err = p.codecForBasicType(reflect.TypeOf(float64(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(float64(0)), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.String:
-		c, err = p.codecForBasicType(reflect.TypeOf(""))
+		c, err = p.codecForBasicType(reflect.TypeOf(""), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int8:
-		c, err = p.codecForBasicType(reflect.TypeOf(int8(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(int8(0)), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int16:
-		c, err = p.codecForBasicType(reflect.TypeOf(int16(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(int16(0)), tag)
 		if err != nil {
 			return nil, err
 		}
 	case reflect.Uint8:
-		c, err = p.codecForBasicType(reflect.TypeOf(uint8(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(uint8(0)), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint16:
-		c, err = p.codecForBasicType(reflect.TypeOf(uint16(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(uint16(0)), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint32:
-		c, err = p.codecForBasicType(reflect.TypeOf(uint32(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(uint32(0)), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint64:
-		c, err = p.codecForBasicType(reflect.TypeOf(uint64(0)))
+		c, err = p.codecForBasicType(reflect.TypeOf(uint64(0)), tag)
 		if err != nil {
 			return nil, err
 		}
@@ -224,5 +257,5 @@ func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ refl
 		return nil, fmt.Errorf("could not find or create a codec for %s", typ)
 	}
 
-	return registry.StoreOrSwap(typ, c), nil
+	return registry.StoreOrSwap(typ, tag, c), nil
 }

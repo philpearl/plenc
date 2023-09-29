@@ -1,7 +1,6 @@
 package prototest
 
 import (
-	fmt "fmt"
 	"testing"
 	"time"
 
@@ -13,10 +12,12 @@ import (
 )
 
 type pMsg1 struct {
-	V1        int64     `plenc:"1"`
-	V2        string    `plenc:"2"`
-	V3        string    `plenc:"3"`
-	Timestamp time.Time `plenc:"4"`
+	V1        int64             `plenc:"1"`
+	V2        string            `plenc:"2"`
+	V3        string            `plenc:"3"`
+	Timestamp time.Time         `plenc:"4"`
+	V5        int64             `plenc:"5,flat"`
+	V6        map[string]string `plenc:"6,proto"`
 }
 type pMsg2 struct {
 	V1 []pMsg1   `plenc:"1"`
@@ -40,6 +41,8 @@ func TestProto(t *testing.T) {
 				V2:        "2",
 				V3:        "3",
 				Timestamp: ts,
+				V5:        5,
+				V6:        map[string]string{"a": "b"},
 			},
 			{
 				V1: 5,
@@ -63,6 +66,8 @@ func TestProto(t *testing.T) {
 				V2:        "2",
 				V3:        "3",
 				Timestamp: t0,
+				V5:        5,
+				V6:        map[string]string{"a": "b"},
 			},
 			{
 				V1: 5,
@@ -84,7 +89,7 @@ func TestProto(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		fmt.Printf("%X\n", data)
+		// fmt.Printf("%X\n", data)
 		/*
 			 0A0808021201321A01330A08080A1201361A0137120404078001
 			 0A (1, WTlength)
