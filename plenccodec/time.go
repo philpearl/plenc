@@ -31,26 +31,28 @@ func (e *ptime) Standard() time.Time {
 // allow negative values though
 type TimeCodec struct{}
 
-// Size returns the number of bytes needed to encode a Time
-func (tc TimeCodec) Size(ptr unsafe.Pointer) (size int) {
+// size returns the number of bytes needed to encode a Time
+func (tc TimeCodec) size(ptr unsafe.Pointer) (size int) {
 	t := *(*time.Time)(ptr)
 	var e ptime
 	e.Set(t)
-	sl := IntCodec[int64]{}.Size(unsafe.Pointer(&e.Seconds))
-	nl := IntCodec[int32]{}.Size(unsafe.Pointer(&e.Nanoseconds))
-	return plenccore.SizeTag(plenccore.WTVarInt, 1) + sl + plenccore.SizeTag(plenccore.WTVarInt, 2) + nl
+	return IntCodec[int64]{}.Size(unsafe.Pointer(&e.Seconds), varInt1Tag) +
+		IntCodec[int32]{}.Size(unsafe.Pointer(&e.Nanoseconds), varInt2Tag)
 }
 
-// Append encodes a Time
-func (tc TimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+var (
+	varInt1Tag = plenccore.AppendTag(nil, plenccore.WTVarInt, 1)
+	varInt2Tag = plenccore.AppendTag(nil, plenccore.WTVarInt, 2)
+)
+
+// append encodes a Time
+func (tc TimeCodec) append(data []byte, ptr unsafe.Pointer) []byte {
 	t := *(*time.Time)(ptr)
 	var e ptime
 	e.Set(t)
 
-	data = plenccore.AppendTag(data, plenccore.WTVarInt, 1)
-	data = IntCodec[int64]{}.Append(data, unsafe.Pointer(&e.Seconds))
-	data = plenccore.AppendTag(data, plenccore.WTVarInt, 2)
-	data = IntCodec[int32]{}.Append(data, unsafe.Pointer(&e.Nanoseconds))
+	data = IntCodec[int64]{}.Append(data, unsafe.Pointer(&e.Seconds), varInt1Tag)
+	data = IntCodec[int32]{}.Append(data, unsafe.Pointer(&e.Nanoseconds), varInt2Tag)
 	return data
 }
 
@@ -114,31 +116,62 @@ func (tc TimeCodec) Descriptor() Descriptor {
 	return Descriptor{Type: FieldTypeTime}
 }
 
+func (c TimeCodec) Size(ptr unsafe.Pointer, tag []byte) int {
+	l := c.size(ptr)
+	if len(tag) != 0 {
+		l += len(tag) + plenccore.SizeVarUint(uint64(l))
+	}
+	return l
+}
+
+func (c TimeCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	if len(tag) != 0 {
+		data = append(data, tag...)
+		data = plenccore.AppendVarUint(data, uint64(c.size(ptr)))
+	}
+
+	return c.append(data, ptr)
+}
+
 type TimeCompatCodec struct {
 	TimeCodec
 }
 
-// Size returns the number of bytes needed to encode a Time
-func (tc TimeCompatCodec) Size(ptr unsafe.Pointer) (size int) {
+// size returns the number of bytes needed to encode a Time
+func (tc TimeCompatCodec) size(ptr unsafe.Pointer) (size int) {
 	t := *(*time.Time)(ptr)
 	var e ptime
 	e.Set(t)
-	sl := UintCodec[uint64]{}.Size(unsafe.Pointer(&e.Seconds))
-	nl := UintCodec[uint32]{}.Size(unsafe.Pointer(&e.Nanoseconds))
-	return plenccore.SizeTag(plenccore.WTVarInt, 1) + sl + plenccore.SizeTag(plenccore.WTVarInt, 2) + nl
+	return UintCodec[uint64]{}.Size(unsafe.Pointer(&e.Seconds), varInt1Tag) +
+		+UintCodec[uint32]{}.Size(unsafe.Pointer(&e.Nanoseconds), varInt2Tag)
 }
 
-// Append encodes a Time
-func (tc TimeCompatCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+// append encodes a Time
+func (tc TimeCompatCodec) append(data []byte, ptr unsafe.Pointer) []byte {
 	t := *(*time.Time)(ptr)
 	var e ptime
 	e.Set(t)
 
-	data = plenccore.AppendTag(data, plenccore.WTVarInt, 1)
-	data = UintCodec[uint64]{}.Append(data, unsafe.Pointer(&e.Seconds))
-	data = plenccore.AppendTag(data, plenccore.WTVarInt, 2)
-	data = UintCodec[uint32]{}.Append(data, unsafe.Pointer(&e.Nanoseconds))
+	data = UintCodec[uint64]{}.Append(data, unsafe.Pointer(&e.Seconds), varInt1Tag)
+	data = UintCodec[uint32]{}.Append(data, unsafe.Pointer(&e.Nanoseconds), varInt2Tag)
 	return data
+}
+
+func (c TimeCompatCodec) Size(ptr unsafe.Pointer, tag []byte) int {
+	l := c.size(ptr)
+	if len(tag) != 0 {
+		l += len(tag) + plenccore.SizeVarUint(uint64(l))
+	}
+	return l
+}
+
+func (c TimeCompatCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	if len(tag) != 0 {
+		data = append(data, tag...)
+		data = plenccore.AppendVarUint(data, uint64(c.size(ptr)))
+	}
+
+	return c.append(data, ptr)
 }
 
 // Read decodes a Time

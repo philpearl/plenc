@@ -136,7 +136,7 @@ func (c *StructCodec) Omit(ptr unsafe.Pointer) bool {
 	return false
 }
 
-func (c *StructCodec) Size(ptr unsafe.Pointer) (size int) {
+func (c *StructCodec) size(ptr unsafe.Pointer) (size int) {
 	for _, field := range c.fields {
 		// For most fields we have a pointer to the type, and this is the same
 		// when we call these functions for types within structs or when we
@@ -149,17 +149,13 @@ func (c *StructCodec) Size(ptr unsafe.Pointer) (size int) {
 			fptr = *(*unsafe.Pointer)(fptr)
 		}
 		if !field.codec.Omit(fptr) {
-			s := field.codec.Size(fptr)
-			if field.codec.WireType() == plenccore.WTLength {
-				s += plenccore.SizeVarUint(uint64(s))
-			}
-			size += len(field.tag) + s
+			size += field.codec.Size(fptr, field.tag)
 		}
 	}
 	return size
 }
 
-func (c *StructCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+func (c *StructCodec) append(data []byte, ptr unsafe.Pointer) []byte {
 	for _, field := range c.fields {
 		fptr := unsafe.Pointer(uintptr(ptr) + field.offset)
 		if field.deref {
@@ -168,15 +164,7 @@ func (c *StructCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 		if field.codec.Omit(fptr) {
 			continue
 		}
-		// TODO: In protobuf arrays of anything other than numbers are not
-		// "packed", but are repeated tag and all. This isn't strictly necessary
-		// for the protocol, but if we want to inter-operate... Well, we could
-		// just be able to read that without necessarily being able to write it.
-		data = append(data, field.tag...)
-		if field.codec.WireType() == plenccore.WTLength {
-			data = plenccore.AppendVarUint(data, uint64(field.codec.Size(fptr)))
-		}
-		data = field.codec.Append(data, fptr)
+		data = field.codec.Append(data, fptr, field.tag)
 	}
 
 	return data
@@ -244,4 +232,20 @@ func (c *StructCodec) Descriptor() Descriptor {
 		d.Elements[i].Name = f.name
 	}
 	return d
+}
+
+func (c *StructCodec) Size(ptr unsafe.Pointer, tag []byte) int {
+	l := c.size(ptr)
+	if len(tag) != 0 {
+		l += len(tag) + plenccore.SizeVarUint(uint64(l))
+	}
+	return l
+}
+
+func (c *StructCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	if len(tag) != 0 {
+		data = append(data, tag...)
+		data = plenccore.AppendVarUint(data, uint64(c.size(ptr)))
+	}
+	return c.append(data, ptr)
 }

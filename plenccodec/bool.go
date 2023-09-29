@@ -10,13 +10,13 @@ import (
 // BoolCodec is a codec for a bool
 type BoolCodec struct{}
 
-// Size returns the number of bytes needed to encode a bool
-func (BoolCodec) Size(ptr unsafe.Pointer) int {
+// size returns the number of bytes needed to encode a bool
+func (BoolCodec) size(ptr unsafe.Pointer) int {
 	return 1
 }
 
-// Append encodes a bool
-func (BoolCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+// append encodes a bool
+func (BoolCodec) append(data []byte, ptr unsafe.Pointer) []byte {
 	var uv uint64
 	if *(*bool)(ptr) {
 		uv = 1
@@ -51,4 +51,13 @@ func (c BoolCodec) Omit(ptr unsafe.Pointer) bool {
 
 func (c BoolCodec) Descriptor() Descriptor {
 	return Descriptor{Type: FieldTypeBool}
+}
+
+func (c BoolCodec) Size(ptr unsafe.Pointer, tag []byte) int {
+	return c.size(ptr) + len(tag)
+}
+
+func (c BoolCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	data = append(data, tag...)
+	return c.append(data, ptr)
 }

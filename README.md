@@ -55,9 +55,11 @@ No, as it stands it is not quite protobuf. It is largely protobuf and has a soft
 
 The big difference is that plenc uses its own encoding for slices of types that are implemented with WTLength. Plenc introduces a new wire-type for these - WTSlice (3). The Tag byte is followed by a unsigned varint containing the number of elements in the slice, then each element is encoded with its length as an unsigned varint then the element encoding. This encoding means the receiver easily knows the length of the slice and can allocate it in a single operation.
 
-Plenc does aim to be able to read standard protobuf. It can read slices encoded with the standard protobuf encoding. There may be gaps in support. 
+You can encode slices with the standard protobuf encoding by using a Plenc object and setting the ProtoCompatibleSlices option. With this option set plenc will use the standard protobuf encoding for slices.
 
-In particular using fixed32 and fixed64 encodings for integer types is not currently supported. I think we could support that via an option on the plenc tag that would select a different codec.
+Plenc is able to read most protobuf data encoded with simple types and standard encodings. It isn't currently able to read proto encoded maps, for example. 
+
+Also using fixed32 and fixed64 encodings for integer types is not currently supported. I think we could support that via an option on the plenc tag that would select a different codec.
 
 ## Slices
 Neither plenc nor protobuf distinuguish between empty and nil slices. 

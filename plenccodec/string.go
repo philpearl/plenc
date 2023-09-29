@@ -11,13 +11,13 @@ import (
 // StringCodec is a codec for an string
 type StringCodec struct{}
 
-// Size returns the number of bytes needed to encode a string
-func (StringCodec) Size(ptr unsafe.Pointer) int {
+// size returns the number of bytes needed to encode a string
+func (StringCodec) size(ptr unsafe.Pointer) int {
 	return len(*(*string)(ptr))
 }
 
-// Append encodes a string
-func (StringCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+// append encodes a string
+func (StringCodec) append(data []byte, ptr unsafe.Pointer) []byte {
 	s := *(*string)(ptr)
 	return append(data, s...)
 }
@@ -47,16 +47,32 @@ func (StringCodec) Descriptor() Descriptor {
 	return Descriptor{Type: FieldTypeString}
 }
 
+func (c StringCodec) Size(ptr unsafe.Pointer, tag []byte) int {
+	l := c.size(ptr)
+	if len(tag) > 0 {
+		l += len(tag) + plenccore.SizeVarUint(uint64(l))
+	}
+	return l
+}
+
+func (c StringCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	if len(tag) != 0 {
+		data = append(data, tag...)
+		data = plenccore.AppendVarUint(data, uint64(c.size(ptr)))
+	}
+	return c.append(data, ptr)
+}
+
 // BytesCodec is a codec for a byte slice
 type BytesCodec struct{}
 
-// Size returns the number of bytes needed to encode a string
-func (BytesCodec) Size(ptr unsafe.Pointer) int {
+// size returns the number of bytes needed to encode a string
+func (BytesCodec) size(ptr unsafe.Pointer) int {
 	return len(*(*[]byte)(ptr))
 }
 
-// Append encodes a []byte
-func (BytesCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+// append encodes a []byte
+func (BytesCodec) append(data []byte, ptr unsafe.Pointer) []byte {
 	s := *(*[]byte)(ptr)
 	return append(data, s...)
 }
@@ -86,6 +102,22 @@ func (c BytesCodec) Omit(ptr unsafe.Pointer) bool {
 
 func (BytesCodec) Descriptor() Descriptor {
 	return Descriptor{Type: FieldTypeString}
+}
+
+func (c BytesCodec) Size(ptr unsafe.Pointer, tag []byte) int {
+	l := c.size(ptr)
+	if len(tag) != 0 {
+		l += len(tag) + plenccore.SizeVarUint(uint64(l))
+	}
+	return l
+}
+
+func (c BytesCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	if len(tag) != 0 {
+		data = append(data, tag...)
+		data = plenccore.AppendVarUint(data, uint64(c.size(ptr)))
+	}
+	return c.append(data, ptr)
 }
 
 type Interner interface {

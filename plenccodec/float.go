@@ -12,13 +12,8 @@ import (
 // Float64Codec is a coddec for a float64
 type Float64Codec struct{}
 
-// Size returns the number of bytes needed to encode a float64
-func (Float64Codec) Size(ptr unsafe.Pointer) int {
-	return 8
-}
-
-// Append encodes a float64
-func (Float64Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
+// append encodes a float64
+func (Float64Codec) append(data []byte, ptr unsafe.Pointer) []byte {
 	var b [8]byte
 	binary.LittleEndian.PutUint64(b[:], math.Float64bits(*(*float64)(ptr)))
 	return append(data, b[:]...)
@@ -57,16 +52,20 @@ func (c Float64Codec) Descriptor() Descriptor {
 	return Descriptor{Type: FieldTypeFloat64}
 }
 
+func (c Float64Codec) Size(ptr unsafe.Pointer, tag []byte) int {
+	return 8 + len(tag)
+}
+
+func (c Float64Codec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	data = append(data, tag...)
+	return c.append(data, ptr)
+}
+
 // Float32Codec is a coddec for a float32
 type Float32Codec struct{}
 
-// Size returns the number of bytes needed to encode a float32
-func (Float32Codec) Size(ptr unsafe.Pointer) int {
-	return 4
-}
-
-// Append encodes a float32
-func (Float32Codec) Append(data []byte, ptr unsafe.Pointer) []byte {
+// append encodes a float32
+func (Float32Codec) append(data []byte, ptr unsafe.Pointer) []byte {
 	var b [4]byte
 	binary.LittleEndian.PutUint32(b[:], math.Float32bits(*(*float32)(ptr)))
 	return append(data, b[:]...)
@@ -103,4 +102,13 @@ func (c Float32Codec) Omit(ptr unsafe.Pointer) bool {
 
 func (c Float32Codec) Descriptor() Descriptor {
 	return Descriptor{Type: FieldTypeFloat32}
+}
+
+func (c Float32Codec) Size(ptr unsafe.Pointer, tag []byte) int {
+	return 4 + len(tag)
+}
+
+func (c Float32Codec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	data = append(data, tag...)
+	return c.append(data, ptr)
 }

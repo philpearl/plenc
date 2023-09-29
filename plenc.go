@@ -19,7 +19,13 @@ type Plenc struct {
 	// google.protobuf.Timestamp. Set this to true to enable a proto compatible
 	// time codec. Set it before calling RegisterDefaultCodecs.
 	ProtoCompatibleTime bool
-	codecRegistry       baseRegistry
+	// ProtoCompatibleArrays controls how plenc handles slices and arrays of
+	// data. When set to true Plenc writes arrays that are compatible with
+	// protobuf. If not true it uses a format that allows arrays to be read more
+	// efficiently. Set it before calling RegisterDefaultCodecs.
+	ProtoCompatibleArrays bool
+
+	codecRegistry baseRegistry
 }
 
 func (p *Plenc) RegisterCodec(typ reflect.Type, c plenccodec.Codec) {

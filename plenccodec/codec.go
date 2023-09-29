@@ -24,8 +24,6 @@ import (
 // for the life of the program.
 type Codec interface {
 	Omit(ptr unsafe.Pointer) bool
-	Size(ptr unsafe.Pointer) (size int)
-	Append(data []byte, ptr unsafe.Pointer) []byte
 	Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error)
 	New() unsafe.Pointer
 	WireType() plenccore.WireType
@@ -35,6 +33,17 @@ type Codec interface {
 	// original type. The descriptor can also be serialised (either as JSON or
 	// plenc), so can be stored or communicated with another system
 	Descriptor() Descriptor
+
+	// Size returns the size of the encoded data including the tag and
+	// for WTLength types the varint encoded length of the data. If the tag is
+	// nil then it is not included in the size and neither is the length for
+	// WTLength types
+	Size(ptr unsafe.Pointer, tag []byte) int
+
+	// Append appends the encoded data including the tag and for WTLength
+	// types the varint encoded length of the data. If the tag is nil then it is
+	// not included in the data and neither is the length for WTLength types
+	Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte
 }
 
 // CodecRegistry is a repository of pre-existing Codecs

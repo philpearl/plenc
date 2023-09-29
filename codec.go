@@ -104,7 +104,15 @@ func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ refl
 			}
 			c = plenccodec.WTFixedSliceWrapper{BaseSliceWrapper: bs}
 		case plenccore.WTLength:
-			c = plenccodec.WTLengthSliceWrapper{BaseSliceWrapper: bs}
+			if p.ProtoCompatibleArrays {
+				// When writing we just want to repeat the encoding of an
+				// individual element within the slice as if it was a separate
+				// element.
+				// When reading we'll read elements repeatedly and append them to the array
+				c = plenccodec.ProtoSliceWrapper{BaseSliceWrapper: bs}
+			} else {
+				c = plenccodec.WTLengthSliceWrapper{BaseSliceWrapper: bs}
+			}
 		case plenccore.WTSlice:
 			return nil, fmt.Errorf("slices of slices of structs or strings are not supported")
 		default:

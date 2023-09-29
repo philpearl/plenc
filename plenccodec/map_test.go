@@ -106,6 +106,13 @@ func TestMap(t *testing.T) {
 				M: map[string]string{"A": "B"},
 			},
 		},
+		{
+			name: "map in struct with following",
+			data: thing{
+				M: map[string]string{"A": "B"},
+				I: 100,
+			},
+		},
 	}
 
 	for _, test := range tests {

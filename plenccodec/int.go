@@ -10,13 +10,13 @@ import (
 // IntCodec is a coddec for an int
 type IntCodec[T int | int8 | int16 | int32 | int64] struct{}
 
-// Size returns the number of bytes needed to encode a Int
-func (IntCodec[T]) Size(ptr unsafe.Pointer) int {
+// size returns the number of bytes needed to encode a Int
+func (IntCodec[T]) size(ptr unsafe.Pointer) int {
 	return plenccore.SizeVarInt(int64(*(*T)(ptr)))
 }
 
-// Append encodes a Int
-func (IntCodec[T]) Append(data []byte, ptr unsafe.Pointer) []byte {
+// append encodes a Int
+func (IntCodec[T]) append(data []byte, ptr unsafe.Pointer) []byte {
 	return plenccore.AppendVarInt(data, int64(*(*T)(ptr)))
 }
 
@@ -49,16 +49,25 @@ func (c IntCodec[T]) Descriptor() Descriptor {
 	return Descriptor{Type: FieldTypeInt}
 }
 
+func (c IntCodec[T]) Size(ptr unsafe.Pointer, tag []byte) int {
+	return c.size(ptr) + len(tag)
+}
+
+func (c IntCodec[T]) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	data = append(data, tag...)
+	return c.append(data, ptr)
+}
+
 // UintCodec is a coddec for a uint
 type UintCodec[T uint | uint8 | uint16 | uint32 | uint64] struct{}
 
-// Size returns the number of bytes needed to encode a Int
-func (UintCodec[T]) Size(ptr unsafe.Pointer) int {
+// size returns the number of bytes needed to encode a Int
+func (UintCodec[T]) size(ptr unsafe.Pointer) int {
 	return plenccore.SizeVarUint(uint64(*(*T)(ptr)))
 }
 
-// Append encodes a Int
-func (UintCodec[T]) Append(data []byte, ptr unsafe.Pointer) []byte {
+// append encodes a Int
+func (UintCodec[T]) append(data []byte, ptr unsafe.Pointer) []byte {
 	return plenccore.AppendVarUint(data, uint64(*(*T)(ptr)))
 }
 
@@ -89,4 +98,13 @@ func (c UintCodec[T]) Omit(ptr unsafe.Pointer) bool {
 
 func (c UintCodec[T]) Descriptor() Descriptor {
 	return Descriptor{Type: FieldTypeUint}
+}
+
+func (c UintCodec[T]) Size(ptr unsafe.Pointer, tag []byte) int {
+	return c.size(ptr) + len(tag)
+}
+
+func (c UintCodec[T]) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	data = append(data, tag...)
+	return c.append(data, ptr)
 }

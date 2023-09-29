@@ -17,23 +17,6 @@ func (p PointerWrapper) Omit(ptr unsafe.Pointer) bool {
 	return t == nil
 }
 
-func (p PointerWrapper) Size(ptr unsafe.Pointer) (size int) {
-	t := *(*unsafe.Pointer)(ptr)
-	if t == nil {
-		return 0
-	}
-	return p.Underlying.Size(t)
-}
-
-func (p PointerWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
-	t := *(*unsafe.Pointer)(ptr)
-	if t == nil {
-		return data
-	}
-
-	return p.Underlying.Append(data, t)
-}
-
 func (p PointerWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	t := (*unsafe.Pointer)(ptr)
 	if *t == nil {
@@ -56,10 +39,22 @@ func (p PointerWrapper) Descriptor() Descriptor {
 	return p.Underlying.Descriptor()
 }
 
-// SliceWrapper is a codec for a slice of a type.
-type SliceWrapper struct {
-	Underlying Codec
-	EltSize    uintptr
+func (p PointerWrapper) Size(ptr unsafe.Pointer, tag []byte) int {
+	// This should never be called if Omit returns true
+	t := *(*unsafe.Pointer)(ptr)
+	if t == nil {
+		return 0
+	}
+	return p.Underlying.Size(t, tag)
+}
+
+func (p PointerWrapper) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	// This should never be called if Omit returns true
+	t := *(*unsafe.Pointer)(ptr)
+	if t == nil {
+		return data
+	}
+	return p.Underlying.Append(data, t, tag)
 }
 
 type BaseSliceWrapper struct {
@@ -91,23 +86,23 @@ func (c BaseSliceWrapper) Descriptor() Descriptor {
 }
 
 // WTLengthSliceWrapper is a codec for a slice of a type that's encoded using
-// the WTSlice wire type.
+// the WTLength wire type. It uses the WTSlice wire type for the slice itself.
 type WTLengthSliceWrapper struct {
 	BaseSliceWrapper
 }
 
-func (c WTLengthSliceWrapper) Size(ptr unsafe.Pointer) int {
+func (c WTLengthSliceWrapper) size(ptr unsafe.Pointer) int {
 	h := *(*sliceHeader)(ptr)
 	size := plenccore.SizeVarUint(uint64(h.Len))
 	for i := 0; i < h.Len; i++ {
-		s := c.Underlying.Size(unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize))
+		s := c.Underlying.Size(unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
 		size += s + plenccore.SizeVarUint(uint64(s))
 	}
 	return size
 }
 
-// Append encodes the slice, and appends the encoded version to data
-func (c WTLengthSliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
+// append encodes the slice, and appends the encoded version to data
+func (c WTLengthSliceWrapper) append(data []byte, ptr unsafe.Pointer) []byte {
 	h := *(*sliceHeader)(ptr)
 
 	// Append the count of items in the slice
@@ -115,8 +110,8 @@ func (c WTLengthSliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
 	// Append each of the items. They're all prefixed by their length
 	for i := 0; i < h.Len; i++ {
 		ptr := unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize)
-		data = plenccore.AppendVarUint(data, uint64(c.Underlying.Size(ptr)))
-		data = c.Underlying.Append(data, ptr)
+		data = plenccore.AppendVarUint(data, uint64(c.Underlying.Size(ptr, nil)))
+		data = c.Underlying.Append(data, ptr, nil)
 	}
 	return data
 }
@@ -211,22 +206,26 @@ func (c WTLengthSliceWrapper) WireType() plenccore.WireType {
 	return plenccore.WTSlice
 }
 
+func (c WTLengthSliceWrapper) Size(ptr unsafe.Pointer, tag []byte) int {
+	return c.size(ptr) + len(tag)
+}
+
+func (c WTLengthSliceWrapper) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	data = append(data, tag...)
+	return c.append(data, ptr)
+}
+
 // WTFixedSliceWrapper is a codec for a type that's encoded as a fixed 32 or 64
 // byte value (i.e. float32 or float64)
 type WTFixedSliceWrapper struct {
 	BaseSliceWrapper
 }
 
-func (c WTFixedSliceWrapper) Size(ptr unsafe.Pointer) int {
-	h := *(*sliceHeader)(ptr)
-	return c.Underlying.Size(nil) * h.Len
-}
-
-// Append encodes the slice without the tag
-func (c WTFixedSliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
+// append encodes the slice without the tag
+func (c WTFixedSliceWrapper) append(data []byte, ptr unsafe.Pointer) []byte {
 	h := *(*sliceHeader)(ptr)
 	for i := 0; i < h.Len; i++ {
-		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
+		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
 	}
 	return data
 }
@@ -234,7 +233,7 @@ func (c WTFixedSliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
 // Read decodes a slice. It assumes the WTLength tag has already been decoded
 // and that the data slice is the corect size for the slice
 func (c WTFixedSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
-	count := len(data) / c.Underlying.Size(nil)
+	count := len(data) / c.Underlying.Size(nil, nil)
 
 	// Now make sure we have enough data in the slice
 	h := (*sliceHeader)(ptr)
@@ -257,26 +256,43 @@ func (c WTFixedSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore.
 	return offset, nil
 }
 
+func (p WTFixedSliceWrapper) Size(ptr unsafe.Pointer, tag []byte) int {
+	h := *(*sliceHeader)(ptr)
+	l := p.Underlying.Size(nil, nil) * h.Len
+	if len(tag) > 0 {
+		l += len(tag) + plenccore.SizeVarUint(uint64(l))
+	}
+	return l
+}
+
+func (p WTFixedSliceWrapper) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	if len(tag) > 0 {
+		data = append(data, tag...)
+		data = plenccore.AppendVarUint(data, uint64(p.Size(ptr, nil)))
+	}
+	return p.append(data, ptr)
+}
+
 // WTVarIntSliceWrapper is a codec for a type encoded using the WTVarInt wire
-// type
+// type.
 type WTVarIntSliceWrapper struct {
 	BaseSliceWrapper
 }
 
-func (c WTVarIntSliceWrapper) Size(ptr unsafe.Pointer) int {
+func (c WTVarIntSliceWrapper) size(ptr unsafe.Pointer) int {
 	h := *(*sliceHeader)(ptr)
 	size := 0
 	for i := 0; i < h.Len; i++ {
-		size += c.Underlying.Size(unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize))
+		size += c.Underlying.Size(unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
 	}
 	return size
 }
 
-// Append encodes the slice without the tag
-func (c WTVarIntSliceWrapper) Append(data []byte, ptr unsafe.Pointer) []byte {
+// append encodes the slice without the tag
+func (c WTVarIntSliceWrapper) append(data []byte, ptr unsafe.Pointer) []byte {
 	h := *(*sliceHeader)(ptr)
 	for i := 0; i < h.Len; i++ {
-		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize))
+		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
 	}
 	return data
 }
@@ -314,4 +330,84 @@ func (c WTVarIntSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 	}
 
 	return offset, nil
+}
+
+func (p WTVarIntSliceWrapper) Size(ptr unsafe.Pointer, tag []byte) int {
+	l := p.size(ptr)
+	if len(tag) > 0 {
+		l += len(tag) + plenccore.SizeVarUint(uint64(l))
+	}
+	return l
+}
+
+func (p WTVarIntSliceWrapper) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	if len(tag) > 0 {
+		data = append(data, tag...)
+		data = plenccore.AppendVarUint(data, uint64(p.size(ptr)))
+	}
+	return p.append(data, ptr)
+}
+
+// ProtoSliceWrapper is for encoding slices of WTLength encoded objects how
+// protobuf does it. When writing the elements of the slice are simply repeated.
+// When reading each element is treated separately and appended to the slice.
+//
+// Note this does not work outside of a struct as we don't add tags and
+// therefore the length of each element is not known
+type ProtoSliceWrapper struct {
+	BaseSliceWrapper
+}
+
+// Size calculates the amount of data needed for this slice, including
+// repeated tags and lengths
+func (c ProtoSliceWrapper) Size(ptr unsafe.Pointer, tag []byte) int {
+	h := *(*sliceHeader)(ptr)
+	var l int
+	for i := 0; i < h.Len; i++ {
+		l += c.Underlying.Size(unsafe.Add(h.Data, uintptr(i)*c.EltSize), tag)
+	}
+	return l
+}
+
+// Append appends the data for this slice, including repeated tags and
+// lengths for each element
+func (c ProtoSliceWrapper) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	h := *(*sliceHeader)(ptr)
+	for i := 0; i < h.Len; i++ {
+		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), tag)
+	}
+	return data
+}
+
+func (c ProtoSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
+	h := (*sliceHeader)(ptr)
+	if h.Cap == h.Len {
+		// Need to make room
+		cap := h.Cap * 2
+		if cap == 0 {
+			cap = 8
+		}
+		nh := sliceHeader{
+			Data: unsafe_NewArray(c.EltType, int(cap)),
+			Len:  h.Len,
+			Cap:  cap,
+		}
+		if h.Len != 0 {
+			// copy over the old data
+			typedslicecopy(c.EltType, nh, *h)
+		}
+		nh.Len = h.Len
+		nh.Cap = cap
+
+		*h = nh
+	}
+
+	dptr := unsafe.Add(h.Data, h.Len*int(c.EltSize))
+	typedmemclr(unpackEFace(c.EltType).data, dptr)
+	n, err = c.Underlying.Read(data, dptr, plenccore.WTLength)
+	if err != nil {
+		return 0, err
+	}
+	h.Len++
+	return n, nil
 }

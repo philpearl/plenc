@@ -11,4 +11,7 @@ require (
 	google.golang.org/protobuf v1.30.0
 )
 
-require github.com/stretchr/testify v1.6.1 // indirect
+require (
+	github.com/stretchr/testify v1.6.1 // indirect
+	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
+)
