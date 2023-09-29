@@ -30,9 +30,9 @@ func TestString(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			l := c.Size(unsafe.Pointer(&test))
+			l := c.Size(unsafe.Pointer(&test), nil)
 
-			data := c.Append(nil, unsafe.Pointer(&test))
+			data := c.Append(nil, unsafe.Pointer(&test), nil)
 
 			if len(data) != l {
 				t.Errorf("data not expected length. %d %d", l, len(data))
@@ -92,8 +92,8 @@ func TestInternedString(t *testing.T) {
 	var data []byte
 	allocs := testing.AllocsPerRun(1000, func() {
 		for _, test := range values {
-			l := c.Size(unsafe.Pointer(&test))
-			data = c.Append(data[:0], unsafe.Pointer(&test))
+			l := c.Size(unsafe.Pointer(&test), nil)
+			data = c.Append(data[:0], unsafe.Pointer(&test), nil)
 
 			if len(data) != l {
 				t.Errorf("data not expected length. %d %d", l, len(data))
@@ -215,11 +215,48 @@ func TestStringSlice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data := c.Append(nil, unsafe.Pointer(&v))
+	data := c.Append(nil, unsafe.Pointer(&v), nil)
 
 	var out []string
 	_, err = c.Read(data, unsafe.Pointer(&out), c.WireType())
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(v, out); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestStringSliceCompat(t *testing.T) {
+	type my struct {
+		V []string `plenc:"1"`
+	}
+	v := my{V: []string{
+		"M珣X觻%ƾƽ9J9S腸H滩Ýk",
+		"Eŕ漠",
+		"织睱Ħ7õ咖Ê騄",
+		"t沋晛岊ıƭ宋Yȯ¿q&",
+		"Ʊãʙ#訃睩愴émė6Ɍ邔5汚鞗Ƈ",
+		"桏&",
+		"?Ȗ曽Ȯɕ稌!r囮ǯWQ猒÷飹嫗MJ",
+		"",
+		"cheese it",
+		"hats",
+	}}
+
+	var pl plenc.Plenc
+	pl.ProtoCompatibleArrays = true
+	pl.RegisterDefaultCodecs()
+
+	data, err := pl.Marshal(nil, v)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out my
+
+	if err := pl.Unmarshal(data, &out); err != nil {
 		t.Fatal(err)
 	}
 

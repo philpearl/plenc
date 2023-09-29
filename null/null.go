@@ -42,14 +42,14 @@ func (c nullIntCodec) Omit(ptr unsafe.Pointer) bool {
 	return !n.Valid
 }
 
-func (c nullIntCodec) Size(ptr unsafe.Pointer) (size int) {
+func (c nullIntCodec) Size(ptr unsafe.Pointer, tag []byte) (size int) {
 	ni := (*null.Int)(ptr)
-	return c.IntCodec.Size(unsafe.Pointer(&ni.Int64))
+	return c.IntCodec.Size(unsafe.Pointer(&ni.Int64), tag)
 }
 
-func (c nullIntCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+func (c nullIntCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
 	ni := (*null.Int)(ptr)
-	return c.IntCodec.Append(data, unsafe.Pointer(&ni.Int64))
+	return c.IntCodec.Append(data, unsafe.Pointer(&ni.Int64), tag)
 }
 
 func (c nullIntCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
@@ -76,14 +76,14 @@ func (c nullBoolCodec) Omit(ptr unsafe.Pointer) bool {
 	return !n.Valid
 }
 
-func (c nullBoolCodec) Size(ptr unsafe.Pointer) (size int) {
+func (c nullBoolCodec) Size(ptr unsafe.Pointer, tag []byte) (size int) {
 	ni := (*null.Bool)(ptr)
-	return c.BoolCodec.Size(unsafe.Pointer(&ni.Bool))
+	return c.BoolCodec.Size(unsafe.Pointer(&ni.Bool), tag)
 }
 
-func (c nullBoolCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+func (c nullBoolCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
 	ni := (*null.Bool)(ptr)
-	return c.BoolCodec.Append(data, unsafe.Pointer(&ni.Bool))
+	return c.BoolCodec.Append(data, unsafe.Pointer(&ni.Bool), tag)
 }
 
 func (c nullBoolCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
@@ -110,14 +110,14 @@ func (c nullFloatCodec) Omit(ptr unsafe.Pointer) bool {
 	return !n.Valid
 }
 
-func (c nullFloatCodec) Size(ptr unsafe.Pointer) (size int) {
+func (c nullFloatCodec) Size(ptr unsafe.Pointer, tag []byte) (size int) {
 	nf := (*null.Float)(ptr)
-	return c.Float64Codec.Size(unsafe.Pointer(&nf.Float64))
+	return c.Float64Codec.Size(unsafe.Pointer(&nf.Float64), tag)
 }
 
-func (c nullFloatCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+func (c nullFloatCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
 	nf := (*null.Float)(ptr)
-	return c.Float64Codec.Append(data, unsafe.Pointer(&nf.Float64))
+	return c.Float64Codec.Append(data, unsafe.Pointer(&nf.Float64), tag)
 }
 
 func (c nullFloatCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
@@ -145,14 +145,14 @@ func (c nullStringCodec) Omit(ptr unsafe.Pointer) bool {
 	return !n.Valid
 }
 
-func (c nullStringCodec) Size(ptr unsafe.Pointer) (size int) {
+func (c nullStringCodec) Size(ptr unsafe.Pointer, tag []byte) (size int) {
 	ns := (*null.String)(ptr)
-	return c.StringCodec.Size(unsafe.Pointer(&ns.String))
+	return c.StringCodec.Size(unsafe.Pointer(&ns.String), tag)
 }
 
-func (c nullStringCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+func (c nullStringCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
 	ns := (*null.String)(ptr)
-	return c.StringCodec.Append(data, unsafe.Pointer(&ns.String))
+	return c.StringCodec.Append(data, unsafe.Pointer(&ns.String), tag)
 }
 
 func (c nullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
@@ -200,14 +200,14 @@ func (c *nullTimeCodec) Omit(ptr unsafe.Pointer) bool {
 	return !n.Valid
 }
 
-func (c *nullTimeCodec) Size(ptr unsafe.Pointer) (size int) {
+func (c *nullTimeCodec) Size(ptr unsafe.Pointer, tag []byte) (size int) {
 	nt := (*null.Time)(ptr)
-	return c.TimeCodec.Size(unsafe.Pointer(&nt.Time))
+	return c.TimeCodec.Size(unsafe.Pointer(&nt.Time), tag)
 }
 
-func (c *nullTimeCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+func (c *nullTimeCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
 	nt := (*null.Time)(ptr)
-	return c.TimeCodec.Append(data, unsafe.Pointer(&nt.Time))
+	return c.TimeCodec.Append(data, unsafe.Pointer(&nt.Time), tag)
 }
 
 func (c *nullTimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {

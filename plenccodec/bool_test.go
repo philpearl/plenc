@@ -11,8 +11,8 @@ import (
 func TestBool(t *testing.T) {
 	c := plenccodec.BoolCodec{}
 	for _, b := range []bool{false, true} {
-		s := c.Size(unsafe.Pointer(&b))
-		data := c.Append(nil, unsafe.Pointer(&b))
+		s := c.Size(unsafe.Pointer(&b), nil)
+		data := c.Append(nil, unsafe.Pointer(&b), nil)
 		var a bool
 		n, err := c.Read(data, unsafe.Pointer(&a), c.WireType())
 		if err != nil {

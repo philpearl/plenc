@@ -34,7 +34,7 @@ func TestTime(t *testing.T) {
 			var t0 twrap
 			f.Fuzz(&t0)
 
-			data := c.Append(nil, unsafe.Pointer(&t0))
+			data := c.Append(nil, unsafe.Pointer(&t0), nil)
 
 			var t1 twrap
 			n, err := c.Read(data, unsafe.Pointer(&t1), plenccore.WTLength)

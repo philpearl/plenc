@@ -8,7 +8,7 @@ import (
 	"github.com/philpearl/plenc/plenccore"
 )
 
-// One map we handle is one that can deal with JSON map[string]interface{}. In
+// One map we handle is one that can deal with JSON map[string]any. In
 // this case the value is either nil, string, integer, float64, bool, array (of
 // these types) or object (another map[string]interface). We would need to
 // encode the value type as the standard wire types of proto don't encode enough
@@ -19,11 +19,11 @@ import (
 // bit denser has faster to parse.
 
 // JSONMapCodec is for serialising JSON maps encoded in Go as
-// map[string]interface{}. To use this codec you must register it for use with
-// map[string]interface{} or a named map[string]interface{} type
+// map[string]any. To use this codec you must register it for use with
+// map[string]any or a named map[string]any type
 type JSONMapCodec struct{}
 
-// JSONArrayCodec is for serialising JSON arrays encoded as []interface{}
+// JSONArrayCodec is for serialising JSON arrays encoded as []any
 type JSONArrayCodec struct{}
 
 type jsonType uint
@@ -43,9 +43,9 @@ func (JSONMapCodec) Omit(ptr unsafe.Pointer) bool {
 	return ptr == nil
 }
 
-func (c JSONMapCodec) Size(ptr unsafe.Pointer) (size int) {
+func (c JSONMapCodec) size(ptr unsafe.Pointer) (size int) {
 	// this is just a map pointer here!
-	var m map[string]interface{}
+	var m map[string]any
 	*(*unsafe.Pointer)((unsafe.Pointer)(&m)) = ptr
 
 	// We'll use the WTSlice wire type, so first is the number of items
@@ -58,16 +58,16 @@ func (c JSONMapCodec) Size(ptr unsafe.Pointer) (size int) {
 	return size
 }
 
-func (c JSONMapCodec) sizeKV(k string, v interface{}) (size int) {
+func (c JSONMapCodec) sizeKV(k string, v any) (size int) {
 	size += plenccore.SizeTag(StringCodec{}.WireType(), 1)
 	size += plenccore.SizeVarUint(uint64(len(k)))
 	size += len(k)
 	return size + sizeJSONValue(v)
 }
 
-func (c JSONMapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
+func (c JSONMapCodec) append(data []byte, ptr unsafe.Pointer) []byte {
 	// this is just a map pointer here!
-	var m map[string]interface{}
+	var m map[string]any
 	*(*unsafe.Pointer)((unsafe.Pointer)(&m)) = ptr
 
 	// First the number of items
@@ -83,10 +83,10 @@ func (c JSONMapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 	return data
 }
 
-func (c JSONMapCodec) appendKV(data []byte, k string, v interface{}) []byte {
-	data = plenccore.AppendTag(data, StringCodec{}.WireType(), 1)
-	data = plenccore.AppendVarUint(data, uint64(len(k)))
-	data = StringCodec{}.Append(data, unsafe.Pointer(&k))
+var keyTag = plenccore.AppendTag(nil, StringCodec{}.WireType(), 1)
+
+func (c JSONMapCodec) appendKV(data []byte, k string, v any) []byte {
+	data = StringCodec{}.Append(data, unsafe.Pointer(&k), keyTag)
 	return appendJSONValue(data, v)
 }
 
@@ -97,10 +97,10 @@ func (c JSONMapCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireTyp
 	}
 	offset := n
 
-	m := *(*map[string]interface{})(ptr)
+	m := *(*map[string]any)(ptr)
 	if m == nil {
-		m = make(map[string]interface{}, count)
-		*(*map[string]interface{})(ptr) = m
+		m = make(map[string]any, count)
+		*(*map[string]any)(ptr) = m
 	}
 
 	for ; count > 0; count-- {
@@ -110,7 +110,7 @@ func (c JSONMapCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireTyp
 		}
 		offset += n
 		var key string
-		var val interface{}
+		var val any
 
 		n, err := readJSONKV(data[offset:offset+int(l)], &key, &val)
 		if err != nil {
@@ -124,7 +124,7 @@ func (c JSONMapCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireTyp
 }
 
 func (c JSONMapCodec) New() unsafe.Pointer {
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 	return unsafe.Pointer(&m)
 }
 
@@ -135,12 +135,21 @@ func (c JSONMapCodec) Descriptor() Descriptor {
 	return Descriptor{Type: FieldTypeJSONObject}
 }
 
-func (c JSONArrayCodec) Omit(ptr unsafe.Pointer) bool {
-	return (ptr == nil) || (len(*(*[]interface{})(ptr)) == 0)
+func (c JSONMapCodec) Size(ptr unsafe.Pointer, tag []byte) int {
+	return c.size(ptr) + len(tag)
 }
 
-func (c JSONArrayCodec) Size(ptr unsafe.Pointer) (size int) {
-	a := *(*[]interface{})(ptr)
+func (c JSONMapCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	data = append(data, tag...)
+	return c.append(data, ptr)
+}
+
+func (c JSONArrayCodec) Omit(ptr unsafe.Pointer) bool {
+	return (ptr == nil) || (len(*(*[]any)(ptr)) == 0)
+}
+
+func (c JSONArrayCodec) size(ptr unsafe.Pointer) (size int) {
+	a := *(*[]any)(ptr)
 	size = plenccore.SizeVarUint(uint64(len(a)))
 	// Each entry is encoded preceeded by its length
 	for _, val := range a {
@@ -150,8 +159,8 @@ func (c JSONArrayCodec) Size(ptr unsafe.Pointer) (size int) {
 	return size
 }
 
-func (c JSONArrayCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
-	a := *(*[]interface{})(ptr)
+func (c JSONArrayCodec) append(data []byte, ptr unsafe.Pointer) []byte {
+	a := *(*[]any)(ptr)
 	data = plenccore.AppendVarUint(data, uint64(len(a)))
 	// Each entry is encoded preceeded by its length
 	for _, val := range a {
@@ -166,10 +175,10 @@ func (c JSONArrayCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireT
 	count, n := plenccore.ReadVarUint(data)
 	offset := n
 
-	a := *(*[]interface{})(ptr)
+	a := *(*[]any)(ptr)
 	if a == nil {
-		a = make([]interface{}, count)
-		*(*[]interface{})(ptr) = a
+		a = make([]any, count)
+		*(*[]any)(ptr) = a
 	}
 
 	for i := range a {
@@ -190,7 +199,7 @@ func (c JSONArrayCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireT
 }
 
 func (c JSONArrayCodec) New() unsafe.Pointer {
-	return unsafe.Pointer(&[]interface{}{})
+	return unsafe.Pointer(&[]any{})
 }
 
 func (c JSONArrayCodec) WireType() plenccore.WireType { return plenccore.WTSlice }
@@ -200,7 +209,16 @@ func (c JSONArrayCodec) Descriptor() Descriptor {
 	return Descriptor{Type: FieldTypeJSONArray}
 }
 
-func sizeJSONValue(v interface{}) (size int) {
+func (c JSONArrayCodec) Size(ptr unsafe.Pointer, tag []byte) int {
+	return c.size(ptr) + len(tag)
+}
+
+func (c JSONArrayCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	data = append(data, tag...)
+	return c.append(data, ptr)
+}
+
+func sizeJSONValue(v any) (size int) {
 	size += plenccore.SizeTag(plenccore.WTVarInt, 2)
 	switch v := v.(type) {
 	case nil:
@@ -208,35 +226,26 @@ func sizeJSONValue(v interface{}) (size int) {
 	case string:
 		size += plenccore.SizeVarUint(uint64(jsonTypeString))
 
-		size += plenccore.SizeTag(plenccore.WTLength, 3)
-		size += plenccore.SizeVarUint(uint64(len(v)))
-		size += StringCodec{}.Size(unsafe.Pointer(&v))
+		size += StringCodec{}.Size(unsafe.Pointer(&v), valueWTLTag)
 	case int:
 		size += plenccore.SizeVarUint(uint64(jsonTypeInt))
-		size += plenccore.SizeTag(plenccore.WTVarInt, 3)
-		size += IntCodec[int]{}.Size(unsafe.Pointer(&v))
+		size += IntCodec[int]{}.Size(unsafe.Pointer(&v), valueWTVITag)
 	case float64:
 		size += plenccore.SizeVarUint(uint64(jsonTypeFloat))
-		size += plenccore.SizeTag(plenccore.WT64, 3)
-		size += Float64Codec{}.Size(unsafe.Pointer(&v))
+		size += Float64Codec{}.Size(unsafe.Pointer(&v), valueWT64Tag)
 	case bool:
 		size += plenccore.SizeVarUint(uint64(jsonTypeBool))
-		size += plenccore.SizeTag(plenccore.WTVarInt, 3)
-		size += BoolCodec{}.Size(unsafe.Pointer(&v))
-	case []interface{}:
+		size += BoolCodec{}.Size(unsafe.Pointer(&v), valueWTVITag)
+	case []any:
 		size += plenccore.SizeVarUint(uint64(jsonTypeArray))
-		size += plenccore.SizeTag(JSONArrayCodec{}.WireType(), 3)
-		size += JSONArrayCodec{}.Size(unsafe.Pointer(&v))
-	case map[string]interface{}:
+		size += JSONArrayCodec{}.Size(unsafe.Pointer(&v), valueWTSliceTag)
+	case map[string]any:
 		size += plenccore.SizeVarUint(uint64(jsonTypeObject))
-		size += plenccore.SizeTag(JSONMapCodec{}.WireType(), 3)
-		size += JSONMapCodec{}.Size(unsafe.Pointer(unpackEFace(v).data))
+		size += JSONMapCodec{}.Size(unsafe.Pointer(unpackEFace(v).data), valueWTSliceTag)
 	case json.Number:
 		// Save this as a string
 		size += plenccore.SizeVarUint(uint64(jsonTypeNumber))
-		size += plenccore.SizeTag(plenccore.WTLength, 3)
-		size += plenccore.SizeVarUint(uint64(len(v)))
-		size += StringCodec{}.Size(unsafe.Pointer(&v))
+		size += StringCodec{}.Size(unsafe.Pointer(&v), valueWTLTag)
 	default:
 		panic(fmt.Sprintf("unexpected json type %T", v))
 	}
@@ -244,42 +253,40 @@ func sizeJSONValue(v interface{}) (size int) {
 	return size
 }
 
-func appendJSONValue(data []byte, v interface{}) []byte {
+var (
+	valueWTLTag     = plenccore.AppendTag(nil, plenccore.WTLength, 3)
+	valueWTVITag    = plenccore.AppendTag(nil, plenccore.WTVarInt, 3)
+	valueWT64Tag    = plenccore.AppendTag(nil, plenccore.WT64, 3)
+	valueWTSliceTag = plenccore.AppendTag(nil, plenccore.WTSlice, 3)
+)
+
+func appendJSONValue(data []byte, v any) []byte {
 	data = plenccore.AppendTag(data, plenccore.WTVarInt, 2)
 	switch v := v.(type) {
 	case nil:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeNil))
 	case string:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeString))
-		data = plenccore.AppendTag(data, plenccore.WTLength, 3)
-		data = plenccore.AppendVarUint(data, uint64(len(v)))
-		data = StringCodec{}.Append(data, unsafe.Pointer(&v))
+		data = StringCodec{}.Append(data, unsafe.Pointer(&v), valueWTLTag)
 	case int:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeInt))
-		data = plenccore.AppendTag(data, plenccore.WTVarInt, 3)
-		data = IntCodec[int]{}.Append(data, unsafe.Pointer(&v))
+		data = IntCodec[int]{}.Append(data, unsafe.Pointer(&v), valueWTVITag)
 	case float64:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeFloat))
-		data = plenccore.AppendTag(data, plenccore.WT64, 3)
-		data = Float64Codec{}.Append(data, unsafe.Pointer(&v))
+		data = Float64Codec{}.Append(data, unsafe.Pointer(&v), valueWT64Tag)
 	case bool:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeBool))
-		data = plenccore.AppendTag(data, plenccore.WTVarInt, 3)
-		data = BoolCodec{}.Append(data, unsafe.Pointer(&v))
-	case []interface{}:
+		data = BoolCodec{}.Append(data, unsafe.Pointer(&v), valueWTVITag)
+	case []any:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeArray))
-		data = plenccore.AppendTag(data, JSONArrayCodec{}.WireType(), 3)
-		data = JSONArrayCodec{}.Append(data, unsafe.Pointer(&v))
-	case map[string]interface{}:
+		data = JSONArrayCodec{}.Append(data, unsafe.Pointer(&v), valueWTSliceTag)
+	case map[string]any:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeObject))
-		data = plenccore.AppendTag(data, JSONMapCodec{}.WireType(), 3)
-		data = JSONMapCodec{}.Append(data, unsafe.Pointer(unpackEFace(v).data))
+		data = JSONMapCodec{}.Append(data, unsafe.Pointer(unpackEFace(v).data), valueWTSliceTag)
 	case json.Number:
 		// Save this as a string
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeNumber))
-		data = plenccore.AppendTag(data, plenccore.WTLength, 3)
-		data = plenccore.AppendVarUint(data, uint64(len(v)))
-		data = StringCodec{}.Append(data, unsafe.Pointer(&v))
+		data = StringCodec{}.Append(data, unsafe.Pointer(&v), valueWTLTag)
 	default:
 		panic(fmt.Sprintf("unexpected json type %T", v))
 	}
@@ -287,7 +294,7 @@ func appendJSONValue(data []byte, v interface{}) []byte {
 	return data
 }
 
-func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
+func readJSONKV(data []byte, key *string, val *any) (n int, err error) {
 	var (
 		jType  jsonType
 		offset int
@@ -361,7 +368,7 @@ func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
 				*val = v
 
 			case jsonTypeArray:
-				var v []interface{}
+				var v []any
 				n, err := JSONArrayCodec{}.Read(data[offset:], unsafe.Pointer(&v), wt)
 				if err != nil {
 					return 0, err
@@ -370,7 +377,7 @@ func readJSONKV(data []byte, key *string, val *interface{}) (n int, err error) {
 				*val = v
 
 			case jsonTypeObject:
-				var v map[string]interface{}
+				var v map[string]any
 				n, err := JSONMapCodec{}.Read(data[offset:], unsafe.Pointer(&v), wt)
 				if err != nil {
 					return 0, err

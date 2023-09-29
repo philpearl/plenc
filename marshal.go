@@ -36,10 +36,10 @@ func (p *Plenc) Marshal(data []byte, value interface{}) ([]byte, error) {
 		return nil, nil
 	}
 	if data == nil {
-		data = make([]byte, 0, c.Size(ptr))
+		data = make([]byte, 0, c.Size(ptr, nil))
 	}
 
-	return c.Append(data, ptr), nil
+	return c.Append(data, ptr, nil), nil
 }
 
 func (p *Plenc) Unmarshal(data []byte, value interface{}) error {

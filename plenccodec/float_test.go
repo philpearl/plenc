@@ -16,9 +16,9 @@ func TestFloat32(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(strconv.FormatFloat(float64(test), 'g', -1, 32), func(t *testing.T) {
-			l := c.Size(unsafe.Pointer(&test))
+			l := c.Size(unsafe.Pointer(&test), nil)
 			b := make([]byte, 0, l)
-			data := c.Append(b, unsafe.Pointer(&test))
+			data := c.Append(b, unsafe.Pointer(&test), nil)
 			var actual float32
 			n, err := c.Read(data, unsafe.Pointer(&actual), c.WireType())
 			if err != nil {
@@ -54,9 +54,9 @@ func TestFloat64(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(strconv.FormatFloat(float64(test), 'g', -1, 64), func(t *testing.T) {
-			l := c.Size(unsafe.Pointer(&test))
+			l := c.Size(unsafe.Pointer(&test), nil)
 			b := make([]byte, 0, l)
-			data := c.Append(b, unsafe.Pointer(&test))
+			data := c.Append(b, unsafe.Pointer(&test), nil)
 			var actual float64
 			n, err := c.Read(data, unsafe.Pointer(&actual), c.WireType())
 			if err != nil {

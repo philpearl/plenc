@@ -12,16 +12,14 @@ import (
 // MapCodec is a codec for maps. We treat it as a slice of structs with the key
 // and value as the fields in the structs.
 type MapCodec struct {
-	keyCodec      Codec
-	valueCodec    Codec
-	rtype         reflect.Type
-	keyTag        []byte
-	valueTag      []byte
-	keyIsWTLength bool
-	valIsWTLength bool
-	kPool         sync.Pool
-	kZero         unsafe.Pointer
-	vZero         unsafe.Pointer
+	keyCodec   Codec
+	valueCodec Codec
+	rtype      reflect.Type
+	keyTag     []byte
+	valueTag   []byte
+	kPool      sync.Pool
+	kZero      unsafe.Pointer
+	vZero      unsafe.Pointer
 }
 
 func BuildMapCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type) (*MapCodec, error) {
@@ -39,13 +37,11 @@ func BuildMapCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type) (*M
 	}
 
 	c := MapCodec{
-		keyCodec:      keyCodec,
-		valueCodec:    valueCodec,
-		rtype:         typ,
-		keyTag:        plenccore.AppendTag(nil, keyCodec.WireType(), 1),
-		valueTag:      plenccore.AppendTag(nil, valueCodec.WireType(), 2),
-		keyIsWTLength: keyCodec.WireType() == plenccore.WTLength,
-		valIsWTLength: valueCodec.WireType() == plenccore.WTLength,
+		keyCodec:   keyCodec,
+		valueCodec: valueCodec,
+		rtype:      typ,
+		keyTag:     plenccore.AppendTag(nil, keyCodec.WireType(), 1),
+		valueTag:   plenccore.AppendTag(nil, valueCodec.WireType(), 2),
 	}
 
 	c.kPool.New = c.newKey
@@ -76,7 +72,7 @@ func (c *MapCodec) Omit(ptr unsafe.Pointer) bool {
 	return ptr == nil
 }
 
-func (c *MapCodec) Size(ptr unsafe.Pointer) (size int) {
+func (c *MapCodec) size(ptr unsafe.Pointer) (size int) {
 	size = plenccore.SizeVarUint(uint64(maplen(ptr)))
 
 	var iterM mapiter
@@ -98,30 +94,21 @@ func (c *MapCodec) Size(ptr unsafe.Pointer) (size int) {
 }
 
 func (c *MapCodec) sizeForEntry(k, v unsafe.Pointer) int {
-	s := c.sizeFor(c.keyCodec, k, c.keyTag, c.keyIsWTLength)
-	s += c.sizeFor(c.valueCodec, v, c.valueTag, c.valIsWTLength)
-	return s
+	s := c.sizeFor(c.keyCodec, k, c.keyTag)
+	return s + c.sizeFor(c.valueCodec, v, c.valueTag)
 }
 
-func (*MapCodec) sizeFor(c Codec, ptr unsafe.Pointer, tag []byte, useLength bool) int {
-	if c.Omit(ptr) {
+func (*MapCodec) sizeFor(underlying Codec, ptr unsafe.Pointer, tag []byte) int {
+	if underlying.Omit(ptr) {
 		return 0
 	}
-	s := c.Size(ptr)
-	if useLength {
-		s += plenccore.SizeVarUint(uint64(s))
-	}
-	return s + len(tag)
+	return underlying.Size(ptr, tag)
 }
 
-func (c *MapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
-	add := func(c Codec, ptr unsafe.Pointer, tag []byte, useLength bool) {
-		if !c.Omit(ptr) {
-			data = append(data, tag...)
-			if useLength {
-				data = plenccore.AppendVarUint(data, uint64(c.Size(ptr)))
-			}
-			data = c.Append(data, ptr)
+func (c *MapCodec) append(data []byte, ptr unsafe.Pointer) []byte {
+	add := func(underlying Codec, ptr unsafe.Pointer, tag []byte) {
+		if !underlying.Omit(ptr) {
+			data = underlying.Append(data, ptr, tag)
 		}
 	}
 
@@ -140,8 +127,8 @@ func (c *MapCodec) Append(data []byte, ptr unsafe.Pointer) []byte {
 
 		// Add the length of each entry, then the key and value
 		data = plenccore.AppendVarUint(data, uint64(c.sizeForEntry(k, v)))
-		add(c.keyCodec, k, c.keyTag, c.keyIsWTLength)
-		add(c.valueCodec, v, c.valueTag, c.valIsWTLength)
+		add(c.keyCodec, k, c.keyTag)
+		add(c.valueCodec, v, c.valueTag)
 
 		mapiternext(iter)
 	}
@@ -287,4 +274,13 @@ func (c *MapCodec) Descriptor() Descriptor {
 			},
 		},
 	}
+}
+
+func (c *MapCodec) Size(ptr unsafe.Pointer, tag []byte) int {
+	return c.size(ptr) + len(tag)
+}
+
+func (c *MapCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	data = append(data, tag...)
+	return c.append(data, ptr)
 }

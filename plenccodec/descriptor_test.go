@@ -30,26 +30,26 @@ func TestDescriptor(t *testing.T) {
 	type mymap map[mykey]string
 
 	type my struct {
-		A int                    `plenc:"1"`
-		B float32                `plenc:"2"`
-		C string                 `plenc:"3"`
-		D uint                   `plenc:"4"`
-		E []float64              `plenc:"5"`
-		F []sub                  `plenc:"6"`
-		G [][]uint32             `plenc:"7"`
-		H [][]float32            `plenc:"8"`
-		I *uint                  `plenc:"9"`
-		J mymap                  `plenc:"10"`
-		K []byte                 `plenc:"11"`
-		L map[float32]float32    `plenc:"12"`
-		M *int                   `plenc:"13"`
-		N time.Time              `plenc:"14"`
-		O bool                   `plenc:"15" json:"elephant"`
-		P map[string]interface{} `plenc:"16"`
+		A int                 `plenc:"1"`
+		B float32             `plenc:"2"`
+		C string              `plenc:"3"`
+		D uint                `plenc:"4"`
+		E []float64           `plenc:"5"`
+		F []sub               `plenc:"6"`
+		G [][]uint32          `plenc:"7"`
+		H [][]float32         `plenc:"8"`
+		I *uint               `plenc:"9"`
+		J mymap               `plenc:"10"`
+		K []byte              `plenc:"11"`
+		L map[float32]float32 `plenc:"12"`
+		M *int                `plenc:"13"`
+		N time.Time           `plenc:"14"`
+		O bool                `plenc:"15" json:"elephant"`
+		P map[string]any      `plenc:"16"`
 	}
 
-	plenc.RegisterCodec(reflect.TypeOf(map[string]interface{}{}), plenccodec.JSONMapCodec{})
-	plenc.RegisterCodec(reflect.TypeOf([]interface{}{}), plenccodec.JSONArrayCodec{})
+	plenc.RegisterCodec(reflect.TypeOf(map[string]any{}), plenccodec.JSONMapCodec{})
+	plenc.RegisterCodec(reflect.TypeOf([]any{}), plenccodec.JSONArrayCodec{})
 
 	c, err := plenc.CodecForType(reflect.TypeOf(my{}))
 	if err != nil {
@@ -72,7 +72,7 @@ func TestDescriptor(t *testing.T) {
 
 	// Now test we can use the descriptor
 	var seven uint = 7
-	data, err := plenc.Marshal(nil, my{
+	in := my{
 		A: 1,
 		B: 3.7,
 		C: "this is my hat",
@@ -103,12 +103,25 @@ func TestDescriptor(t *testing.T) {
 		},
 		N: time.Date(1970, 3, 15, 0, 0, 0, 1337e5, time.UTC),
 		O: true,
-		P: map[string]interface{}{
-			"array": []interface{}{1, 1.3, "cheese", json.Number("1337")},
+		P: map[string]any{
+			"array": []any{1, 1.3, "cheese", json.Number("1337")},
 		},
-	})
+	}
+
+	data, err := plenc.Marshal(nil, in)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	{
+		// Check we can decode that plenc
+		var out my
+		if err := plenc.Unmarshal(data, &out); err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(in, out); diff != "" {
+			t.Fatal(diff)
+		}
 	}
 
 	var j plenccodec.JSONOutput
