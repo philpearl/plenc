@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/philpearl/plenc"
 	"github.com/philpearl/plenc/plenccore"
 )
@@ -76,6 +77,38 @@ func TestVarInt(t *testing.T) {
 			}
 			if test != out {
 				t.Errorf("Result incorrect for %d- got %d", test, out)
+			}
+		})
+	}
+}
+
+func TestInts(t *testing.T) {
+	type my struct {
+		A int  `plenc:"1"`
+		B int  `plenc:"2,flat"`
+		C uint `plenc:"3"`
+	}
+
+	tests := []my{
+		{A: 1, B: 2, C: 3},
+		{A: 0, B: 0, C: 0},
+		{A: -1, B: -2, C: 0},
+		{A: math.MaxInt64, B: math.MaxInt64, C: math.MaxUint64},
+		{A: math.MinInt64, B: math.MinInt64, C: 0},
+	}
+
+	for _, test := range tests {
+		t.Run("", func(t *testing.T) {
+			data, err := plenc.Marshal(nil, &test)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out my
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(test, out); diff != "" {
+				t.Fatal(diff)
 			}
 		})
 	}

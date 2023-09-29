@@ -15,17 +15,18 @@ import (
 type wrappedCodecRegistry struct {
 	CodecRegistry
 	typ   reflect.Type
+	tag   string
 	codec Codec
 }
 
-func (w wrappedCodecRegistry) Load(typ reflect.Type) Codec {
-	if typ == w.typ {
+func (w wrappedCodecRegistry) Load(typ reflect.Type, tag string) Codec {
+	if typ == w.typ && tag == w.tag {
 		return w.codec
 	}
-	return w.CodecRegistry.Load(typ)
+	return w.CodecRegistry.Load(typ, tag)
 }
 
-func BuildStructCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type) (Codec, error) {
+func BuildStructCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, tag string) (Codec, error) {
 	if typ.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("type must be a struct to build a struct codec")
 	}
@@ -35,7 +36,7 @@ func BuildStructCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type) 
 		fields: make([]description, typ.NumField()),
 	}
 
-	registry = wrappedCodecRegistry{CodecRegistry: registry, typ: typ, codec: &c}
+	registry = wrappedCodecRegistry{CodecRegistry: registry, typ: typ, tag: tag, codec: &c}
 
 	var maxIndex int
 	var count int
@@ -78,12 +79,18 @@ func BuildStructCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type) 
 			field.name = jsonName
 		}
 
-		fc, err := p.CodecForTypeRegistry(registry, sf.Type)
-		if err != nil {
-			return nil, fmt.Errorf("failed to find codec for field %d (%s) of %s. %w", i, sf.Name, typ.Name(), err)
+		var wantIntern bool
+		if postfix == "intern" {
+			postfix = ""
+			wantIntern = true
 		}
 
-		if postfix == "intern" {
+		fc, err := p.CodecForTypeRegistry(registry, sf.Type, postfix)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find codec for field %d (%s, %q) of %s. %w", i, sf.Name, postfix, typ.Name(), err)
+		}
+
+		if wantIntern {
 			if in, ok := fc.(Interner); ok {
 				// Note we get an independent interner for each field
 				fc = in.WithInterning()

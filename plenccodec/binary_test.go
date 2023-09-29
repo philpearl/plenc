@@ -83,7 +83,7 @@ func TestBinaryCompatibility(t *testing.T) {
 			name: "struct",
 			toEncode: struct {
 				Name string   `plenc:"1"`
-				Age  int      `plenc:"2"`
+				Age  int      `plenc:"2,flat"`
 				F32  float32  `plenc:"3"`
 				F64  float64  `plenc:"4"`
 				I    int      `plenc:"5"`
@@ -112,10 +112,12 @@ func TestBinaryCompatibility(t *testing.T) {
 			}{{Name: "Phil", Age: 1337}, {Name: "Bob", Age: 42}},
 		},
 		{
+			// Sigh. The binary representation of a map is not stable as the
+			// iteration order of the map is random. We'll test with one entry
+			// for now.
 			name: "map",
 			toEncode: map[string]int{
 				"Phil": 1337,
-				"Bob":  42,
 			},
 		},
 		{

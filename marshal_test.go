@@ -301,7 +301,7 @@ func TestMarshalComplex(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected an error as complex types aren't supported")
 	}
-	if err.Error() != "failed to find codec for field 0 (A) of my. could not find or create a codec for complex64" {
+	if err.Error() != "failed to find codec for field 0 (A, \"\") of my. could not find or create a codec for complex64" {
 		t.Errorf("error %q not as expected", err)
 	}
 }
@@ -316,7 +316,7 @@ func TestUnMarshalComplex(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected an error as complex types aren't supported")
 	}
-	if err.Error() != "failed to find codec for field 0 (A) of my. could not find or create a codec for complex64" {
+	if err.Error() != "failed to find codec for field 0 (A, \"\") of my. could not find or create a codec for complex64" {
 		t.Errorf("error %q not as expected", err)
 	}
 }

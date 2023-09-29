@@ -22,16 +22,16 @@ type MapCodec struct {
 	vZero      unsafe.Pointer
 }
 
-func BuildMapCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type) (*MapCodec, error) {
+func BuildMapCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, tag string) (*MapCodec, error) {
 	if typ.Kind() != reflect.Map {
 		return nil, fmt.Errorf("type must be a map to build a map codec")
 	}
 
-	keyCodec, err := p.CodecForTypeRegistry(registry, typ.Key())
+	keyCodec, err := p.CodecForTypeRegistry(registry, typ.Key(), tag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find codec for map key %s. %w", typ.Key().Name(), err)
 	}
-	valueCodec, err := p.CodecForTypeRegistry(registry, typ.Elem())
+	valueCodec, err := p.CodecForTypeRegistry(registry, typ.Elem(), tag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find codec for map value %s. %w", typ.Elem().Name(), err)
 	}
