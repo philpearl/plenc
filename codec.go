@@ -120,7 +120,9 @@ func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ refl
 
 	case reflect.Slice:
 		subt := typ.Elem()
-		subc, err := p.CodecForTypeRegistry(registry, subt, tag)
+		// We assume for now that any tag here will be selecting the array
+		// treatment, not the registry for the underlying type.
+		subc, err := p.CodecForTypeRegistry(registry, subt, "")
 		if err != nil {
 			return nil, err
 		}
@@ -135,7 +137,7 @@ func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ refl
 			}
 			c = plenccodec.WTFixedSliceWrapper{BaseSliceWrapper: bs}
 		case plenccore.WTLength:
-			if p.ProtoCompatibleArrays {
+			if p.ProtoCompatibleArrays || tag == "proto" {
 				// When writing we just want to repeat the encoding of an
 				// individual element within the slice as if it was a separate
 				// element.
