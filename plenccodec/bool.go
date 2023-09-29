@@ -10,11 +10,6 @@ import (
 // BoolCodec is a codec for a bool
 type BoolCodec struct{}
 
-// size returns the number of bytes needed to encode a bool
-func (BoolCodec) size(ptr unsafe.Pointer) int {
-	return 1
-}
-
 // append encodes a bool
 func (BoolCodec) append(data []byte, ptr unsafe.Pointer) []byte {
 	var uv uint64
@@ -54,7 +49,7 @@ func (c BoolCodec) Descriptor() Descriptor {
 }
 
 func (c BoolCodec) Size(ptr unsafe.Pointer, tag []byte) int {
-	return c.size(ptr) + len(tag)
+	return 1 + len(tag)
 }
 
 func (c BoolCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
