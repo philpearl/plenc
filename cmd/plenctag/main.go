@@ -9,9 +9,10 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"os"
 	"strconv"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/fatih/structtag"
 )
@@ -21,6 +22,7 @@ type config struct {
 	write            bool
 	excludeJSONMinus bool
 	excludeSQLMinus  bool
+	excludePrivate   bool
 
 	fset *token.FileSet
 }
@@ -38,6 +40,7 @@ func run() error {
 	flag.BoolVar(&cfg.write, "w", true, "Write result to (source) file instead of stdout")
 	flag.BoolVar(&cfg.excludeJSONMinus, "json", false, "Exclude json:\"-\"")
 	flag.BoolVar(&cfg.excludeSQLMinus, "sql", true, "Exclude sql:\"-\"")
+	flag.BoolVar(&cfg.excludePrivate, "private", true, "Exclude private fields (starting with lower case letter)")
 
 	flag.Parse()
 
@@ -79,7 +82,7 @@ func (c *config) format(file ast.Node, filename string) error {
 	}
 
 	if c.write {
-		err = ioutil.WriteFile(filename, buf.Bytes(), 0)
+		err = os.WriteFile(filename, buf.Bytes(), 0)
 		if err != nil {
 			return err
 		}
@@ -129,6 +132,12 @@ func (c *config) rewrite(node ast.Node) (ast.Node, error) {
 
 		// Now we make updates
 		for _, f := range x.Fields.List {
+			if c.excludePrivate {
+				r, _ := utf8.DecodeRuneInString(f.Names[0].Name)
+				if unicode.IsLower(r) {
+					continue
+				}
+			}
 			if f.Tag == nil {
 				f.Tag = &ast.BasicLit{}
 			}
