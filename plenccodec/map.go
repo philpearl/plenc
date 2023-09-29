@@ -22,16 +22,16 @@ type MapCodec struct {
 	vZero      unsafe.Pointer
 }
 
-func BuildMapCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, tag string) (*MapCodec, error) {
+func BuildMapCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, tag string) (Codec, error) {
 	if typ.Kind() != reflect.Map {
 		return nil, fmt.Errorf("type must be a map to build a map codec")
 	}
 
-	keyCodec, err := p.CodecForTypeRegistry(registry, typ.Key(), tag)
+	keyCodec, err := p.CodecForTypeRegistry(registry, typ.Key(), "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find codec for map key %s. %w", typ.Key().Name(), err)
 	}
-	valueCodec, err := p.CodecForTypeRegistry(registry, typ.Elem(), tag)
+	valueCodec, err := p.CodecForTypeRegistry(registry, typ.Elem(), "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find codec for map value %s. %w", typ.Elem().Name(), err)
 	}
@@ -58,6 +58,11 @@ func BuildMapCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, tag
 		z := make([]byte, l)
 		c.vZero = unsafe.Pointer(&z[0])
 	}
+
+	if tag == "proto" {
+		return ProtoMapCodec{&c}, nil
+	}
+
 	return &c, nil
 }
 
@@ -283,4 +288,81 @@ func (c *MapCodec) Size(ptr unsafe.Pointer, tag []byte) int {
 func (c *MapCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
 	data = append(data, tag...)
 	return c.append(data, ptr)
+}
+
+type ProtoMapCodec struct {
+	*MapCodec
+}
+
+func (c ProtoMapCodec) Size(ptr unsafe.Pointer, tag []byte) (size int) {
+	// Treat as an array of structs. Each entry carries its own tag
+	var iterM mapiter
+	iter := (unsafe.Pointer)(&iterM)
+	mapiterinit(unpackEFace(c.rtype).data, ptr, iter)
+	for {
+		k := mapiterkey(iter)
+		if k == nil {
+			break
+		}
+		v := mapiterelem(iter)
+
+		s := c.sizeForEntry(k, v)
+		size += len(tag) + plenccore.SizeVarUint(uint64(s)) + s
+
+		mapiternext(iter)
+	}
+	return size
+}
+
+func (c ProtoMapCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	// Each entry is appended separately as if a struct of key & value
+
+	add := func(underlying Codec, ptr unsafe.Pointer, tag []byte) {
+		if !underlying.Omit(ptr) {
+			data = underlying.Append(data, ptr, tag)
+		}
+	}
+
+	var iterM mapiter
+	iter := (unsafe.Pointer)(&iterM)
+	mapiterinit(unpackEFace(c.rtype).data, ptr, iter)
+	for {
+		k := mapiterkey(iter)
+		if k == nil {
+			break
+		}
+		v := mapiterelem(iter)
+
+		data = append(data, tag...)
+		data = plenccore.AppendVarUint(data, uint64(c.sizeForEntry(k, v)))
+		add(c.keyCodec, k, c.keyTag)
+		add(c.valueCodec, v, c.valueTag)
+
+		mapiternext(iter)
+	}
+
+	return data
+}
+
+func (c ProtoMapCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
+	if len(data) == 0 {
+		return 0, nil
+	}
+
+	// ptr is a pointer to a map pointer
+	if *(*unsafe.Pointer)(ptr) == nil {
+		*(*unsafe.Pointer)(ptr) = unsafe.Pointer(reflect.MakeMap(c.rtype).Pointer())
+	}
+	mp := *(*unsafe.Pointer)(ptr)
+
+	// We need some space to hold keys and values as we read them out. We can
+	// re-use the space on each iteration as the data is copied into the map
+	// We also save some memory & time if we cache them in some pools
+	k := c.kPool.Get().(unsafe.Pointer)
+	defer c.kPool.Put(k)
+	return c.readMapEntry(mp, k, data)
+}
+
+func (c ProtoMapCodec) WireType() plenccore.WireType {
+	return plenccore.WTLength
 }
