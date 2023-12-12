@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
-	"github.com/mailru/easyjson"
 	"github.com/philpearl/plenc"
 	"github.com/philpearl/plenc/plenccodec"
 	"github.com/unravelin/null"
@@ -290,25 +289,6 @@ func BenchmarkNull(b *testing.B) {
 
 				w = benchThing{}
 				if err := json.Unmarshal(data, &w); err != nil {
-					b.Fatal(err)
-				}
-			}
-		})
-	})
-
-	b.Run("easyjson", func(b *testing.B) {
-		b.ReportAllocs()
-		b.RunParallel(func(pb *testing.PB) {
-			var w benchThing
-			for pb.Next() {
-				var err error
-				data, err := easyjson.Marshal(&v)
-				if err != nil {
-					b.Fatal(err)
-				}
-
-				w = benchThing{}
-				if err := easyjson.Unmarshal(data, &w); err != nil {
 					b.Fatal(err)
 				}
 			}

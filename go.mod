@@ -6,12 +6,10 @@ require (
 	github.com/fatih/structtag v1.2.0
 	github.com/google/go-cmp v0.5.5
 	github.com/google/gofuzz v1.0.0
-	github.com/mailru/easyjson v0.7.0
 	github.com/unravelin/null v2.1.2+incompatible
-	google.golang.org/protobuf v1.30.0
 )
 
 require (
+	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/stretchr/testify v1.6.1 // indirect
-	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 )
