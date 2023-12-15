@@ -36,7 +36,9 @@ func (p PointerWrapper) WireType() plenccore.WireType {
 }
 
 func (p PointerWrapper) Descriptor() Descriptor {
-	return p.Underlying.Descriptor()
+	d := p.Underlying.Descriptor()
+	d.ExplicitPresence = true
+	return d
 }
 
 func (p PointerWrapper) Size(ptr unsafe.Pointer, tag []byte) int {

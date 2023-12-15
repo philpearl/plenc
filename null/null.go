@@ -67,6 +67,12 @@ func (c nullIntCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(&null.Int{})
 }
 
+func (c nullIntCodec) Descriptor() plenccodec.Descriptor {
+	d := c.IntCodec.Descriptor()
+	d.ExplicitPresence = true
+	return d
+}
+
 type nullBoolCodec struct {
 	plenccodec.BoolCodec
 }
@@ -99,6 +105,12 @@ func (c nullBoolCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireTy
 
 func (c nullBoolCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(&null.Bool{})
+}
+
+func (c nullBoolCodec) Descriptor() plenccodec.Descriptor {
+	d := c.BoolCodec.Descriptor()
+	d.ExplicitPresence = true
+	return d
 }
 
 type nullFloatCodec struct {
@@ -136,6 +148,12 @@ func (c nullFloatCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(&null.Float{})
 }
 
+func (c nullFloatCodec) Descriptor() plenccodec.Descriptor {
+	d := c.Float64Codec.Descriptor()
+	d.ExplicitPresence = true
+	return d
+}
+
 type nullStringCodec struct {
 	plenccodec.StringCodec
 }
@@ -167,6 +185,12 @@ func (c nullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.Wire
 
 func (c nullStringCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(&null.String{})
+}
+
+func (c nullStringCodec) Descriptor() plenccodec.Descriptor {
+	d := c.StringCodec.Descriptor()
+	d.ExplicitPresence = true
+	return d
 }
 
 func (nullStringCodec) WithInterning() plenccodec.Codec {
@@ -224,4 +248,10 @@ func (c *nullTimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireT
 
 func (c *nullTimeCodec) New() unsafe.Pointer {
 	return unsafe.Pointer(&null.Time{})
+}
+
+func (c nullTimeCodec) Descriptor() plenccodec.Descriptor {
+	d := c.TimeCodec.Descriptor()
+	d.ExplicitPresence = true
+	return d
 }

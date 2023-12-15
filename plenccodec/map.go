@@ -267,11 +267,20 @@ func (c *MapCodec) Descriptor() Descriptor {
 	vDesc.Index = 2
 	vDesc.Name = "value"
 
+	kTypeName, vTypeName := kDesc.TypeName, vDesc.TypeName
+	if kTypeName == "" {
+		kTypeName = kDesc.Type.String()
+	}
+	if vTypeName == "" {
+		vTypeName = vDesc.Type.String()
+	}
+
 	return Descriptor{
 		Type: FieldTypeSlice,
 		Elements: []Descriptor{
 			{
-				Type: FieldTypeStruct,
+				Type:     FieldTypeStruct,
+				TypeName: fmt.Sprintf("map_%s_%s", kTypeName, vTypeName),
 				Elements: []Descriptor{
 					kDesc,
 					vDesc,

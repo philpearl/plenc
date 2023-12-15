@@ -2,10 +2,12 @@ package plenccodec_test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/philpearl/plenc"
+	"github.com/philpearl/plenc/plenccodec"
 )
 
 func TestFieldRemoval(t *testing.T) {
@@ -185,6 +187,42 @@ func TestZeroReuse(t *testing.T) {
 		t.Fatal(err)
 	}
 	if diff := cmp.Diff(s1{A: 37, B: 3}, v); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestStructDescriptor(t *testing.T) {
+	type s2 struct {
+		A string `plenc:"1"`
+	}
+	type s1 struct {
+		A int `plenc:"1,flat"`
+		B int `plenc:"2"`
+		C s2  `plenc:"3"`
+	}
+
+	c, err := plenc.CodecForType(reflect.TypeOf(s1{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(plenccodec.Descriptor{
+		TypeName: "s1",
+		Type:     plenccodec.FieldTypeStruct,
+		Elements: []plenccodec.Descriptor{
+			{Index: 1, Name: "A", Type: plenccodec.FieldTypeFlatInt},
+			{Index: 2, Name: "B", Type: plenccodec.FieldTypeInt},
+			{
+				Index:    3,
+				Name:     "C",
+				Type:     plenccodec.FieldTypeStruct,
+				TypeName: "s2",
+				Elements: []plenccodec.Descriptor{
+					{Index: 1, Name: "A", Type: plenccodec.FieldTypeString},
+				},
+			},
+		},
+	}, c.Descriptor()); diff != "" {
 		t.Fatal(diff)
 	}
 }

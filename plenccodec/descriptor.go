@@ -42,12 +42,20 @@ type Descriptor struct {
 	Name string `plenc:"2"`
 	// Type is the type of the field
 	Type FieldType `plenc:"3"`
+	// TypeName is used for struct types and is the name of the struct.
+	TypeName string `plenc:"5"`
 	// Elements is valid for FieldTypeSlice, FieldTypeStruct & FieldTypeMap. For
 	// FieldTypeSlice we expect one entry that describes the elements of the
 	// slice. For FieldTypeStruct we expect an entry for each field in the
 	// struct. For FieldTypeMap we expect two entries. The first is for the key
 	// type and the second is for the map type
 	Elements []Descriptor `plenc:"4"`
+
+	// ExplicitPresence is set if the field has a mechanism to distinguish when
+	// it is not present. So either a pointer type or something from the null
+	// package. If this is not set then a missing value indicates the zero
+	// value, not a null or nil entry.
+	ExplicitPresence bool `plenc:"6"`
 }
 
 func (d *Descriptor) Read(out Outputter, data []byte) (err error) {

@@ -232,6 +232,7 @@ func (c *StructCodec) WireType() plenccore.WireType {
 func (c *StructCodec) Descriptor() Descriptor {
 	var d Descriptor
 	d.Type = FieldTypeStruct
+	d.TypeName = c.rtype.Name()
 	d.Elements = make([]Descriptor, len(c.fields))
 	for i, f := range c.fields {
 		d.Elements[i] = f.codec.Descriptor()
