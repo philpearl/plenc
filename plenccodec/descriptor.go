@@ -24,6 +24,13 @@ const (
 	FieldTypeTime
 	FieldTypeJSONObject
 	FieldTypeJSONArray
+	// Not zig-zag encoded, but expected to be signed. Don't use if negative
+	// numbers are likely.
+	FieldTypeFlatInt
+	// Do we want int32 types?
+	// Do we want fixed size int types?
+	// Do we want a separate bytes type?
+	// Do we want an ENUM type? How would we encode it?
 )
 
 // Descriptor describes how a type is plenc-encoded. It contains enough
@@ -53,6 +60,12 @@ func (d *Descriptor) read(out Outputter, data []byte) (n int, err error) {
 	case FieldTypeInt:
 		var v int64
 		n, err = IntCodec[int64]{}.Read(data, unsafe.Pointer(&v), plenccore.WTVarInt)
+		out.Int64(v)
+		return n, err
+
+	case FieldTypeFlatInt:
+		var v int64
+		n, err = FlatIntCodec[uint64]{}.Read(data, unsafe.Pointer(&v), plenccore.WTVarInt)
 		out.Int64(v)
 		return n, err
 

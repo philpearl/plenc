@@ -58,6 +58,16 @@ func (c IntCodec[T]) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte 
 	return c.append(data, ptr)
 }
 
+// FlatIntCodec is for signed ints that aren't zig-zag encoded. Use this with
+// ints that are almost always positive.
+type FlatIntCodec[T uint | uint8 | uint16 | uint32 | uint64] struct {
+	UintCodec[T]
+}
+
+func (c FlatIntCodec[T]) Descriptor() Descriptor {
+	return Descriptor{Type: FieldTypeFlatInt}
+}
+
 // UintCodec is a coddec for a uint
 type UintCodec[T uint | uint8 | uint16 | uint32 | uint64] struct{}
 

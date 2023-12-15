@@ -217,3 +217,33 @@ func (tc TimeCompatCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.Wir
 
 	return offset, nil
 }
+
+// BQTimestampStruct encodes a time.Time as a flat (not zigzag) int64 of
+// microseconds since the Epoch. This is how the BigQuery write API expects a
+// timestamp to be encoded
+type BQTimestampCodec struct {
+	FlatIntCodec[uint64]
+}
+
+func (BQTimestampCodec) New() unsafe.Pointer {
+	return unsafe.Pointer(&time.Time{})
+}
+
+func (BQTimestampCodec) Omit(ptr unsafe.Pointer) bool {
+	return (*time.Time)(ptr).IsZero()
+}
+
+func (c BQTimestampCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
+	var ts int64
+	n, err = c.FlatIntCodec.Read(data, unsafe.Pointer(&ts), wt)
+	if err != nil {
+		return n, err
+	}
+	*(*time.Time)(ptr) = time.UnixMicro(ts)
+	return n, nil
+}
+
+func (c BQTimestampCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
+	ts := (*time.Time)(ptr).UnixMicro()
+	return c.FlatIntCodec.Append(data, unsafe.Pointer(&ts), tag)
+}

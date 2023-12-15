@@ -4,17 +4,20 @@ import (
 	"reflect"
 	"testing"
 	"time"
-	"unsafe"
 
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
 	"github.com/philpearl/plenc"
-	"github.com/philpearl/plenc/plenccore"
+	"github.com/philpearl/plenc/plenccodec"
 )
 
 func TestTime(t *testing.T) {
-	var p1, p2 plenc.Plenc
+	var p1, p2, p3 plenc.Plenc
 	p1.ProtoCompatibleTime = true
+	p1.RegisterDefaultCodecs()
+	p2.RegisterDefaultCodecs()
+	p3.RegisterDefaultCodecs()
+	p3.RegisterCodec(reflect.TypeOf(time.Time{}), plenccodec.BQTimestampCodec{})
 
 	f := fuzz.New()
 
@@ -23,25 +26,22 @@ func TestTime(t *testing.T) {
 		U int       `plenc:"2"`
 	}
 
-	for _, p := range []*plenc.Plenc{&p1, &p2} {
-		p.RegisterDefaultCodecs()
-		c, err := p.CodecForType(reflect.TypeOf(twrap{}))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		for i := 0; i < 100000; i++ {
+	for j, p := range []*plenc.Plenc{&p1, &p2, &p3} {
+		for i := 0; i < 100_000; i++ {
 			var t0 twrap
 			f.Fuzz(&t0)
 
-			data := c.Append(nil, unsafe.Pointer(&t0), nil)
+			if j == 2 {
+				t0.T = t0.T.Truncate(time.Microsecond)
+			}
+
+			data, err := p.Marshal(nil, &t0)
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			var t1 twrap
-			n, err := c.Read(data, unsafe.Pointer(&t1), plenccore.WTLength)
-			if n != len(data) {
-				t.Errorf("not all data read. %d", n)
-			}
-			if err != nil {
+			if err := p.Unmarshal(data, &t1); err != nil {
 				t.Fatal(err)
 			}
 

@@ -46,6 +46,7 @@ func TestDescriptor(t *testing.T) {
 		N time.Time           `plenc:"14"`
 		O bool                `plenc:"15" json:"elephant"`
 		P map[string]any      `plenc:"16"`
+		Q int32               `plenc:"17,flat"`
 	}
 
 	plenc.RegisterCodec(reflect.TypeOf(map[string]any{}), plenccodec.JSONMapCodec{})
@@ -106,6 +107,7 @@ func TestDescriptor(t *testing.T) {
 		P: map[string]any{
 			"array": []any{1, 1.3, "cheese", json.Number("1337")},
 		},
+		Q: 123,
 	}
 
 	data, err := plenc.Marshal(nil, in)

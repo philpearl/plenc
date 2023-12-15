@@ -51,11 +51,11 @@ func (p *Plenc) RegisterDefaultCodecs() {
 	p.RegisterCodec(reflect.TypeOf(int32(0)), plenccodec.IntCodec[int32]{})
 	p.RegisterCodec(reflect.TypeOf(int64(0)), plenccodec.IntCodec[int64]{})
 
-	p.RegisterCodecWithTag(reflect.TypeOf(int(0)), "flat", plenccodec.UintCodec[uint]{})
-	p.RegisterCodecWithTag(reflect.TypeOf(int8(0)), "flat", plenccodec.UintCodec[uint8]{})
-	p.RegisterCodecWithTag(reflect.TypeOf(int16(0)), "flat", plenccodec.UintCodec[uint16]{})
-	p.RegisterCodecWithTag(reflect.TypeOf(int32(0)), "flat", plenccodec.UintCodec[uint32]{})
-	p.RegisterCodecWithTag(reflect.TypeOf(int64(0)), "flat", plenccodec.UintCodec[uint64]{})
+	p.RegisterCodecWithTag(reflect.TypeOf(int(0)), "flat", plenccodec.FlatIntCodec[uint]{})
+	p.RegisterCodecWithTag(reflect.TypeOf(int8(0)), "flat", plenccodec.FlatIntCodec[uint8]{})
+	p.RegisterCodecWithTag(reflect.TypeOf(int16(0)), "flat", plenccodec.FlatIntCodec[uint16]{})
+	p.RegisterCodecWithTag(reflect.TypeOf(int32(0)), "flat", plenccodec.FlatIntCodec[uint32]{})
+	p.RegisterCodecWithTag(reflect.TypeOf(int64(0)), "flat", plenccodec.FlatIntCodec[uint64]{})
 
 	p.RegisterCodec(reflect.TypeOf(uint(0)), plenccodec.UintCodec[uint]{})
 	p.RegisterCodec(reflect.TypeOf(uint64(0)), plenccodec.UintCodec[uint64]{})
