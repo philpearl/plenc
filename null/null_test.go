@@ -140,15 +140,15 @@ func TestNullExplicit(t *testing.T) {
 		},
 		{
 			name: "zero valid time",
-			in:   &null.Time{Valid: true},
+			in:   &null.Time{sql.NullTime{Valid: true}},
 			out:  &null.Time{},
-			exp:  &null.Time{Valid: true},
+			exp:  &null.Time{sql.NullTime{Valid: true}},
 		},
 		{
 			name: "non-zero valid time",
-			in:   &null.Time{Valid: true, Time: time.Date(1970, 3, 15, 0, 0, 0, 0, time.UTC)},
+			in:   &null.Time{sql.NullTime{Valid: true, Time: time.Date(1970, 3, 15, 0, 0, 0, 0, time.UTC)}},
 			out:  &null.Time{},
-			exp:  &null.Time{Valid: true, Time: time.Date(1970, 3, 15, 0, 0, 0, 0, time.UTC)},
+			exp:  &null.Time{sql.NullTime{Valid: true, Time: time.Date(1970, 3, 15, 0, 0, 0, 0, time.UTC)}},
 		},
 	}
 	for _, test := range tests {
