@@ -239,7 +239,7 @@ func (c BQTimestampCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.Wir
 	if err != nil {
 		return n, err
 	}
-	*(*time.Time)(ptr) = time.UnixMicro(ts)
+	*(*time.Time)(ptr) = time.UnixMicro(ts).UTC()
 	return n, nil
 }
 
