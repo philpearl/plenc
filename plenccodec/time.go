@@ -113,7 +113,7 @@ func (tc TimeCodec) WireType() plenccore.WireType {
 }
 
 func (tc TimeCodec) Descriptor() Descriptor {
-	return Descriptor{Type: FieldTypeTime}
+	return Descriptor{Type: FieldTypeTime, LogicalType: LogicalTypeTimestamp}
 }
 
 func (c TimeCodec) Size(ptr unsafe.Pointer, tag []byte) int {
@@ -246,4 +246,8 @@ func (c BQTimestampCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.Wir
 func (c BQTimestampCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
 	ts := (*time.Time)(ptr).UnixMicro()
 	return c.FlatIntCodec.Append(data, unsafe.Pointer(&ts), tag)
+}
+
+func (c BQTimestampCodec) Descriptor() Descriptor {
+	return Descriptor{Type: FieldTypeFlatInt, LogicalType: LogicalTypeTimestamp}
 }

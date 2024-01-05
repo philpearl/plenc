@@ -276,11 +276,13 @@ func (c *MapCodec) Descriptor() Descriptor {
 	}
 
 	return Descriptor{
-		Type: FieldTypeSlice,
+		Type:        FieldTypeSlice,
+		LogicalType: LogicalTypeMap,
 		Elements: []Descriptor{
 			{
-				Type:     FieldTypeStruct,
-				TypeName: fmt.Sprintf("map_%s_%s", kTypeName, vTypeName),
+				Type:        FieldTypeStruct,
+				LogicalType: LogicalTypeMapEntry,
+				TypeName:    fmt.Sprintf("map_%s_%s", kTypeName, vTypeName),
 				Elements: []Descriptor{
 					kDesc,
 					vDesc,

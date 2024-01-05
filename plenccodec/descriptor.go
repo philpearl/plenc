@@ -33,6 +33,18 @@ const (
 	// Do we want an ENUM type? How would we encode it?
 )
 
+//go:generate stringer -type LogicalType
+type LogicalType int
+
+const (
+	LogicalTypeNone LogicalType = iota
+	LogicalTypeTimestamp
+	LogicalTypeDate
+	LogicalTypeTime
+	LogicalTypeMap
+	LogicalTypeMapEntry
+)
+
 // Descriptor describes how a type is plenc-encoded. It contains enough
 // information to decode plenc data marshalled from the described type.
 type Descriptor struct {
@@ -56,6 +68,10 @@ type Descriptor struct {
 	// package. If this is not set then a missing value indicates the zero
 	// value, not a null or nil entry.
 	ExplicitPresence bool `plenc:"6"`
+
+	// The logical type of the field. This is used to indicate if the field has
+	// any special meaning - e.g. if a long or string indicates a timestamp.
+	LogicalType LogicalType `plenc:"7"`
 }
 
 func (d *Descriptor) Read(out Outputter, data []byte) (err error) {
