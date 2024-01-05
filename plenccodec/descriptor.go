@@ -88,9 +88,16 @@ func (d *Descriptor) read(out Outputter, data []byte) (n int, err error) {
 		return n, err
 
 	case FieldTypeFlatInt:
-		var v int64
-		n, err = FlatIntCodec[uint64]{}.Read(data, unsafe.Pointer(&v), plenccore.WTVarInt)
-		out.Int64(v)
+		switch d.LogicalType {
+		case LogicalTypeTimestamp:
+			var v time.Time
+			n, err = BQTimestampCodec{}.Read(data, unsafe.Pointer(&v), plenccore.WTVarInt)
+			out.Time(v)
+		default:
+			var v int64
+			n, err = FlatIntCodec[uint64]{}.Read(data, unsafe.Pointer(&v), plenccore.WTVarInt)
+			out.Int64(v)
+		}
 		return n, err
 
 	case FieldTypeUint:
@@ -130,11 +137,19 @@ func (d *Descriptor) read(out Outputter, data []byte) (n int, err error) {
 		return n, err
 
 	case FieldTypeSlice:
-		out.StartArray()
-		defer out.EndArray()
+		if d.isValidJSONMap() {
+			out.StartObject()
+			defer out.EndObject()
+		} else {
+			out.StartArray()
+			defer out.EndArray()
+		}
 		return d.readAsSlice(out, data)
 
 	case FieldTypeStruct:
+		if d.isValidJSONMapEntry() {
+			return d.readAsMapEntry(out, data)
+		}
 		out.StartObject()
 		defer out.EndObject()
 		return d.readAsStruct(out, data)
@@ -151,6 +166,27 @@ func (d *Descriptor) read(out Outputter, data []byte) (n int, err error) {
 	}
 
 	return 0, fmt.Errorf("unrecognised field type %s", d.Type)
+}
+
+func (d *Descriptor) isValidJSONMap() bool {
+	if d.Type != FieldTypeSlice || d.LogicalType != LogicalTypeMap {
+		return false
+	}
+	if len(d.Elements) != 1 {
+		return false
+	}
+	return d.Elements[0].isValidJSONMapEntry()
+}
+
+func (d *Descriptor) isValidJSONMapEntry() bool {
+	if d.Type != FieldTypeStruct || d.LogicalType != LogicalTypeMapEntry {
+		return false
+	}
+	if len(d.Elements) != 2 {
+		return false
+	}
+	key := &d.Elements[0]
+	return key.Type == FieldTypeString
 }
 
 func (d *Descriptor) readAsSlice(out Outputter, data []byte) (n int, err error) {
@@ -204,6 +240,64 @@ func (d *Descriptor) readAsSlice(out Outputter, data []byte) (n int, err error) 
 	default:
 		return 0, fmt.Errorf("slice of unexpected element types %s", elt.Type)
 	}
+}
+
+func (d *Descriptor) readAsMapEntry(out Outputter, data []byte) (n int, err error) {
+	if d.Elements[0].Type != FieldTypeString {
+		// map keys have to be strings to be valid JSON. So we'll output as a
+		// struct instead
+		return
+	}
+
+	l := len(data)
+
+	var offset int
+	for offset < l {
+		wt, index, n := plenccore.ReadTag(data[offset:])
+		offset += n
+
+		var elt *Descriptor
+		for i := range d.Elements {
+			candidate := &d.Elements[i]
+			if candidate.Index == index {
+				elt = candidate
+				break
+			}
+		}
+
+		if elt == nil {
+			// Field corresponding to index does not exist
+			n, err := plenccore.Skip(data[offset:], wt)
+			if err != nil {
+				return 0, fmt.Errorf("failed to skip field %d in %s: %w", index, d.Name, err)
+			}
+			offset += n
+			continue
+		}
+
+		fl := l
+		if wt == plenccore.WTLength {
+			// For WTLength types we read out the length and ensure the data we
+			// read the field from is the right length
+			v, n := plenccore.ReadVarUint(data[offset:])
+			if n <= 0 {
+				return 0, fmt.Errorf("varuint overflow reading field %d of %s", index, d.Name)
+			}
+			offset += n
+			fl = int(v) + offset
+			if fl > l {
+				return 0, fmt.Errorf("length %d of field %d of %s exceeds data length", fl, index, d.Name)
+			}
+		}
+
+		n, err := elt.read(out, data[offset:fl])
+		if err != nil {
+			return 0, fmt.Errorf("failed reading field %d(%s) of %s. %w", index, elt.Name, d.Name, err)
+		}
+		offset += n
+	}
+
+	return offset, nil
 }
 
 func (d *Descriptor) readAsStruct(out Outputter, data []byte) (n int, err error) {

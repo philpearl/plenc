@@ -47,10 +47,13 @@ func TestDescriptor(t *testing.T) {
 		O bool                `plenc:"15" json:"elephant"`
 		P map[string]any      `plenc:"16"`
 		Q int32               `plenc:"17,flat"`
+		R time.Time           `plenc:"18,flattime"`
+		S map[string]int      `plenc:"19"`
 	}
 
 	plenc.RegisterCodec(reflect.TypeOf(map[string]any{}), plenccodec.JSONMapCodec{})
 	plenc.RegisterCodec(reflect.TypeOf([]any{}), plenccodec.JSONArrayCodec{})
+	plenc.RegisterCodecWithTag(reflect.TypeOf(time.Time{}), "flattime", plenccodec.BQTimestampCodec{})
 
 	c, err := plenc.CodecForType(reflect.TypeOf(my{}))
 	if err != nil {
@@ -108,6 +111,11 @@ func TestDescriptor(t *testing.T) {
 			"array": []any{1, 1.3, "cheese", json.Number("1337")},
 		},
 		Q: 123,
+		R: time.Date(1970, 3, 15, 0, 0, 0, 1337e5, time.UTC),
+		S: map[string]int{
+			"one": 1,
+			"two": 2,
+		},
 	}
 
 	data, err := plenc.Marshal(nil, in)
