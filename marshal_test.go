@@ -103,6 +103,14 @@ func TestMarshal(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		s, err := Size(&in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if s != len(data) {
+			t.Fatalf("Size reported %d, data is %d", s, len(data))
+		}
+
 		var out TestThing
 		if err := Unmarshal(data, &out); err != nil {
 			t.Fatal(err)
@@ -123,6 +131,7 @@ func TestMarshal(t *testing.T) {
 
 			t.Fatalf("structs differ. %s", diff)
 		}
+
 	}
 }
 

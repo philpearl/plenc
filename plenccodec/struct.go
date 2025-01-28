@@ -151,7 +151,7 @@ func (c *StructCodec) size(ptr unsafe.Pointer) (size int) {
 		// kind of not. When passed to Marshal via interfaces we get passed
 		// the underlying map pointer. But when the map is in a struct, we
 		// have a pointer to the underlying map pointer
-		fptr := unsafe.Pointer(uintptr(ptr) + field.offset)
+		fptr := unsafe.Add(ptr, field.offset)
 		if field.deref {
 			fptr = *(*unsafe.Pointer)(fptr)
 		}
@@ -164,7 +164,7 @@ func (c *StructCodec) size(ptr unsafe.Pointer) (size int) {
 
 func (c *StructCodec) append(data []byte, ptr unsafe.Pointer) []byte {
 	for _, field := range c.fields {
-		fptr := unsafe.Pointer(uintptr(ptr) + field.offset)
+		fptr := unsafe.Add(ptr, field.offset)
 		if field.deref {
 			fptr = *(*unsafe.Pointer)(fptr)
 		}
