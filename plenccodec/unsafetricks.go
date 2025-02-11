@@ -25,7 +25,7 @@ func typedslicecopy(elemType unsafe.Pointer, dst, src sliceHeader) int
 //go:noescape
 func typedmemmove(elemType unsafe.Pointer, dst, src unsafe.Pointer)
 
-//go:linkname typedmemclr runtime.typedmemclr
+//go:linkname typedmemclr reflect.typedmemclr
 //go:noescape
 func typedmemclr(elemType unsafe.Pointer, v unsafe.Pointer)
 
@@ -45,6 +45,10 @@ func mapassign(typ unsafe.Pointer, hmap unsafe.Pointer, key unsafe.Pointer) (val
 // issue if something it thought was a pointer was not. Don't attempt to access
 // any of the fields in this struct directly! On the plus side this hasn't
 // changed significantly for 6 years
+//
+// Note that this did break with Go 1.24, but the Go team introduced a shim to
+// allow it to keep working. This causes an additional allocation, but it still
+// performs better than switching to a reflect version (see reflectmap branch)
 type mapiter struct {
 	key         unsafe.Pointer
 	elem        unsafe.Pointer
