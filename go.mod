@@ -4,6 +4,8 @@ go 1.24
 
 toolchain go1.24.2
 
+replace github.com/unravelin/null => github.com/unravelin/null/v5 v5.0.1
+
 require (
 	github.com/fatih/structtag v1.2.0
 	github.com/google/go-cmp v0.6.0
