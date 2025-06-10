@@ -132,7 +132,7 @@ func (c *config) rewrite(node ast.Node) (ast.Node, error) {
 
 		// Now we make updates
 		for _, f := range x.Fields.List {
-			if c.excludePrivate {
+			if c.excludePrivate && f.Names != nil {
 				r, _ := utf8.DecodeRuneInString(f.Names[0].Name)
 				if unicode.IsLower(r) {
 					continue

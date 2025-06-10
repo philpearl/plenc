@@ -51,7 +51,7 @@ func (p *Plenc) Marshal(data []byte, value any) ([]byte, error) {
 		return nil, err
 	}
 
-	if c.Omit(ptr) {
+	if ptr == nil || c.Omit(ptr) {
 		return nil, nil
 	}
 	if data == nil {

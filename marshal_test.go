@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	fuzz "github.com/google/gofuzz"
 	"github.com/philpearl/plenc/plenccore"
 )
@@ -85,6 +86,25 @@ type TestThing struct {
 	X4 [][]float32 `plenc:"52"`
 
 	R1 RecursiveThing `plenc:"53"`
+}
+
+func TestMarshalNil(t *testing.T) {
+	var in *TestThing
+	data, err := Marshal(nil, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data) != 0 {
+		t.Fatalf("expected no data for nil input, got %d bytes", len(data))
+	}
+
+	var out *TestThing
+	if err := Unmarshal(data, &out); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(&TestThing{}, out, cmpopts.EquateEmpty()); diff != "" {
+		t.Fatalf("expected nil output, got %s", diff)
+	}
 }
 
 func TestMarshal(t *testing.T) {
