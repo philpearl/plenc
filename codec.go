@@ -3,6 +3,7 @@ package plenc
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/philpearl/plenc/plenccodec"
@@ -113,9 +114,20 @@ func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ refl
 		c = plenccodec.PointerWrapper{Underlying: subc}
 
 	case reflect.Struct:
-		c, err = plenccodec.BuildStructCodec(p, registry, typ, tag)
-		if err != nil {
-			return nil, err
+		// Is this an Optional? The reflect package doesn't have a great way for
+		// us to tell yet. So we just hack around with the name and package path.
+		// Improve this when reflect fully supports generics.
+		if strings.HasSuffix(typ.PkgPath(), "plenc/plenccodec") &&
+			strings.HasPrefix(typ.Name(), "Optional[") {
+			c, err = plenccodec.BuildOptionalCodec(p, registry, typ, tag)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			c, err = plenccodec.BuildStructCodec(p, registry, typ, tag)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 	case reflect.Slice:
