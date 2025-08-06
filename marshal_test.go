@@ -114,7 +114,7 @@ func TestMarshal(t *testing.T) {
 		cont.Fuzz(&v)
 		*out = &v
 	}).MaxDepth(4)
-	for i := 0; i < 10000; i++ {
+	for range 10000 {
 		var in TestThing
 		f.Fuzz(&in)
 
@@ -253,7 +253,7 @@ func TestMarshalPtrSliceInt(t *testing.T) {
 
 func TestSkip(t *testing.T) {
 	f := fuzz.New().MaxDepth(4)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		var in TestThing
 		f.Fuzz(&in)
 

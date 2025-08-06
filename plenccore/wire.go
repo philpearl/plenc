@@ -79,7 +79,7 @@ func Skip(data []byte, wt WireType) (int, error) {
 		}
 		// We now expect count length-value encoded items
 		offset := n
-		for i := uint64(0); i < count; i++ {
+		for i := range count {
 			if offset >= len(data) {
 				return 0, fmt.Errorf("start of entry %d of WTSlice overruns data", i)
 			}

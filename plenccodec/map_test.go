@@ -157,7 +157,7 @@ func TestMapZero(t *testing.T) {
 func TestMapFuzz(t *testing.T) {
 	fz := fuzz.New()
 
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		var in, out map[string]string
 		fz.Fuzz(&in)
 
@@ -192,7 +192,7 @@ func BenchmarkMap(b *testing.B) {
 	b.ReportAllocs()
 	var data []byte
 	var o map[string]string
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		var err error
 		data, err = plenc.Marshal(data[:0], m)
 		if err != nil {

@@ -96,7 +96,7 @@ type WTLengthSliceWrapper struct {
 func (c WTLengthSliceWrapper) size(ptr unsafe.Pointer) int {
 	h := *(*sliceHeader)(ptr)
 	size := plenccore.SizeVarUint(uint64(h.Len))
-	for i := 0; i < h.Len; i++ {
+	for i := range h.Len {
 		s := c.Underlying.Size(unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
 		size += s + plenccore.SizeVarUint(uint64(s))
 	}
@@ -110,7 +110,7 @@ func (c WTLengthSliceWrapper) append(data []byte, ptr unsafe.Pointer) []byte {
 	// Append the count of items in the slice
 	data = plenccore.AppendVarUint(data, uint64(h.Len))
 	// Append each of the items. They're all prefixed by their length
-	for i := 0; i < h.Len; i++ {
+	for i := range h.Len {
 		ptr := unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize)
 		data = plenccore.AppendVarUint(data, uint64(c.Underlying.Size(ptr, nil)))
 		data = c.Underlying.Append(data, ptr, nil)
@@ -140,7 +140,7 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 	} else {
 		// We're going to re-use the backing array. It's going to be surprising
 		// if we don't start from zeros so we zero everything.
-		for i := 0; i < int(count); i++ {
+		for i := range int(count) {
 			// We'll only write to fields if the data is present, so start by zeroing
 			// the target
 			ptr := unsafe.Add(h.Data, i*int(c.EltSize))
@@ -150,7 +150,7 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 	h.Len = int(count)
 
 	offset := n
-	for i := 0; i < h.Len; i++ {
+	for i := range h.Len {
 		s, n := plenccore.ReadVarUint(data[offset:])
 		if n <= 0 {
 			return 0, fmt.Errorf("invalid varint for slice entry %d", i)
@@ -226,7 +226,7 @@ type WTFixedSliceWrapper struct {
 // append encodes the slice without the tag
 func (c WTFixedSliceWrapper) append(data []byte, ptr unsafe.Pointer) []byte {
 	h := *(*sliceHeader)(ptr)
-	for i := 0; i < h.Len; i++ {
+	for i := range h.Len {
 		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
 	}
 	return data
@@ -247,7 +247,7 @@ func (c WTFixedSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore.
 	h.Len = count
 
 	var offset int
-	for i := 0; i < h.Len; i++ {
+	for i := range h.Len {
 		n, err := c.Underlying.Read(data[offset:], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), c.Underlying.WireType())
 		if err != nil {
 			return 0, err
@@ -284,7 +284,7 @@ type WTVarIntSliceWrapper struct {
 func (c WTVarIntSliceWrapper) size(ptr unsafe.Pointer) int {
 	h := *(*sliceHeader)(ptr)
 	size := 0
-	for i := 0; i < h.Len; i++ {
+	for i := range h.Len {
 		size += c.Underlying.Size(unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
 	}
 	return size
@@ -293,7 +293,7 @@ func (c WTVarIntSliceWrapper) size(ptr unsafe.Pointer) int {
 // append encodes the slice without the tag
 func (c WTVarIntSliceWrapper) append(data []byte, ptr unsafe.Pointer) []byte {
 	h := *(*sliceHeader)(ptr)
-	for i := 0; i < h.Len; i++ {
+	for i := range h.Len {
 		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
 	}
 	return data
@@ -323,7 +323,7 @@ func (c WTVarIntSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 	h.Len = count
 
 	offset = 0
-	for i := 0; i < h.Len; i++ {
+	for i := range h.Len {
 		n, err := c.Underlying.Read(data[offset:], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), plenccore.WTVarInt)
 		if err != nil {
 			return 0, err
@@ -365,7 +365,7 @@ type ProtoSliceWrapper struct {
 func (c ProtoSliceWrapper) Size(ptr unsafe.Pointer, tag []byte) int {
 	h := *(*sliceHeader)(ptr)
 	var l int
-	for i := 0; i < h.Len; i++ {
+	for i := range h.Len {
 		l += c.Underlying.Size(unsafe.Add(h.Data, uintptr(i)*c.EltSize), tag)
 	}
 	return l
@@ -375,7 +375,7 @@ func (c ProtoSliceWrapper) Size(ptr unsafe.Pointer, tag []byte) int {
 // lengths for each element
 func (c ProtoSliceWrapper) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
 	h := *(*sliceHeader)(ptr)
-	for i := 0; i < h.Len; i++ {
+	for i := range h.Len {
 		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), tag)
 	}
 	return data

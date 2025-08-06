@@ -27,7 +27,7 @@ func TestTime(t *testing.T) {
 	}
 
 	for j, p := range []*plenc.Plenc{&p1, &p2, &p3} {
-		for i := 0; i < 100_000; i++ {
+		for range 100_000 {
 			var t0 twrap
 			f.Fuzz(&t0)
 

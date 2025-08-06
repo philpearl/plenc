@@ -127,12 +127,12 @@ func TestInternedStringParallel(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	wg.Add(100)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		go func() {
 			defer wg.Done()
 			var data []byte
 			var val, out my
-			for i := 0; i < 1000; i++ {
+			for range 1000 {
 				for _, test := range values {
 					val.V = test
 					data, err := plenc.Marshal(data[:0], &val)
@@ -186,7 +186,7 @@ func BenchmarkInternedString(b *testing.B) {
 
 	b.ResetTimer()
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		out = myb{}
 		if err := plenc.Unmarshal(data, &out); err != nil {
 			b.Fatal(err)

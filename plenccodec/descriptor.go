@@ -211,7 +211,7 @@ func (d *Descriptor) readAsSlice(out Outputter, data []byte) (n int, err error) 
 			return 0, fmt.Errorf("corrupt data looking for WTSlice count")
 		}
 		offset := n
-		for i := 0; i < int(count); i++ {
+		for i := range int(count) {
 			if offset >= len(data) {
 				return 0, fmt.Errorf("corrupt data looking for length of slice entry %d", i)
 			}
@@ -362,7 +362,7 @@ func (d *Descriptor) readAsJSON(out Outputter, data []byte) (n int, err error) {
 		return 0, fmt.Errorf("corrupt data looking for WTSlice count")
 	}
 	offset := n
-	for i := 0; i < int(count); i++ {
+	for i := range int(count) {
 		// For each entry we have a string key, a value type and a value
 		s, n := plenccore.ReadVarUint(data[offset:])
 		if n <= 0 {

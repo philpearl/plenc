@@ -62,7 +62,7 @@ func (j *JSONOutput) prefix() {
 		j.inField = false
 		return
 	}
-	for i := 0; i < j.depth; i++ {
+	for range j.depth {
 		j.data = append(j.data, "  "...)
 	}
 }
@@ -188,7 +188,7 @@ const hex = "0123456789abcdef"
 
 func (j *JSONOutput) appendString(data []byte, v string) []byte {
 	data = append(data, '"')
-	for i := 0; i < len(v); i++ {
+	for i := range len(v) {
 		c := v[i]
 		switch c {
 		case '\\', '"':

@@ -180,7 +180,7 @@ func TestNull(t *testing.T) {
 	}
 
 	f := fuzz.New().Funcs(fuzzFuncs...)
-	for i := 0; i < 10000; i++ {
+	for range 10000 {
 		var in TestThing
 		f.Fuzz(&in)
 
