@@ -1,8 +1,7 @@
 package plenccodec
 
 import (
-	"sync"
-	"sync/atomic"
+	"unique"
 	"unsafe"
 
 	"github.com/philpearl/plenc/plenccore"
@@ -125,50 +124,20 @@ type Interner interface {
 }
 
 type InternedStringCodec struct {
-	sync.Mutex
-	strings unsafe.Pointer
 	StringCodec
 }
 
-func (c *InternedStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
-	p := atomic.LoadPointer(&c.strings)
-	m := *(*map[string]string)((unsafe.Pointer)(&p))
-
-	s, ok := m[string(data)]
-	if !ok {
-		s = c.addString(data)
-	}
+func (c InternedStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
+	// Note this will copy the string if it stores it, so we can do this unsafe trick
+	// without worrying about the underlying data changing.
+	s := unique.Make(unsafe.String(unsafe.SliceData(data), len(data))).Value()
 
 	*(*string)(ptr) = s
 	return len(data), nil
 }
 
-func (c *InternedStringCodec) addString(data []byte) string {
-	c.Lock()
-	defer c.Unlock()
-	p := atomic.LoadPointer(&c.strings)
-	m := *(*map[string]string)((unsafe.Pointer)(&p))
-
-	s, ok := m[string(data)]
-	if !ok {
-		// We completely replace the map with a new one, so the old one can
-		// be read without locks. We're expecting the number of different values
-		// to be small, so that this is a reasonable thing to do.
-		m2 := make(map[string]string, len(m)+1)
-		for k, v := range m {
-			m2[k] = v
-		}
-		s = string(data)
-		m2[s] = s
-
-		atomic.StorePointer(&c.strings, *(*unsafe.Pointer)(unsafe.Pointer(&m2)))
-	}
-	return s
-}
+var icCodec Codec = InternedStringCodec{}
 
 func (c StringCodec) WithInterning() Codec {
-	ic := &InternedStringCodec{}
-	m := map[string]string{}
-	atomic.StorePointer(&ic.strings, *(*unsafe.Pointer)(unsafe.Pointer(&m)))
-	return ic
+	return icCodec
 }
