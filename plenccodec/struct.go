@@ -19,11 +19,21 @@ type wrappedCodecRegistry struct {
 	codec Codec
 }
 
-func (w wrappedCodecRegistry) Load(typ reflect.Type, tag string) Codec {
+func (w *wrappedCodecRegistry) Load(typ reflect.Type, tag string) Codec {
 	if typ == w.typ && tag == w.tag {
 		return w.codec
 	}
 	return w.CodecRegistry.Load(typ, tag)
+}
+
+func (w *wrappedCodecRegistry) StoreOrSwap(typ reflect.Type, tag string, codec Codec) Codec {
+	if typ == w.typ && tag == w.tag {
+		// Don't let this codec be swapped into the real registry as it isn't baked yet
+		old := w.codec
+		w.codec = codec
+		return old
+	}
+	return w.CodecRegistry.StoreOrSwap(typ, tag, codec)
 }
 
 func BuildStructCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, tag string) (Codec, error) {
@@ -36,11 +46,11 @@ func BuildStructCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, 
 		fields: make([]description, typ.NumField()),
 	}
 
-	registry = wrappedCodecRegistry{CodecRegistry: registry, typ: typ, tag: tag, codec: &c}
+	registry = &wrappedCodecRegistry{CodecRegistry: registry, typ: typ, tag: tag, codec: &c}
 
 	var maxIndex int
 	var count int
-	for i := range c.fields {
+	for i := range typ.NumField() {
 		sf := typ.Field(i)
 
 		r, _ := utf8.DecodeRuneInString(sf.Name)
