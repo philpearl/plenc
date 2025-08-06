@@ -66,7 +66,7 @@ func BuildMapCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, tag
 	return &c, nil
 }
 
-func (c *MapCodec) newKey() interface{} {
+func (c *MapCodec) newKey() any {
 	return c.keyCodec.New()
 }
 

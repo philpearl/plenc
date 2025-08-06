@@ -11,7 +11,7 @@ import (
 )
 
 func TestJSONMap(t *testing.T) {
-	type customMap map[string]interface{}
+	type customMap map[string]any
 	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plenccodec.JSONMapCodec{})
 
 	tests := []customMap{
@@ -20,10 +20,10 @@ func TestJSONMap(t *testing.T) {
 			"b": -1,
 			"c": 1.1,
 			"d": "hat",
-			"e": map[string]interface{}{
+			"e": map[string]any{
 				"f": 1,
-				"a": []interface{}{1, 2, 3},
-				"b": []interface{}{1, 1.3, "haddock"},
+				"a": []any{1, 2, 3},
+				"b": []any{1, 1.3, "haddock"},
 			},
 			"f": nil,
 			"g": true,
@@ -57,7 +57,7 @@ func TestJSONMap(t *testing.T) {
 }
 
 func TestJSONMapStruct(t *testing.T) {
-	type customMap map[string]interface{}
+	type customMap map[string]any
 	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plenccodec.JSONMapCodec{})
 
 	type my struct {
@@ -86,7 +86,7 @@ func TestJSONMapStruct(t *testing.T) {
 }
 
 func TestJSONMapSkip(t *testing.T) {
-	type customMap map[string]interface{}
+	type customMap map[string]any
 	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plenccodec.JSONMapCodec{})
 
 	type my struct {
@@ -102,9 +102,9 @@ func TestJSONMapSkip(t *testing.T) {
 			"b": -1,
 			"c": 1.1,
 			"d": "hat",
-			"e": map[string]interface{}{
+			"e": map[string]any{
 				"f": 1,
-				"a": []interface{}{1, 2, 3},
+				"a": []any{1, 2, 3},
 			},
 			"f": nil,
 			"g": true,
