@@ -18,7 +18,7 @@ func init() {
 	RegisterCodecs()
 }
 
-var fuzzFuncs = []interface{}{
+var fuzzFuncs = []any{
 	func(a *null.Bool, c fuzz.Continue) {
 		a.Valid = c.RandBool()
 		if a.Valid {
@@ -73,9 +73,9 @@ func TestNullEmpty(t *testing.T) {
 func TestNullExplicit(t *testing.T) {
 	tests := []struct {
 		name string
-		in   interface{}
-		out  interface{}
-		exp  interface{}
+		in   any
+		out  any
+		exp  any
 	}{
 		{
 			name: "empty valid string",
