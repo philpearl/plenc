@@ -194,20 +194,20 @@ func (c nullStringCodec) Descriptor() plenccodec.Descriptor {
 }
 
 func (nullStringCodec) WithInterning() plenccodec.Codec {
-	c, _ := plenccodec.StringCodec{}.WithInterning().(*plenccodec.InternedStringCodec)
+	c := plenccodec.StringCodec{}.WithInterning()
 	return &internedNullStringCodec{
-		stringCodec: c,
+		internedCodec: c,
 	}
 }
 
 type internedNullStringCodec struct {
 	nullStringCodec
-	stringCodec *plenccodec.InternedStringCodec
+	internedCodec plenccodec.Codec
 }
 
 func (c *internedNullStringCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) (n int, err error) {
 	ns := (*null.String)(ptr)
-	n, err = c.stringCodec.Read(data, unsafe.Pointer(&ns.String), wt)
+	n, err = c.internedCodec.Read(data, unsafe.Pointer(&ns.String), wt)
 	if err != nil {
 		return n, err
 	}
