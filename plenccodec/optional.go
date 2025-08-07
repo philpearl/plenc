@@ -34,6 +34,8 @@ func OptionalOf[T any](value T) Optional[T] {
 	}
 }
 
+// optionalHeader lets us access the Set field of any Optional[T] without
+// needing a concrete implementation of the actual type.
 type optionalHeader struct {
 	Set bool
 }
