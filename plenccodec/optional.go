@@ -17,6 +17,23 @@ type Optional[T any] struct {
 	Value T
 }
 
+// OptionalOf creates an Optional[T] with the given value.
+// It is a convenience function to avoid having to create an Optional[T] struct manually.
+// This is useful for creating optional values in a more readable way.
+//
+// Example usage:
+//
+//	opt := OptionalOf(42) // Creates an Optional[int] with Set=true and Value=42
+//	opt := OptionalOf("hello") // Creates an Optional[string] with Set=true and Value="hello"
+//
+// Note: This function is generic and works with any type T.
+func OptionalOf[T any](value T) Optional[T] {
+	return Optional[T]{
+		Set:   true,
+		Value: value,
+	}
+}
+
 type optionalHeader struct {
 	Set bool
 }
