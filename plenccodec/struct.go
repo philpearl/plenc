@@ -46,6 +46,9 @@ func BuildStructCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, 
 		fields: make([]description, typ.NumField()),
 	}
 
+	// This wrapped registry ensures that if we have recursive types we use the
+	// codec we are building, not try to build a new one. This avoids infinite
+	// stacks in this case.
 	registry = &wrappedCodecRegistry{CodecRegistry: registry, typ: typ, tag: tag, codec: &c}
 
 	var maxIndex int

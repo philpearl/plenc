@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -144,5 +145,36 @@ func TestDescriptor(t *testing.T) {
 	if diff := cmp.Diff(expTestDescriptor, out); diff != "" {
 		t.Log(out)
 		t.Fatal(diff)
+	}
+}
+
+func TestDescriptorRacey(t *testing.T) {
+	type my2 struct {
+		A int `plenc:"1"`
+		B int `plenc:"2"`
+	}
+
+	type my struct {
+		A int     `plenc:"1"`
+		B string  `plenc:"2"`
+		C float64 `plenc:"3"`
+		D []my2   `plenc:"4"`
+	}
+
+	var wg sync.WaitGroup
+	for range 20 {
+		wg.Go(func() {
+			c, err := plenc.CodecForType(reflect.TypeFor[my]())
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			d := c.Descriptor()
+
+			if _, err := plenc.Marshal(nil, d); err != nil {
+				t.Error(err)
+				return
+			}
+		})
 	}
 }

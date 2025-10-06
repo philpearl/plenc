@@ -39,14 +39,6 @@ func RegisterCodecWithTag(typ reflect.Type, tag string, c plenccodec.Codec) {
 	defaultPlenc.RegisterCodecWithTag(typ, tag, c)
 }
 
-func (p *Plenc) codecForBasicType(typ reflect.Type, tag string) (plenccodec.Codec, error) {
-	c := p.codecRegistry.Load(typ, tag)
-	if c == nil {
-		return nil, fmt.Errorf("no codec available for %s", typ.Name())
-	}
-	return c, nil
-}
-
 // CodecForType returns a codec for the requested type. It should only be needed
 // when constructing a codec based on an existing plenc codec
 func CodecForType(typ reflect.Type) (plenccodec.Codec, error) {
@@ -95,9 +87,75 @@ func (p *Plenc) CodecForTypeWithTag(typ reflect.Type, tag string) (plenccodec.Co
 	return p.CodecForTypeRegistry(&p.codecRegistry, typ, tag)
 }
 
+// localRegistry allows us to build up a set of codecs locally before
+// making them visible in the main registry. This should mean we don't make any
+// partial updates visible before they're complete.
+type localRegistry struct {
+	codecRegistry plenccodec.CodecRegistry
+	local         map[registryKey]plenccodec.Codec
+}
+
+func (br *localRegistry) Load(typ reflect.Type, tag string) plenccodec.Codec {
+	if c := br.codecRegistry.Load(typ, tag); c != nil {
+		return c
+	}
+	return br.local[registryKey{typ: typ, tag: tag}]
+}
+
+func (br *localRegistry) Store(typ reflect.Type, tag string, c plenccodec.Codec) {
+	br.local[registryKey{typ: typ, tag: tag}] = c
+}
+
+func (br *localRegistry) StoreOrSwap(typ reflect.Type, tag string, c plenccodec.Codec) plenccodec.Codec {
+	if c2 := br.Load(typ, tag); c2 != nil {
+		return c2
+	}
+	br.local[registryKey{typ: typ, tag: tag}] = c
+	return c
+}
+
+func (br *localRegistry) Commit() {
+	// There's a chance that codecs we've built will reference different
+	// instances of codecs than the ones we're registering here. I don't think
+	// that currently matters.
+	for k, v := range br.local {
+		br.codecRegistry.StoreOrSwap(k.typ, k.tag, v)
+	}
+}
+
 // CodecForTypeRegistry builds a new codec for the requested type, consulting
 // registry for any existing codecs needed
 func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ reflect.Type, tag string) (plenccodec.Codec, error) {
+	lr := &localRegistry{local: make(map[registryKey]plenccodec.Codec), codecRegistry: registry}
+
+	icb := internalCodecBuilder{codecRegistry: lr, ProtoCompatibleArrays: p.ProtoCompatibleArrays}
+
+	c, err := icb.CodecForTypeRegistry(lr, typ, tag)
+	if err != nil {
+		return nil, err
+	}
+	lr.Commit()
+	return c, nil
+}
+
+// internalCodecBuilder is uses so we can wrap the codec registry with a
+// local registry just once, then use this to build codecs as needed.
+type internalCodecBuilder struct {
+	codecRegistry         plenccodec.CodecRegistry
+	ProtoCompatibleArrays bool
+}
+
+// codecForBasicType shortcuts the local registry. Basic types should be pre-registered
+// with the underlying registry - we can't build them here.
+func (p internalCodecBuilder) codecForBasicType(typ reflect.Type, tag string) (plenccodec.Codec, error) {
+	c := p.codecRegistry.Load(typ, tag)
+	if c == nil {
+		return nil, fmt.Errorf("no codec available for %s", typ.Name())
+	}
+	return c, nil
+}
+
+func (p internalCodecBuilder) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ reflect.Type, tag string) (plenccodec.Codec, error) {
 	c := registry.Load(typ, tag)
 	if c != nil {
 		return c, nil
@@ -106,7 +164,7 @@ func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ refl
 	var err error
 
 	switch typ.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		subc, err := p.CodecForTypeRegistry(registry, typ.Elem(), tag)
 		if err != nil {
 			return nil, err
@@ -143,7 +201,7 @@ func (p *Plenc) CodecForTypeRegistry(registry plenccodec.CodecRegistry, typ refl
 		case plenccore.WTVarInt:
 			c = plenccodec.WTVarIntSliceWrapper{BaseSliceWrapper: bs}
 		case plenccore.WT64, plenccore.WT32:
-			if subt.Kind() == reflect.Ptr {
+			if subt.Kind() == reflect.Pointer {
 				// Can probably support these if we don't allow missing entries
 				return nil, fmt.Errorf("slices of pointers to float32 & float64 are not supported")
 			}

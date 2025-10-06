@@ -1,8 +1,6 @@
 module github.com/philpearl/plenc
 
-go 1.24
-
-toolchain go1.24.2
+go 1.25
 
 replace github.com/unravelin/null => github.com/unravelin/null/v5 v5.0.1
 
