@@ -1,6 +1,7 @@
 package plenccodec
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"unsafe"
@@ -32,6 +33,38 @@ func OptionalOf[T any](value T) Optional[T] {
 		Set:   true,
 		Value: value,
 	}
+}
+
+// IsZero returns true if the Optional[T] is not set. It exists because the Go
+// JSON marshaller looks for an IsZero method to determine if a value is
+// considered zero for the "omitzero" tag.
+func (o *Optional[T]) IsZero() bool {
+	return !o.Set
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface. It is provided so that
+// json unmarshalling works correctly with Optional[T].
+func (o *Optional[T]) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		o.Set = false
+		return nil
+	}
+	if err := json.Unmarshal(data, &o.Value); err != nil {
+		return err
+	}
+	o.Set = true
+	return nil
+}
+
+var nullJSON = []byte("null")
+
+// MarshalJSON implements the json.Marshaler interface. It is provided so that
+// json marshalling works correctly with Optional[T].
+func (o Optional[T]) MarshalJSON() ([]byte, error) {
+	if !o.Set {
+		return nullJSON, nil
+	}
+	return json.Marshal(&o.Value)
 }
 
 // optionalHeader lets us access the Set field of any Optional[T] without
