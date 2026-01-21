@@ -26,6 +26,10 @@ func Size(value any) (int, error) {
 
 func (p *Plenc) preamble(value any) (unsafe.Pointer, plenccodec.Codec, error) {
 	typ := reflect.TypeOf(value)
+	if typ == nil {
+		// A really very nil nil
+		return nil, nil, nil
+	}
 	ptr := unpackEFace(value).data
 	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()

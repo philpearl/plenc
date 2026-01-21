@@ -97,6 +97,16 @@ func TestMarshalNil(t *testing.T) {
 	if len(data) != 0 {
 		t.Fatalf("expected no data for nil input, got %d bytes", len(data))
 	}
+}
+
+func TestMarshalReallyNil(t *testing.T) {
+	data, err := Marshal(nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data) != 0 {
+		t.Fatalf("expected no data for nil input, got %d bytes", len(data))
+	}
 
 	var out *TestThing
 	if err := Unmarshal(data, &out); err != nil {
