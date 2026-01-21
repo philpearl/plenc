@@ -76,7 +76,7 @@ func (p *Plenc) Unmarshal(data []byte, value any) error {
 		return err
 	}
 
-	_, err = c.Read(data, unsafe.Pointer(rv.Pointer()), c.WireType())
+	_, err = c.Read(data, rv.UnsafePointer(), c.WireType())
 	return err
 }
 
