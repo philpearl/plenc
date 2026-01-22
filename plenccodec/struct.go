@@ -196,6 +196,10 @@ func (c *StructCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireTyp
 	var offset int
 	for offset < l {
 		wt, index, n := plenccore.ReadTag(data[offset:])
+		// Zero implies the buffer was too small to read the tag
+		if n <= 0 || n > l-offset {
+			return 0, fmt.Errorf("failed to read tag in %s", c.rtype.Name())
+		}
 		offset += n
 
 		if index >= len(c.fieldsByIndex) || c.fieldsByIndex[index].codec == nil {
@@ -203,6 +207,9 @@ func (c *StructCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireTyp
 			n, err := plenccore.Skip(data[offset:], wt)
 			if err != nil {
 				return 0, fmt.Errorf("failed to skip field %d in %s. %w", index, c.rtype.Name(), err)
+			}
+			if n < 0 || n > l-offset {
+				return 0, fmt.Errorf("failed to skip field %d in %s", index, c.rtype.Name())
 			}
 			offset += n
 			continue
@@ -213,18 +220,18 @@ func (c *StructCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireTyp
 			// For WTLength types we read out the length and ensure the data we
 			// read the field from is the right length
 			v, n := plenccore.ReadVarUint(data[offset:])
-			if n <= 0 {
+			if n <= 0 || n > l-offset {
 				return 0, fmt.Errorf("varuint overflow reading field %d of %s", index, c.rtype.Name())
 			}
 			offset += n
 			fl = int(v) + offset
-			if fl > l {
+			if fl > l || fl < 0 {
 				return 0, fmt.Errorf("length %d of field %d of %s exceeds data length", fl, index, c.rtype.Name())
 			}
 		}
 
 		d := c.fieldsByIndex[index]
-		n, err := d.codec.Read(data[offset:fl], unsafe.Pointer(uintptr(ptr)+d.offset), wt)
+		n, err := d.codec.Read(data[offset:fl], unsafe.Add(ptr, d.offset), wt)
 		if err != nil {
 			return 0, fmt.Errorf("failed reading field %d of %s. %w", index, c.rtype.Name(), err)
 		}

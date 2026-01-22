@@ -21,11 +21,7 @@ func SizeVarUint(v uint64) int {
 
 // AppendVarUint appends a varint encoding of v to data. It returns the resulting slice
 func AppendVarUint(data []byte, v uint64) []byte {
-	for v >= 0x80 {
-		data = append(data, byte(v)|0x80)
-		v >>= 7
-	}
-	return append(data, byte(v))
+	return binary.AppendUvarint(data, v)
 }
 
 // ZigZag performs zig-zag encoding of an int into a uint. 0->0 -1->1 1->2, etc. So positive numbers are
@@ -41,8 +37,7 @@ func ZagZig(v uint64) int64 {
 
 // ReadVarInt reads a signed int value from data
 func ReadVarInt(data []byte) (v int64, n int) {
-	u, n := ReadVarUint(data)
-	return ZagZig(u), n
+	return binary.Varint(data)
 }
 
 // SizeVarInt returns the number of bytes needed to encode v
@@ -52,5 +47,5 @@ func SizeVarInt(v int64) int {
 
 // AppendVarInt encodes v as a varint and appends the result to data
 func AppendVarInt(data []byte, v int64) []byte {
-	return AppendVarUint(data, ZigZag(v))
+	return binary.AppendVarint(data, v)
 }

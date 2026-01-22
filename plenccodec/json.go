@@ -302,6 +302,9 @@ func readJSONKV(data []byte, key *string, val *any) (n int, err error) {
 
 	for offset < len(data) {
 		wt, index, n := plenccore.ReadTag(data[offset:])
+		if n <= 0 {
+			return 0, fmt.Errorf("failed to read tag for json key-value")
+		}
 		offset += n
 		switch index {
 		case 1:

@@ -97,7 +97,7 @@ func (c WTLengthSliceWrapper) size(ptr unsafe.Pointer) int {
 	h := *(*sliceHeader)(ptr)
 	size := plenccore.SizeVarUint(uint64(h.Len))
 	for i := range h.Len {
-		s := c.Underlying.Size(unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
+		s := c.Underlying.Size(unsafe.Add(h.Data, uintptr(i)*c.EltSize), nil)
 		size += s + plenccore.SizeVarUint(uint64(s))
 	}
 	return size
@@ -111,7 +111,7 @@ func (c WTLengthSliceWrapper) append(data []byte, ptr unsafe.Pointer) []byte {
 	data = plenccore.AppendVarUint(data, uint64(h.Len))
 	// Append each of the items. They're all prefixed by their length
 	for i := range h.Len {
-		ptr := unsafe.Pointer(uintptr(h.Data) + uintptr(i)*c.EltSize)
+		ptr := unsafe.Add(h.Data, uintptr(i)*c.EltSize)
 		data = plenccore.AppendVarUint(data, uint64(c.Underlying.Size(ptr, nil)))
 		data = c.Underlying.Append(data, ptr, nil)
 	}
@@ -127,8 +127,17 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 
 	// First we read the number of items in the slice
 	count, n := plenccore.ReadVarUint(data)
+	// n will be zero if the data is too short to carry a number. But count will
+	// be zero then too.
 	if n < 0 {
 		return 0, fmt.Errorf("corrupt data looking for WTSlice count")
+	}
+
+	// Just as a rough check on the number of items, we expect at least one byte
+	// per entry in the slice! This gives some protection against corrupt data
+	// requesting enormous amounts of memory.
+	if uint64(len(data)) < count {
+		return 0, fmt.Errorf("data length %d too short for slice count %d", len(data), count)
 	}
 
 	// Now make sure we have enough capacity in the slice
@@ -151,18 +160,26 @@ func (c WTLengthSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 
 	offset := n
 	for i := range h.Len {
+		if offset >= len(data) {
+			return 0, fmt.Errorf("unexpected end of data at slice entry %d", i)
+		}
 		s, n := plenccore.ReadVarUint(data[offset:])
 		if n <= 0 {
 			return 0, fmt.Errorf("invalid varint for slice entry %d", i)
 		}
 		offset += n
 
+		end := offset + int(s)
+		if end > len(data) || end < offset {
+			return 0, fmt.Errorf("slice entry %d length %d exceeds data bounds", i, s)
+		}
+
 		ptr := unsafe.Add(h.Data, i*int(c.EltSize))
-		n, err := c.Underlying.Read(data[offset:offset+int(s)], ptr, plenccore.WTLength)
+		n, err := c.Underlying.Read(data[offset:end], ptr, plenccore.WTLength)
 		if err != nil {
 			return 0, err
 		}
-		offset += n
+		offset = end // Advance by the declared size, not bytes consumed
 	}
 
 	return offset, nil
@@ -306,7 +323,7 @@ func (c WTVarIntSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 	var offset, count int
 	for offset < len(data) {
 		_, n := plenccore.ReadVarUint(data[offset:])
-		if n < 0 {
+		if n <= 0 {
 			return 0, fmt.Errorf("corrupt data")
 		}
 		offset += n

@@ -254,6 +254,9 @@ func (d *Descriptor) readAsMapEntry(out Outputter, data []byte) (n int, err erro
 	var offset int
 	for offset < l {
 		wt, index, n := plenccore.ReadTag(data[offset:])
+		if n <= 0 {
+			return 0, fmt.Errorf("failed to read tag for %s as map", d.Name)
+		}
 		offset += n
 
 		var elt *Descriptor
@@ -306,6 +309,9 @@ func (d *Descriptor) readAsStruct(out Outputter, data []byte) (n int, err error)
 	var offset int
 	for offset < l {
 		wt, index, n := plenccore.ReadTag(data[offset:])
+		if n <= 0 {
+			return 0, fmt.Errorf("failed to read tag for %s as struct", d.Name)
+		}
 		offset += n
 
 		var elt *Descriptor
@@ -391,6 +397,9 @@ func (d *Descriptor) readJSONObjectKV(out Outputter, data []byte) (n int, err er
 
 	for offset < len(data) {
 		wt, index, n := plenccore.ReadTag(data[offset:])
+		if n <= 0 {
+			return 0, fmt.Errorf("failed to read tag for %s as json object key-value", d.Name)
+		}
 		offset += n
 		switch index {
 		case 1:

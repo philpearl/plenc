@@ -52,11 +52,11 @@ func TestDescriptor(t *testing.T) {
 		S map[string]int      `plenc:"19"`
 	}
 
-	plenc.RegisterCodec(reflect.TypeOf(map[string]any{}), plenccodec.JSONMapCodec{})
-	plenc.RegisterCodec(reflect.TypeOf([]any{}), plenccodec.JSONArrayCodec{})
-	plenc.RegisterCodecWithTag(reflect.TypeOf(time.Time{}), "flattime", plenccodec.BQTimestampCodec{})
+	plenc.RegisterCodec(reflect.TypeFor[map[string]any](), plenccodec.JSONMapCodec{})
+	plenc.RegisterCodec(reflect.TypeFor[[]any](), plenccodec.JSONArrayCodec{})
+	plenc.RegisterCodecWithTag(reflect.TypeFor[time.Time](), "flattime", plenccodec.BQTimestampCodec{})
 
-	c, err := plenc.CodecForType(reflect.TypeOf(my{}))
+	c, err := plenc.CodecForType(reflect.TypeFor[my]())
 	if err != nil {
 		t.Fatal(err)
 	}

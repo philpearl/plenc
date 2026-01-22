@@ -153,6 +153,10 @@ func (c *MapCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) 
 	if n <= 0 {
 		return 0, fmt.Errorf("failed to read map size")
 	}
+	// As a check on length - we expect each entry to take at least one byte!
+	if count > uint64(len(data)) {
+		return 0, fmt.Errorf("corrupt data for map - count exceeds data length")
+	}
 
 	// ptr is a pointer to a map pointer
 	if *(*unsafe.Pointer)(ptr) == nil {
@@ -167,13 +171,20 @@ func (c *MapCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType) 
 	defer c.kPool.Put(k)
 	offset := int(n)
 	for count > 0 {
+		if offset >= len(data) {
+			return 0, fmt.Errorf("unexpected end of map data")
+		}
 		// Each entry starts with a length
 		entryLength, n := plenccore.ReadVarUint(data[offset:])
 		if n <= 0 {
 			return 0, fmt.Errorf("failed to read map entry length")
 		}
 		offset += n
-		n, err := c.readMapEntry(mp, k, data[offset:offset+int(entryLength)])
+		entryEnd := offset + int(entryLength)
+		if entryEnd > len(data) || entryEnd < offset {
+			return 0, fmt.Errorf("map entry length %d exceeds data bounds", entryLength)
+		}
+		n, err := c.readMapEntry(mp, k, data[offset:entryEnd])
 		if err != nil {
 			return 0, err
 		}
@@ -230,6 +241,9 @@ func (c *MapCodec) readMapEntry(mp, k unsafe.Pointer, data []byte) (int, error) 
 
 func (c *MapCodec) readTagAndLength(data []byte, offset int) (offset2, fieldEnd, index int, wt plenccore.WireType, err error) {
 	wt, index, n := plenccore.ReadTag(data[offset:])
+	if n < 0 {
+		return 0, 0, 0, 0, fmt.Errorf("failed to read tag for %s", c.rtype.Name())
+	}
 	offset += n
 	fieldEnd = len(data)
 	if wt == plenccore.WTLength {
@@ -241,7 +255,7 @@ func (c *MapCodec) readTagAndLength(data []byte, offset int) (offset2, fieldEnd,
 		}
 		offset += n
 		fieldEnd = int(fieldLen) + offset
-		if fieldEnd > len(data) {
+		if fieldEnd > len(data) || fieldEnd < offset {
 			return 0, 0, 0, wt, fmt.Errorf("length %d of field %d of %s exceeds data length %d", fieldLen, index, c.rtype.Name(), len(data)-offset)
 		}
 	}

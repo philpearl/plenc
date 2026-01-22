@@ -68,7 +68,14 @@ func (tc TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType)
 	var offset int
 	for offset < l {
 		wt, index, n := plenccore.ReadTag(data[offset:])
+		if n <= 0 {
+			return 0, fmt.Errorf("failed to read tag for time - invalid length")
+		}
 		offset += n
+
+		if offset > l || offset < 0 {
+			return 0, fmt.Errorf("length %d of time exceeds data length", l)
+		}
 
 		switch index {
 		case 1:
@@ -92,6 +99,9 @@ func (tc TimeCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.WireType)
 				return 0, fmt.Errorf("failed to skip field %d of time. %w", index, err)
 			}
 			offset += n
+		}
+		if offset > l || offset < 0 {
+			return 0, fmt.Errorf("length %d of time exceeds data length", l)
 		}
 	}
 
@@ -186,6 +196,9 @@ func (tc TimeCompatCodec) Read(data []byte, ptr unsafe.Pointer, wt plenccore.Wir
 	var offset int
 	for offset < l {
 		wt, index, n := plenccore.ReadTag(data[offset:])
+		if n <= 0 {
+			return 0, fmt.Errorf("failed to read tag for time")
+		}
 		offset += n
 
 		switch index {
