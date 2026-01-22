@@ -187,3 +187,56 @@ func TestOptionalJSONMarshal(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkOptional(b *testing.B) {
+	type optStruct struct {
+		A plenccodec.Optional[int]     `plenc:"1"`
+		B plenccodec.Optional[string]  `plenc:"2"`
+		C plenccodec.Optional[float64] `plenc:"3"`
+		D plenccodec.Optional[int64]   `plenc:"4"`
+	}
+
+	in := optStruct{
+		A: plenccodec.OptionalOf(42),
+		B: plenccodec.OptionalOf("hello world"),
+		C: plenccodec.OptionalOf(3.14159),
+		D: plenccodec.OptionalOf(int64(9999999)),
+	}
+
+	b.Run("all set", func(b *testing.B) {
+		b.ReportAllocs()
+		var data []byte
+		for b.Loop() {
+			var err error
+			data, err = plenc.Marshal(data[:0], &in)
+			if err != nil {
+				b.Fatal(err)
+			}
+			var out optStruct
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	partial := optStruct{
+		A: plenccodec.OptionalOf(42),
+		C: plenccodec.OptionalOf(3.14159),
+	}
+
+	b.Run("partial set", func(b *testing.B) {
+		b.ReportAllocs()
+		var data []byte
+		for b.Loop() {
+			var err error
+			data, err = plenc.Marshal(data[:0], &partial)
+			if err != nil {
+				b.Fatal(err)
+			}
+			var out optStruct
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}

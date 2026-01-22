@@ -264,3 +264,82 @@ func TestStringSliceCompat(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func BenchmarkStringIntern(b *testing.B) {
+	// Test intern tag performance with repeated string values
+	type withIntern struct {
+		Status string `plenc:"1,intern"`
+		Code   string `plenc:"2,intern"`
+		Name   string `plenc:"3"`
+	}
+
+	// Limited set of repeated values - ideal for interning
+	statuses := []string{"active", "inactive", "pending", "completed"}
+	codes := []string{"OK", "ERROR", "WARN", "INFO"}
+
+	inputs := make([]withIntern, 1000)
+	for i := range inputs {
+		inputs[i] = withIntern{
+			Status: statuses[i%len(statuses)],
+			Code:   codes[i%len(codes)],
+			Name:   "unique-name-value",
+		}
+	}
+
+	type wrapper struct {
+		Items []withIntern `plenc:"1"`
+	}
+	in := wrapper{Items: inputs}
+
+	b.Run("with intern", func(b *testing.B) {
+		b.ReportAllocs()
+		var data []byte
+		for b.Loop() {
+			var err error
+			data, err = plenc.Marshal(data[:0], &in)
+			if err != nil {
+				b.Fatal(err)
+			}
+			var out wrapper
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	// Compare without interning
+	type withoutIntern struct {
+		Status string `plenc:"1"`
+		Code   string `plenc:"2"`
+		Name   string `plenc:"3"`
+	}
+	type wrapperNoIntern struct {
+		Items []withoutIntern `plenc:"1"`
+	}
+
+	inputsNoIntern := make([]withoutIntern, 1000)
+	for i := range inputsNoIntern {
+		inputsNoIntern[i] = withoutIntern{
+			Status: statuses[i%len(statuses)],
+			Code:   codes[i%len(codes)],
+			Name:   "unique-name-value",
+		}
+	}
+	inNoIntern := wrapperNoIntern{Items: inputsNoIntern}
+
+	b.Run("without intern", func(b *testing.B) {
+		b.ReportAllocs()
+		var data []byte
+		for b.Loop() {
+			var err error
+			data, err = plenc.Marshal(data[:0], &inNoIntern)
+			if err != nil {
+				b.Fatal(err)
+			}
+			var out wrapperNoIntern
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}

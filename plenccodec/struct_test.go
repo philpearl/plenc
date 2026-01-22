@@ -226,3 +226,108 @@ func TestStructDescriptor(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func BenchmarkNestedStruct(b *testing.B) {
+	// Test deeply nested struct performance
+	type Level3 struct {
+		Value int    `plenc:"1"`
+		Name  string `plenc:"2"`
+	}
+
+	type Level2 struct {
+		Items []Level3 `plenc:"1"`
+		Count int      `plenc:"2"`
+		Label string   `plenc:"3"`
+	}
+
+	type Level1 struct {
+		Children []Level2 `plenc:"1"`
+		ID       int64    `plenc:"2"`
+		Tags     []string `plenc:"3"`
+	}
+
+	type Root struct {
+		Nodes   []Level1 `plenc:"1"`
+		Version int      `plenc:"2"`
+	}
+
+	// Build a moderately complex nested structure
+	in := Root{
+		Version: 1,
+		Nodes:   make([]Level1, 10),
+	}
+	for i := range in.Nodes {
+		in.Nodes[i] = Level1{
+			ID:       int64(i),
+			Tags:     []string{"tag1", "tag2", "tag3"},
+			Children: make([]Level2, 5),
+		}
+		for j := range in.Nodes[i].Children {
+			in.Nodes[i].Children[j] = Level2{
+				Count: j,
+				Label: "label",
+				Items: make([]Level3, 3),
+			}
+			for k := range in.Nodes[i].Children[j].Items {
+				in.Nodes[i].Children[j].Items[k] = Level3{
+					Value: k,
+					Name:  "item",
+				}
+			}
+		}
+	}
+
+	b.Run("nested", func(b *testing.B) {
+		b.ReportAllocs()
+		var data []byte
+		for b.Loop() {
+			var err error
+			data, err = plenc.Marshal(data[:0], &in)
+			if err != nil {
+				b.Fatal(err)
+			}
+			var out Root
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func BenchmarkFlatStruct(b *testing.B) {
+	// Compare with a flat struct of similar data volume
+	type Flat struct {
+		V1  int    `plenc:"1"`
+		V2  int    `plenc:"2"`
+		V3  int    `plenc:"3"`
+		V4  int64  `plenc:"4"`
+		V5  string `plenc:"5"`
+		V6  string `plenc:"6"`
+		V7  string `plenc:"7"`
+		V8  int    `plenc:"8"`
+		V9  int    `plenc:"9"`
+		V10 int    `plenc:"10"`
+	}
+
+	in := Flat{
+		V1: 1, V2: 2, V3: 3, V4: 100,
+		V5: "hello", V6: "world", V7: "test",
+		V8: 8, V9: 9, V10: 10,
+	}
+
+	b.Run("flat", func(b *testing.B) {
+		b.ReportAllocs()
+		var data []byte
+		for b.Loop() {
+			var err error
+			data, err = plenc.Marshal(data[:0], &in)
+			if err != nil {
+				b.Fatal(err)
+			}
+			var out Flat
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}

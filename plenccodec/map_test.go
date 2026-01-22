@@ -198,9 +198,97 @@ func BenchmarkMap(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		for k := range o {
-			delete(o, k)
+		clear(o)
+		if err := plenc.Unmarshal(data, &o); err != nil {
+			b.Fatal(err)
 		}
+	}
+}
+
+func BenchmarkMapInStruct(b *testing.B) {
+	type withMap struct {
+		ID   int               `plenc:"1"`
+		Data map[string]string `plenc:"2"`
+		Name string            `plenc:"3"`
+	}
+
+	in := withMap{
+		ID:   42,
+		Name: "test",
+		Data: map[string]string{
+			"key1": "value1",
+			"key2": "value2",
+			"key3": "value3",
+			"key4": "value4",
+		},
+	}
+
+	b.ReportAllocs()
+	var data []byte
+	for b.Loop() {
+		var err error
+		data, err = plenc.Marshal(data[:0], &in)
+		if err != nil {
+			b.Fatal(err)
+		}
+		var out withMap
+		if err := plenc.Unmarshal(data, &out); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkMapIntKeys(b *testing.B) {
+	m := map[int]string{
+		1:  "one",
+		2:  "two",
+		3:  "three",
+		4:  "four",
+		5:  "five",
+		10: "ten",
+		20: "twenty",
+		30: "thirty",
+	}
+
+	b.ReportAllocs()
+	var data []byte
+	var o map[int]string
+	for b.Loop() {
+		var err error
+		data, err = plenc.Marshal(data[:0], m)
+		if err != nil {
+			b.Fatal(err)
+		}
+		clear(o)
+		if err := plenc.Unmarshal(data, &o); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkMapStructValues(b *testing.B) {
+	type val struct {
+		A int    `plenc:"1"`
+		B string `plenc:"2"`
+	}
+
+	m := map[string]val{
+		"first":  {A: 1, B: "one"},
+		"second": {A: 2, B: "two"},
+		"third":  {A: 3, B: "three"},
+		"fourth": {A: 4, B: "four"},
+	}
+
+	b.ReportAllocs()
+	var data []byte
+	var o map[string]val
+	for b.Loop() {
+		var err error
+		data, err = plenc.Marshal(data[:0], m)
+		if err != nil {
+			b.Fatal(err)
+		}
+		clear(o)
 		if err := plenc.Unmarshal(data, &o); err != nil {
 			b.Fatal(err)
 		}
