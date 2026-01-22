@@ -17,7 +17,7 @@ func TestTime(t *testing.T) {
 	p1.RegisterDefaultCodecs()
 	p2.RegisterDefaultCodecs()
 	p3.RegisterDefaultCodecs()
-	p3.RegisterCodec(reflect.TypeOf(time.Time{}), plenccodec.BQTimestampCodec{})
+	p3.RegisterCodec(reflect.TypeFor[time.Time](), plenccodec.BQTimestampCodec{})
 
 	f := fuzz.New()
 

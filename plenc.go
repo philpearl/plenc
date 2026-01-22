@@ -40,34 +40,34 @@ func (p *Plenc) RegisterCodecWithTag(typ reflect.Type, tag string, c plenccodec.
 // automatically for the default plenc instance, but if you create your own
 // instance of Plenc you should call this before using it.
 func (p *Plenc) RegisterDefaultCodecs() {
-	p.RegisterCodec(reflect.TypeOf(false), plenccodec.BoolCodec{})
+	p.RegisterCodec(reflect.TypeFor[bool](), plenccodec.BoolCodec{})
 
-	p.RegisterCodec(reflect.TypeOf(float64(0)), plenccodec.Float64Codec{})
-	p.RegisterCodec(reflect.TypeOf(float32(0)), plenccodec.Float32Codec{})
+	p.RegisterCodec(reflect.TypeFor[float64](), plenccodec.Float64Codec{})
+	p.RegisterCodec(reflect.TypeFor[float32](), plenccodec.Float32Codec{})
 
-	p.RegisterCodec(reflect.TypeOf(int(0)), plenccodec.IntCodec[int]{})
-	p.RegisterCodec(reflect.TypeOf(int8(0)), plenccodec.IntCodec[int8]{})
-	p.RegisterCodec(reflect.TypeOf(int16(0)), plenccodec.IntCodec[int16]{})
-	p.RegisterCodec(reflect.TypeOf(int32(0)), plenccodec.IntCodec[int32]{})
-	p.RegisterCodec(reflect.TypeOf(int64(0)), plenccodec.IntCodec[int64]{})
+	p.RegisterCodec(reflect.TypeFor[int](), plenccodec.IntCodec[int]{})
+	p.RegisterCodec(reflect.TypeFor[int8](), plenccodec.IntCodec[int8]{})
+	p.RegisterCodec(reflect.TypeFor[int16](), plenccodec.IntCodec[int16]{})
+	p.RegisterCodec(reflect.TypeFor[int32](), plenccodec.IntCodec[int32]{})
+	p.RegisterCodec(reflect.TypeFor[int64](), plenccodec.IntCodec[int64]{})
 
-	p.RegisterCodecWithTag(reflect.TypeOf(int(0)), "flat", plenccodec.FlatIntCodec[uint]{})
-	p.RegisterCodecWithTag(reflect.TypeOf(int8(0)), "flat", plenccodec.FlatIntCodec[uint8]{})
-	p.RegisterCodecWithTag(reflect.TypeOf(int16(0)), "flat", plenccodec.FlatIntCodec[uint16]{})
-	p.RegisterCodecWithTag(reflect.TypeOf(int32(0)), "flat", plenccodec.FlatIntCodec[uint32]{})
-	p.RegisterCodecWithTag(reflect.TypeOf(int64(0)), "flat", plenccodec.FlatIntCodec[uint64]{})
+	p.RegisterCodecWithTag(reflect.TypeFor[int](), "flat", plenccodec.FlatIntCodec[uint]{})
+	p.RegisterCodecWithTag(reflect.TypeFor[int8](), "flat", plenccodec.FlatIntCodec[uint8]{})
+	p.RegisterCodecWithTag(reflect.TypeFor[int16](), "flat", plenccodec.FlatIntCodec[uint16]{})
+	p.RegisterCodecWithTag(reflect.TypeFor[int32](), "flat", plenccodec.FlatIntCodec[uint32]{})
+	p.RegisterCodecWithTag(reflect.TypeFor[int64](), "flat", plenccodec.FlatIntCodec[uint64]{})
 
-	p.RegisterCodec(reflect.TypeOf(uint(0)), plenccodec.UintCodec[uint]{})
-	p.RegisterCodec(reflect.TypeOf(uint64(0)), plenccodec.UintCodec[uint64]{})
-	p.RegisterCodec(reflect.TypeOf(uint32(0)), plenccodec.UintCodec[uint32]{})
-	p.RegisterCodec(reflect.TypeOf(uint16(0)), plenccodec.UintCodec[uint16]{})
-	p.RegisterCodec(reflect.TypeOf(uint8(0)), plenccodec.UintCodec[uint8]{})
-	p.RegisterCodec(reflect.TypeOf(""), plenccodec.StringCodec{})
-	p.RegisterCodecWithTag(reflect.TypeOf(""), "intern", &plenccodec.InternedStringCodec{})
-	p.RegisterCodec(reflect.TypeOf([]byte(nil)), plenccodec.BytesCodec{})
+	p.RegisterCodec(reflect.TypeFor[uint](), plenccodec.UintCodec[uint]{})
+	p.RegisterCodec(reflect.TypeFor[uint64](), plenccodec.UintCodec[uint64]{})
+	p.RegisterCodec(reflect.TypeFor[uint32](), plenccodec.UintCodec[uint32]{})
+	p.RegisterCodec(reflect.TypeFor[uint16](), plenccodec.UintCodec[uint16]{})
+	p.RegisterCodec(reflect.TypeFor[uint8](), plenccodec.UintCodec[uint8]{})
+	p.RegisterCodec(reflect.TypeFor[string](), plenccodec.StringCodec{})
+	p.RegisterCodecWithTag(reflect.TypeFor[string](), "intern", &plenccodec.InternedStringCodec{})
+	p.RegisterCodec(reflect.TypeFor[[]byte](), plenccodec.BytesCodec{})
 	if p.ProtoCompatibleTime {
-		p.RegisterCodec(reflect.TypeOf(time.Time{}), plenccodec.TimeCompatCodec{})
+		p.RegisterCodec(reflect.TypeFor[time.Time](), plenccodec.TimeCompatCodec{})
 	} else {
-		p.RegisterCodec(reflect.TypeOf(time.Time{}), plenccodec.TimeCodec{})
+		p.RegisterCodec(reflect.TypeFor[time.Time](), plenccodec.TimeCodec{})
 	}
 }

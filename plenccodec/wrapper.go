@@ -244,7 +244,7 @@ type WTFixedSliceWrapper struct {
 func (c WTFixedSliceWrapper) append(data []byte, ptr unsafe.Pointer) []byte {
 	h := *(*sliceHeader)(ptr)
 	for i := range h.Len {
-		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
+		data = c.Underlying.Append(data, unsafe.Add(h.Data, uintptr(i)*c.EltSize), nil)
 	}
 	return data
 }
@@ -265,7 +265,7 @@ func (c WTFixedSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore.
 
 	var offset int
 	for i := range h.Len {
-		n, err := c.Underlying.Read(data[offset:], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), c.Underlying.WireType())
+		n, err := c.Underlying.Read(data[offset:], unsafe.Add(h.Data, uintptr(i)*c.EltSize), c.Underlying.WireType())
 		if err != nil {
 			return 0, err
 		}
@@ -302,7 +302,7 @@ func (c WTVarIntSliceWrapper) size(ptr unsafe.Pointer) int {
 	h := *(*sliceHeader)(ptr)
 	size := 0
 	for i := range h.Len {
-		size += c.Underlying.Size(unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
+		size += c.Underlying.Size(unsafe.Add(h.Data, uintptr(i)*c.EltSize), nil)
 	}
 	return size
 }
@@ -311,7 +311,7 @@ func (c WTVarIntSliceWrapper) size(ptr unsafe.Pointer) int {
 func (c WTVarIntSliceWrapper) append(data []byte, ptr unsafe.Pointer) []byte {
 	h := *(*sliceHeader)(ptr)
 	for i := range h.Len {
-		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), nil)
+		data = c.Underlying.Append(data, unsafe.Add(h.Data, uintptr(i)*c.EltSize), nil)
 	}
 	return data
 }
@@ -341,7 +341,7 @@ func (c WTVarIntSliceWrapper) Read(data []byte, ptr unsafe.Pointer, wt plenccore
 
 	offset = 0
 	for i := range h.Len {
-		n, err := c.Underlying.Read(data[offset:], unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), plenccore.WTVarInt)
+		n, err := c.Underlying.Read(data[offset:], unsafe.Add(h.Data, uintptr(i)*c.EltSize), plenccore.WTVarInt)
 		if err != nil {
 			return 0, err
 		}
@@ -393,7 +393,7 @@ func (c ProtoSliceWrapper) Size(ptr unsafe.Pointer, tag []byte) int {
 func (c ProtoSliceWrapper) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
 	h := *(*sliceHeader)(ptr)
 	for i := range h.Len {
-		data = c.Underlying.Append(data, unsafe.Pointer(uintptr(h.Data)+uintptr(i)*c.EltSize), tag)
+		data = c.Underlying.Append(data, unsafe.Add(h.Data, uintptr(i)*c.EltSize), tag)
 	}
 	return data
 }

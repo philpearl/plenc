@@ -231,7 +231,7 @@ func TestNullDescription(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c, err := plenc.CodecForType(reflect.TypeOf(v))
+	c, err := plenc.CodecForType(reflect.TypeFor[TestThing]())
 	if err != nil {
 		t.Fatal(err)
 	}

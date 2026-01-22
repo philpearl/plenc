@@ -231,83 +231,83 @@ func (p internalCodecBuilder) CodecForTypeRegistry(registry plenccodec.CodecRegi
 	// Really expect codecs for basic types to be pre-registered, but named
 	// types will have a different type for the same kind
 	case reflect.Bool:
-		c, err = p.codecForBasicType(reflect.TypeOf(bool(false)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[bool](), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int:
-		c, err = p.codecForBasicType(reflect.TypeOf(int(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[int](), tag)
 		if err != nil {
 			return nil, err
 		}
 	case reflect.Int32:
-		c, err = p.codecForBasicType(reflect.TypeOf(int32(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[int32](), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int64:
-		c, err = p.codecForBasicType(reflect.TypeOf(int64(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[int64](), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint:
-		c, err = p.codecForBasicType(reflect.TypeOf(uint(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[uint](), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Float32:
-		c, err = p.codecForBasicType(reflect.TypeOf(float32(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[float32](), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Float64:
-		c, err = p.codecForBasicType(reflect.TypeOf(float64(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[float64](), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.String:
-		c, err = p.codecForBasicType(reflect.TypeOf(""), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[string](), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int8:
-		c, err = p.codecForBasicType(reflect.TypeOf(int8(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[int8](), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Int16:
-		c, err = p.codecForBasicType(reflect.TypeOf(int16(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[int16](), tag)
 		if err != nil {
 			return nil, err
 		}
 	case reflect.Uint8:
-		c, err = p.codecForBasicType(reflect.TypeOf(uint8(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[uint8](), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint16:
-		c, err = p.codecForBasicType(reflect.TypeOf(uint16(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[uint16](), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint32:
-		c, err = p.codecForBasicType(reflect.TypeOf(uint32(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[uint32](), tag)
 		if err != nil {
 			return nil, err
 		}
 
 	case reflect.Uint64:
-		c, err = p.codecForBasicType(reflect.TypeOf(uint64(0)), tag)
+		c, err = p.codecForBasicType(reflect.TypeFor[uint64](), tag)
 		if err != nil {
 			return nil, err
 		}

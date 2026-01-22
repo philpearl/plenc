@@ -12,7 +12,7 @@ import (
 
 func TestJSONMap(t *testing.T) {
 	type customMap map[string]any
-	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plenccodec.JSONMapCodec{})
+	plenc.RegisterCodec(reflect.TypeFor[customMap](), plenccodec.JSONMapCodec{})
 
 	tests := []customMap{
 		{
@@ -58,7 +58,7 @@ func TestJSONMap(t *testing.T) {
 
 func TestJSONMapStruct(t *testing.T) {
 	type customMap map[string]any
-	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plenccodec.JSONMapCodec{})
+	plenc.RegisterCodec(reflect.TypeFor[customMap](), plenccodec.JSONMapCodec{})
 
 	type my struct {
 		A customMap `plenc:"1"`
@@ -87,7 +87,7 @@ func TestJSONMapStruct(t *testing.T) {
 
 func TestJSONMapSkip(t *testing.T) {
 	type customMap map[string]any
-	plenc.RegisterCodec(reflect.TypeOf(customMap{}), plenccodec.JSONMapCodec{})
+	plenc.RegisterCodec(reflect.TypeFor[customMap](), plenccodec.JSONMapCodec{})
 
 	type my struct {
 		A int       `plenc:"1"`

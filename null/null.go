@@ -16,21 +16,21 @@ import (
 // RegisterCodecs registers the codecs from this package and makes them
 // available to plenc.
 func RegisterCodecs() {
-	plenc.RegisterCodec(reflect.TypeOf(null.Int{}), nullIntCodec{})
-	plenc.RegisterCodec(reflect.TypeOf(null.Bool{}), nullBoolCodec{})
-	plenc.RegisterCodec(reflect.TypeOf(null.Float{}), nullFloatCodec{})
-	plenc.RegisterCodec(reflect.TypeOf(null.String{}), nullStringCodec{})
-	plenc.RegisterCodec(reflect.TypeOf(null.Time{}), &nullTimeCodec{})
+	plenc.RegisterCodec(reflect.TypeFor[null.Int](), nullIntCodec{})
+	plenc.RegisterCodec(reflect.TypeFor[null.Bool](), nullBoolCodec{})
+	plenc.RegisterCodec(reflect.TypeFor[null.Float](), nullFloatCodec{})
+	plenc.RegisterCodec(reflect.TypeFor[null.String](), nullStringCodec{})
+	plenc.RegisterCodec(reflect.TypeFor[null.Time](), &nullTimeCodec{})
 }
 
 // AddCodecs registers the codecs from this package and makes them
 // available to the given plenc instance
 func AddCodecs(p *plenc.Plenc) {
-	p.RegisterCodec(reflect.TypeOf(null.Int{}), nullIntCodec{})
-	p.RegisterCodec(reflect.TypeOf(null.Bool{}), nullBoolCodec{})
-	p.RegisterCodec(reflect.TypeOf(null.Float{}), nullFloatCodec{})
-	p.RegisterCodec(reflect.TypeOf(null.String{}), nullStringCodec{})
-	p.RegisterCodec(reflect.TypeOf(null.Time{}), &nullTimeCodec{})
+	p.RegisterCodec(reflect.TypeFor[null.Int](), nullIntCodec{})
+	p.RegisterCodec(reflect.TypeFor[null.Bool](), nullBoolCodec{})
+	p.RegisterCodec(reflect.TypeFor[null.Float](), nullFloatCodec{})
+	p.RegisterCodec(reflect.TypeFor[null.String](), nullStringCodec{})
+	p.RegisterCodec(reflect.TypeFor[null.Time](), &nullTimeCodec{})
 }
 
 type nullIntCodec struct {
