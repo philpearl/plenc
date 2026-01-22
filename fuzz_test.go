@@ -132,6 +132,7 @@ func FuzzUnmarshalTimeCompat(f *testing.F) {
 	var p Plenc
 	p.ProtoCompatibleTime = true
 	p.ProtoCompatibleArrays = true
+	p.RegisterDefaultCodecs()
 	if data, err := p.Marshal(nil, &w); err == nil {
 		f.Add(data)
 	}
