@@ -10,11 +10,13 @@ github.com/josharian/intern v1.0.0 h1:vlS4z54oSdjm0bgjRigI+G1HpF+tI+9rE5LLzOg8Hm
 github.com/josharian/intern v1.0.0/go.mod h1:5DoeVV0s6jJacbCEi61lwdGj/aVlrQvzHFFd8Hwg//Y=
 github.com/mailru/easyjson v0.9.0 h1:PrnmzHw7262yW8sTBwxi1PdJA3Iw/EKBa8psRf7d9a4=
 github.com/mailru/easyjson v0.9.0/go.mod h1:1+xMtQp2MRNVL/V1bOzuP3aP8VNwRW55fQUto+XFtTU=
+github.com/philpearl/plenc/plencnull v0.0.1 h1:bbNiX0tsDqJE6S9XF7rPdLCoAS1GqmZJ08Jj76GkPGo=
+github.com/philpearl/plenc/plencnull v0.0.1/go.mod h1:Tu2B+j4BaYhT+1JzaZ7iFJGYy2D5YnxYUdWH/aB1ruQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
-github.com/unravelin/null/v5 v5.0.1 h1:FFAIq7N231O4CJreN7azzDPdtwIzJ3X+D4N/Gz3kHHE=
-github.com/unravelin/null/v5 v5.0.1/go.mod h1:W48ySiXKyk9D4taw9pUl3jYuUjsfWDXEDSu6CEBp1Cw=
+github.com/unravelin/null v1.0.2 h1:ze5w5igoJWn004GyOzzfJPaJDg7QGLLo1X6BV7kS5Os=
+github.com/unravelin/null v1.0.2/go.mod h1:/KU+YXhCXYmj1mPxa8AzslMTVktMd5+dhmK98NVV6OQ=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
