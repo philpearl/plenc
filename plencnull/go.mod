@@ -1,8 +1,8 @@
 module github.com/philpearl/plenc/plencnull
 
-go 1.26
+go 1.27
 
-replace github.com/unravelin/null => github.com/unravelin/null/v5 v5.0.2
+replace github.com/unravelin/null => github.com/unravelin/null/v5 v5.0.3
 
 require (
 	github.com/google/go-cmp v0.6.0
