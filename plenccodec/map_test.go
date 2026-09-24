@@ -135,10 +135,6 @@ func TestMap(t *testing.T) {
 	}
 }
 
-type oneMapStruct struct {
-	Data map[string]map[string][]string `plenc:"1"`
-}
-
 func TestOddMapThing(t *testing.T) {
 	type oneMapStruct struct {
 		Data map[string]map[string][]string `plenc:"1"`
@@ -177,6 +173,20 @@ func TestOddMapThing(t *testing.T) {
 				t.Fatal(diff)
 			}
 		})
+		t.Run(test.name+"/pointer", func(t *testing.T) {
+			data, err := plenc.Marshal(nil, &test.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out oneMapStruct
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(&test.in, &out, cmpopts.EquateEmpty()); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+
 	}
 }
 

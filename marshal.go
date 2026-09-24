@@ -39,6 +39,11 @@ func (p *Plenc) preamble(value any) (unsafe.Pointer, plenccodec.Codec, error) {
 		if typ.Kind() == reflect.Map {
 			ptr = *(*unsafe.Pointer)(ptr)
 		}
+		// Structs that are just containers for a single map should be treated
+		// as maps. Not sure why!
+		if typ.Kind() == reflect.Struct && typ.NumField() == 1 && typ.Field(0).Type.Kind() == reflect.Map {
+			ptr = *(*unsafe.Pointer)(ptr)
+		}
 	}
 
 	c, err := p.CodecForType(typ)
