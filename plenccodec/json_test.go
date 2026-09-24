@@ -24,6 +24,7 @@ func TestJSONMap(t *testing.T) {
 				"f": 1,
 				"a": []any{1, 2, 3},
 				"b": []any{1, 1.3, "haddock"},
+				"c": map[string]any{"hat": "trilby"},
 			},
 			"f": nil,
 			"g": true,

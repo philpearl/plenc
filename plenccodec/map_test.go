@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	fuzz "github.com/google/gofuzz"
 	"github.com/philpearl/plenc"
 )
@@ -129,6 +130,68 @@ func TestMap(t *testing.T) {
 
 			if diff := cmp.Diff(test.data, mv.Elem().Interface()); diff != "" {
 				t.Fatalf("result differs: %s", diff)
+			}
+		})
+	}
+}
+
+func TestMapOfMaps(t *testing.T) {
+	type mypayload struct {
+		A int     `plenc:"1"`
+		B float64 `plenc:"2"`
+	}
+
+	type mystruct struct {
+		A map[string]map[string]mypayload `plenc:"3"`
+		B map[string]map[string]mypayload `plenc:"4,proto"`
+	}
+
+	tests := []struct {
+		name string
+		in   mystruct
+	}{
+		{
+			name: "nil",
+		},
+		{
+			name: "empty",
+			in: mystruct{
+				A: map[string]map[string]mypayload{},
+				B: map[string]map[string]mypayload{},
+			},
+		},
+
+		{
+			name: "not empty",
+			in: mystruct{
+				A: map[string]map[string]mypayload{
+					"two": {
+						"three": {A: 1, B: 2.3},
+					},
+					"four": nil,
+				},
+				B: map[string]map[string]mypayload{
+					"two": {
+						"three": {A: 1, B: 2.3},
+					},
+					"four": nil,
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			data, err := plenc.Marshal(nil, &test.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out mystruct
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(&test.in, &out, cmpopts.EquateEmpty()); diff != "" {
+				t.Fatal(diff)
 			}
 		})
 	}
