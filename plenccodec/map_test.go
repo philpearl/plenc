@@ -135,6 +135,51 @@ func TestMap(t *testing.T) {
 	}
 }
 
+type oneMapStruct struct {
+	Data map[string]map[string][]string `plenc:"1"`
+}
+
+func TestOddMapThing(t *testing.T) {
+	type oneMapStruct struct {
+		Data map[string]map[string][]string `plenc:"1"`
+	}
+
+	tests := []struct {
+		name string
+		in   oneMapStruct
+	}{
+		{
+			name: "nil",
+		},
+		{
+			name: "filled",
+			in: oneMapStruct{
+				Data: map[string]map[string][]string{
+					"my-list-id": {
+						"a": {"a", "b", "c"},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			data, err := plenc.Marshal(nil, test.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out oneMapStruct
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(&test.in, &out, cmpopts.EquateEmpty()); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}
+
 func TestMapOfMaps(t *testing.T) {
 	type mypayload struct {
 		A int     `plenc:"1"`

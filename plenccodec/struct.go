@@ -53,7 +53,8 @@ func BuildStructCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, 
 
 	var maxIndex int
 	var count int
-	for i := range typ.NumField() {
+	n := typ.NumField()
+	for i := range n {
 		sf := typ.Field(i)
 
 		r, _ := utf8.DecodeRuneInString(sf.Name)
@@ -112,7 +113,9 @@ func BuildStructCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, 
 
 		field.codec = fc
 		field.tag = plenccore.AppendTag(nil, fc.WireType(), field.index)
-		if sf.Type.Kind() == reflect.Map {
+		// We need to deref map pointers, except if we've been passed a struct
+		// as a value type and it has just one field which is a map.
+		if sf.Type.Kind() == reflect.Map && n != 1 {
 			field.deref = true
 		}
 	}
