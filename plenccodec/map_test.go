@@ -109,7 +109,7 @@ func TestMap(t *testing.T) {
 		},
 		{
 			name: "map in struct with following",
-			data: thing{
+			data: &thing{
 				M: map[string]string{"A": "B"},
 				I: 100,
 			},
@@ -140,10 +140,13 @@ func TestMapOfMaps(t *testing.T) {
 		A int     `plenc:"1"`
 		B float64 `plenc:"2"`
 	}
+	type maptwo map[string][]string
+	type mapone map[string]maptwo
 
 	type mystruct struct {
 		A map[string]map[string]mypayload `plenc:"3"`
 		B map[string]map[string]mypayload `plenc:"4,proto"`
+		C mapone                          `plenc:"5"`
 	}
 
 	tests := []struct {
@@ -158,6 +161,7 @@ func TestMapOfMaps(t *testing.T) {
 			in: mystruct{
 				A: map[string]map[string]mypayload{},
 				B: map[string]map[string]mypayload{},
+				C: mapone{},
 			},
 		},
 
@@ -176,13 +180,20 @@ func TestMapOfMaps(t *testing.T) {
 					},
 					"four": nil,
 				},
+				C: mapone{
+					"two": {
+						"three": []string{"a", "b"},
+						"four":  nil,
+						"five":  []string{"a", "b"},
+					},
+				},
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			data, err := plenc.Marshal(nil, &test.in)
+			data, err := plenc.Marshal(nil, test.in)
 			if err != nil {
 				t.Fatal(err)
 			}
