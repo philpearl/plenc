@@ -24,40 +24,51 @@ func Size(value any) (int, error) {
 	return defaultPlenc.Size(value)
 }
 
-func (p *Plenc) preamble(value any) (unsafe.Pointer, plenccodec.Codec, error) {
+func (p *Plenc) getCodec(value any) (plenccodec.Codec, error) {
 	typ := reflect.TypeOf(value)
 	if typ == nil {
 		// A really very nil nil
-		return nil, nil, nil
+		return nil, nil
 	}
-	ptr := unpackEFace(value).data
+	// If our value is a pointer, the pointer is directly in data. If it is a
+	// value, then Go allocates a space on the heap, and gives us a pointer to
+	// that. So in most cases, whether we receive a pointer or not, we get a
+	// pointer here.
+	//
+	// maps are essentially pointers. if we're passed a map by value it isn't
+	// put into an allocated space on the heap. We're given the map pointer
+	// directly. So we need to treat the pointer and non-pointer cases
+	// differently.
+	//
+	// This also applies if we're passed a struct that contains just a map.
+	// That's treated like we were just passed a map. And that applies if the
+	// map is wrapped in several layers of struct. As long as it's just a map,
+	// that's what we get.
 	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
-
-		// When marshalling we don't want a pointer to a map as a map is a
-		// pointer-ish type itself.
-		if typ.Kind() == reflect.Map {
-			ptr = *(*unsafe.Pointer)(ptr)
-		}
-		// Structs that are just containers for a single map should be treated
-		// as maps. Not sure why!
-		if typ.Kind() == reflect.Struct && typ.NumField() == 1 && typ.Field(0).Type.Kind() == reflect.Map {
-			ptr = *(*unsafe.Pointer)(ptr)
-		}
 	}
 
 	c, err := p.CodecForType(typ)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return ptr, c, nil
+	return c, nil
 }
 
 func (p *Plenc) Marshal(data []byte, value any) ([]byte, error) {
-	ptr, c, err := p.preamble(value)
+	c, err := p.getCodec(value)
 	if err != nil {
 		return nil, err
+	}
+	if c == nil {
+		return nil, nil
+	}
+
+	ptr := unpackEFace(value).data
+	if typ := reflect.TypeOf(value); shouldWrapPtr(typ) {
+		ptrWrap := ptr
+		ptr = noEscape(unsafe.Pointer(&ptrWrap))
 	}
 
 	if ptr == nil || c.Omit(ptr) {
@@ -68,6 +79,23 @@ func (p *Plenc) Marshal(data []byte, value any) ([]byte, error) {
 	}
 
 	return c.Append(data, ptr, nil), nil
+}
+
+func shouldWrapPtr(typ reflect.Type) bool {
+	if typ.Kind() == reflect.Pointer {
+		return false
+	}
+	return isBasicallyMapOrPointer(typ)
+}
+
+func isBasicallyMapOrPointer(typ reflect.Type) bool {
+	if typ.Kind() == reflect.Map || typ.Kind() == reflect.Pointer {
+		return true
+	}
+	if typ.Kind() == reflect.Struct && typ.NumField() == 1 && isBasicallyMapOrPointer(typ.Field(0).Type) {
+		return true
+	}
+	return false
 }
 
 func (p *Plenc) Unmarshal(data []byte, value any) error {
@@ -86,9 +114,18 @@ func (p *Plenc) Unmarshal(data []byte, value any) error {
 }
 
 func (p *Plenc) Size(value any) (int, error) {
-	ptr, c, err := p.preamble(value)
+	c, err := p.getCodec(value)
 	if err != nil {
 		return 0, err
+	}
+	if c == nil {
+		return 0, nil
+	}
+
+	ptr := unpackEFace(value).data
+	if typ := reflect.TypeOf(value); shouldWrapPtr(typ) {
+		ptrWrap := ptr
+		ptr = noEscape(unsafe.Pointer(&ptrWrap))
 	}
 
 	if c.Omit(ptr) {

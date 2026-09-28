@@ -40,13 +40,14 @@ const (
 )
 
 func (JSONMapCodec) Omit(ptr unsafe.Pointer) bool {
-	return ptr == nil
+	return ptr == nil || *(*unsafe.Pointer)(ptr) == nil
 }
 
 func (c JSONMapCodec) size(ptr unsafe.Pointer) (size int) {
+	mptr := *(*unsafe.Pointer)(ptr)
 	// this is just a map pointer here!
 	var m map[string]any
-	*(*unsafe.Pointer)((unsafe.Pointer)(&m)) = ptr
+	*(*unsafe.Pointer)(unsafe.Pointer(&m)) = mptr
 
 	// We'll use the WTSlice wire type, so first is the number of items
 	size = plenccore.SizeVarUint(uint64(len(m)))
@@ -66,9 +67,10 @@ func (c JSONMapCodec) sizeKV(k string, v any) (size int) {
 }
 
 func (c JSONMapCodec) append(data []byte, ptr unsafe.Pointer) []byte {
+	mptr := *(*unsafe.Pointer)(ptr)
 	// this is just a map pointer here!
 	var m map[string]any
-	*(*unsafe.Pointer)((unsafe.Pointer)(&m)) = ptr
+	*(*unsafe.Pointer)(unsafe.Pointer(&m)) = mptr
 
 	// First the number of items
 	data = plenccore.AppendVarUint(data, uint64(len(m)))
@@ -240,8 +242,9 @@ func sizeJSONValue(v any) (size int) {
 		size += plenccore.SizeVarUint(uint64(jsonTypeArray))
 		size += JSONArrayCodec{}.Size(unsafe.Pointer(&v), valueWTSliceTag)
 	case map[string]any:
+		ptr := unpackEFace(v).data
 		size += plenccore.SizeVarUint(uint64(jsonTypeObject))
-		size += JSONMapCodec{}.Size(unsafe.Pointer(unpackEFace(v).data), valueWTSliceTag)
+		size += JSONMapCodec{}.Size(unsafe.Pointer(&ptr), valueWTSliceTag)
 	case json.Number:
 		// Save this as a string
 		size += plenccore.SizeVarUint(uint64(jsonTypeNumber))
@@ -282,7 +285,7 @@ func appendJSONValue(data []byte, v any) []byte {
 		data = JSONArrayCodec{}.Append(data, unsafe.Pointer(&v), valueWTSliceTag)
 	case map[string]any:
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeObject))
-		data = JSONMapCodec{}.Append(data, unsafe.Pointer(unpackEFace(v).data), valueWTSliceTag)
+		data = JSONMapCodec{}.Append(data, unsafe.Pointer(&v), valueWTSliceTag)
 	case json.Number:
 		// Save this as a string
 		data = plenccore.AppendVarUint(data, uint64(jsonTypeNumber))

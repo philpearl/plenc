@@ -24,6 +24,23 @@ func TestMap(t *testing.T) {
 		I int               `plenc:"2"`
 	}
 
+	type oneMapStruct struct {
+		M map[string]int `plenc:"1"`
+	}
+
+	type mapMapStruct struct {
+		A oneMapStruct `plenc:"1"`
+	}
+
+	type mapPtrMapStruct struct {
+		A *oneMapStruct `plenc:"1"`
+	}
+
+	type mapMapStructWider struct {
+		A oneMapStruct `plenc:"1"`
+		B int          `plenc:"-"`
+	}
+
 	tests := []struct {
 		name string
 		data any
@@ -114,6 +131,67 @@ func TestMap(t *testing.T) {
 				I: 100,
 			},
 		},
+		{
+			name: "one map struct",
+			data: oneMapStruct{
+				M: map[string]int{"A": 1},
+			},
+		},
+		{
+			name: "one map struct ptr",
+			data: &oneMapStruct{
+				M: map[string]int{"A": 1},
+			},
+		},
+		{
+			name: "map map struct",
+			data: mapMapStruct{
+				A: oneMapStruct{
+					M: map[string]int{"A": 1},
+				},
+			},
+		},
+		{
+			name: "map map struct ptr",
+			data: &mapMapStruct{
+				A: oneMapStruct{
+					M: map[string]int{"A": 1},
+				},
+			},
+		},
+		{
+			name: "map ptr map struct",
+			data: mapPtrMapStruct{
+				A: &oneMapStruct{
+					M: map[string]int{"A": 1},
+				},
+			},
+		},
+		{
+			name: "map ptr map struct ptr",
+			data: &mapPtrMapStruct{
+				A: &oneMapStruct{
+					M: map[string]int{"A": 1},
+				},
+			},
+		},
+
+		{
+			name: "map map struct wider",
+			data: mapMapStructWider{
+				A: oneMapStruct{
+					M: map[string]int{"A": 1},
+				},
+			},
+		},
+		{
+			name: "map map struct wider ptr",
+			data: &mapMapStructWider{
+				A: oneMapStruct{
+					M: map[string]int{"A": 1},
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -137,7 +215,7 @@ func TestMap(t *testing.T) {
 
 func TestOddMapThing(t *testing.T) {
 	type oneMapStruct struct {
-		Data map[string]map[string][]string `plenc:"1"`
+		Data map[string]int `plenc:"1"`
 	}
 
 	tests := []struct {
@@ -150,10 +228,8 @@ func TestOddMapThing(t *testing.T) {
 		{
 			name: "filled",
 			in: oneMapStruct{
-				Data: map[string]map[string][]string{
-					"my-list-id": {
-						"a": {"a", "b", "c"},
-					},
+				Data: map[string]int{
+					"my-list-id": 1,
 				},
 			},
 		},
@@ -187,6 +263,71 @@ func TestOddMapThing(t *testing.T) {
 			}
 		})
 
+	}
+}
+
+func TestOddMapThing2(t *testing.T) {
+	type oneMapStruct struct {
+		Data map[string]int `plenc:"1"`
+	}
+
+	type mystruct struct {
+		A oneMapStruct `plenc:"1"`
+	}
+
+	tests := []struct {
+		name string
+		in   mystruct
+	}{
+		{
+			name: "nil",
+		},
+		{
+			name: "empty",
+			in: mystruct{
+				A: oneMapStruct{
+					Data: map[string]int{},
+				},
+			},
+		},
+
+		{
+			name: "filled",
+			in: mystruct{
+				A: oneMapStruct{
+					Data: map[string]int{"a": 1},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			data, err := plenc.Marshal(nil, test.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out mystruct
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(&test.in, &out, cmpopts.EquateEmpty()); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+		t.Run(test.name+"/pointer", func(t *testing.T) {
+			data, err := plenc.Marshal(nil, &test.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out mystruct
+			if err := plenc.Unmarshal(data, &out); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(&test.in, &out, cmpopts.EquateEmpty()); diff != "" {
+				t.Fatal(diff)
+			}
+		})
 	}
 }
 

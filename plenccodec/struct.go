@@ -113,11 +113,6 @@ func BuildStructCodec(p CodecBuilder, registry CodecRegistry, typ reflect.Type, 
 
 		field.codec = fc
 		field.tag = plenccore.AppendTag(nil, fc.WireType(), field.index)
-		// We need to deref map pointers, except if we've been passed a struct
-		// as a value type and it has just one field which is a map.
-		if sf.Type.Kind() == reflect.Map && n != 1 {
-			field.deref = true
-		}
 	}
 	c.fields = c.fields[:count]
 
@@ -140,7 +135,6 @@ type description struct {
 	codec  Codec
 	index  int
 	tag    []byte
-	deref  bool
 	name   string
 }
 
@@ -161,16 +155,7 @@ func (c *StructCodec) Omit(ptr unsafe.Pointer) bool {
 
 func (c *StructCodec) size(ptr unsafe.Pointer) (size int) {
 	for _, field := range c.fields {
-		// For most fields we have a pointer to the type, and this is the same
-		// when we call these functions for types within structs or when we
-		// pass an interface to Marshal. But maps are kind of pointers and
-		// kind of not. When passed to Marshal via interfaces we get passed
-		// the underlying map pointer. But when the map is in a struct, we
-		// have a pointer to the underlying map pointer
 		fptr := unsafe.Add(ptr, field.offset)
-		if field.deref {
-			fptr = *(*unsafe.Pointer)(fptr)
-		}
 		if !field.codec.Omit(fptr) {
 			size += field.codec.Size(fptr, field.tag)
 		}
@@ -181,9 +166,6 @@ func (c *StructCodec) size(ptr unsafe.Pointer) (size int) {
 func (c *StructCodec) append(data []byte, ptr unsafe.Pointer) []byte {
 	for _, field := range c.fields {
 		fptr := unsafe.Add(ptr, field.offset)
-		if field.deref {
-			fptr = *(*unsafe.Pointer)(fptr)
-		}
 		if field.codec.Omit(fptr) {
 			continue
 		}

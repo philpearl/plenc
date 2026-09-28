@@ -70,29 +70,24 @@ func (c *MapCodec) newKey() any {
 	return c.keyCodec.New()
 }
 
-// When we're writing ptr is a map pointer. When reading it is a pointer to a
-// map pointer
-
 func (c *MapCodec) Omit(ptr unsafe.Pointer) bool {
-	return ptr == nil
+	return ptr == nil || *(*unsafe.Pointer)(ptr) == nil
 }
 
 func (c *MapCodec) size(ptr unsafe.Pointer) (size int) {
-	size = plenccore.SizeVarUint(uint64(maplen(ptr)))
+	mptr := *(*unsafe.Pointer)(ptr)
+	size = plenccore.SizeVarUint(uint64(maplen(mptr)))
 
 	var iterM mapiter
 	iter := unsafe.Pointer(&iterM)
-	mapiterinit(unpackEFace(c.rtype).data, ptr, iter)
-	elemIsMap := c.rtype.Elem().Kind() == reflect.Map
+	mapiterinit(unpackEFace(c.rtype).data, mptr, iter)
+
 	for {
 		k := mapiterkey(iter)
 		if k == nil {
 			break
 		}
 		v := mapiterelem(iter)
-		if elemIsMap && v != nil {
-			v = *(*unsafe.Pointer)(v)
-		}
 
 		s := c.sizeForEntry(k, v)
 		size += plenccore.SizeVarUint(uint64(s)) + s
@@ -115,29 +110,26 @@ func (*MapCodec) sizeFor(underlying Codec, ptr unsafe.Pointer, tag []byte) int {
 }
 
 func (c *MapCodec) append(data []byte, ptr unsafe.Pointer) []byte {
+	mptr := *(*unsafe.Pointer)(ptr)
+
 	add := func(underlying Codec, ptr unsafe.Pointer, tag []byte) {
 		if !underlying.Omit(ptr) {
 			data = underlying.Append(data, ptr, tag)
 		}
 	}
 
-	elemIsMap := c.rtype.Elem().Kind() == reflect.Map
-
 	// First add the count of entries
-	data = plenccore.AppendVarUint(data, uint64(maplen(ptr)))
+	data = plenccore.AppendVarUint(data, uint64(maplen(mptr)))
 
 	var iterM mapiter
 	iter := unsafe.Pointer(&iterM)
-	mapiterinit(unpackEFace(c.rtype).data, ptr, iter)
+	mapiterinit(unpackEFace(c.rtype).data, mptr, iter)
 	for {
 		k := mapiterkey(iter)
 		if k == nil {
 			break
 		}
 		v := mapiterelem(iter)
-		if elemIsMap && v != nil {
-			v = *(*unsafe.Pointer)(v)
-		}
 
 		// Add the length of each entry, then the key and value
 		data = plenccore.AppendVarUint(data, uint64(c.sizeForEntry(k, v)))
@@ -329,23 +321,18 @@ type ProtoMapCodec struct {
 }
 
 func (c ProtoMapCodec) Size(ptr unsafe.Pointer, tag []byte) (size int) {
+	mptr := *(*unsafe.Pointer)(ptr)
 	// Treat as an array of structs. Each entry carries its own tag
 	var iterM mapiter
 	iter := unsafe.Pointer(&iterM)
 
-	elemIsMap := c.rtype.Elem().Kind() == reflect.Map
-
-	mapiterinit(unpackEFace(c.rtype).data, ptr, iter)
+	mapiterinit(unpackEFace(c.rtype).data, mptr, iter)
 	for {
 		k := mapiterkey(iter)
 		if k == nil {
 			break
 		}
 		v := mapiterelem(iter)
-
-		if v != nil && elemIsMap {
-			v = *(*unsafe.Pointer)(v)
-		}
 
 		s := c.sizeForEntry(k, v)
 		size += len(tag) + plenccore.SizeVarUint(uint64(s)) + s
@@ -357,6 +344,7 @@ func (c ProtoMapCodec) Size(ptr unsafe.Pointer, tag []byte) (size int) {
 
 func (c ProtoMapCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byte {
 	// Each entry is appended separately as if a struct of key & value
+	mptr := *(*unsafe.Pointer)(ptr)
 
 	add := func(underlying Codec, ptr unsafe.Pointer, tag []byte) {
 		if !underlying.Omit(ptr) {
@@ -364,20 +352,15 @@ func (c ProtoMapCodec) Append(data []byte, ptr unsafe.Pointer, tag []byte) []byt
 		}
 	}
 
-	elemIsMap := c.rtype.Elem().Kind() == reflect.Map
-
 	var iterM mapiter
 	iter := unsafe.Pointer(&iterM)
-	mapiterinit(unpackEFace(c.rtype).data, ptr, iter)
+	mapiterinit(unpackEFace(c.rtype).data, mptr, iter)
 	for {
 		k := mapiterkey(iter)
 		if k == nil {
 			break
 		}
 		v := mapiterelem(iter)
-		if v != nil && elemIsMap {
-			v = *(*unsafe.Pointer)(v)
-		}
 
 		data = append(data, tag...)
 		data = plenccore.AppendVarUint(data, uint64(c.sizeForEntry(k, v)))
